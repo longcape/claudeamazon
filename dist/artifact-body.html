@@ -1,0 +1,2942 @@
+<title>VALORANT TACTICAL SETUP CARD</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+/* =========================================================
+   VALORANT TACTICAL SETUP CARD — stylesheet
+   ダークな戦術ボード風 UI（tracker.gg / valorant.gg テイスト）
+   ========================================================= */
+
+/* ---------- tokens ---------- */
+:root {
+  --bg:        #090E12;
+  --bg-2:      #0D141A;
+  --panel:     #101A21;
+  --panel-2:   #14212A;
+  --line:      #1E2F3A;
+  --line-hot:  #2B4453;
+  --text:      #ECE8E1;
+  --text-dim:  #8FA6B4;
+  --text-mute: #5E7382;
+
+  --red:       #FF4655;
+  --red-deep:  #C22B39;
+  --teal:      #22D3A6;
+  --teal-deep: #0E9B7A;
+  --cyan:      #35C6E8;
+  --gold:      #F5A623;
+  --violet:    #8B7BFF;
+
+  --ally:      var(--cyan);
+  --enemy:     var(--red);
+
+  --clip: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  --clip-sm: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+
+  --font-display: 'Chakra Petch', 'Bahnschrift', 'DIN Alternate', 'Noto Sans JP', system-ui, sans-serif;
+  --font-body: 'Noto Sans JP', 'Chakra Petch', system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ---------- background layers ---------- */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(53, 198, 232, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(53, 198, 232, .045) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 20%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 20%, transparent 80%);
+}
+
+.bg-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(760px 420px at 12% -8%, rgba(255, 70, 85, .18), transparent 70%),
+    radial-gradient(820px 460px at 92% 4%, rgba(53, 198, 232, .13), transparent 70%),
+    radial-gradient(900px 600px at 50% 110%, rgba(34, 211, 166, .07), transparent 70%);
+}
+
+/* ---------- typography helpers ---------- */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: .06em;
+  margin: 0;
+  font-weight: 700;
+}
+
+.hint { color: var(--text-mute); font-size: 11px; font-weight: 400; margin-left: 6px; }
+.req  { color: var(--red); font-size: 10px; margin-left: 6px; letter-spacing: .1em; }
+.spacer { flex: 1; }
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+.topbar {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 26px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(13, 20, 26, .96), rgba(9, 14, 18, .86));
+  backdrop-filter: blur(8px);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+.brand-mark {
+  width: 12px;
+  height: 30px;
+  background: linear-gradient(180deg, var(--red), var(--red-deep));
+  clip-path: polygon(0 0, 100% 0, 100% 72%, 50% 100%, 0 72%);
+  box-shadow: 0 0 18px rgba(255, 70, 85, .55);
+}
+
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-text b {
+  font-family: var(--font-display);
+  font-size: 17px;
+  letter-spacing: .16em;
+}
+.brand-text small {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .26em;
+  color: var(--text-mute);
+}
+
+.phase-nav { display: flex; gap: 8px; margin-left: auto; }
+
+.phase-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border: 1px solid var(--line);
+  background: rgba(20, 33, 42, .6);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  transition: color .15s, background .15s, border-color .15s;
+}
+.phase-tab .num { color: var(--text-mute); font-size: 10px; }
+.phase-tab:hover { color: var(--text); border-color: var(--line-hot); }
+.phase-tab.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(255, 70, 85, .9), rgba(194, 43, 57, .75));
+  border-color: transparent;
+  box-shadow: 0 0 22px rgba(255, 70, 85, .3);
+}
+.phase-tab.is-active .num { color: rgba(255, 255, 255, .7); }
+.phase-tab[disabled] { opacity: .35; cursor: not-allowed; }
+
+.topbar-actions { display: flex; gap: 8px; }
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+.btn {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  padding: 9px 18px;
+  border: 1px solid var(--line-hot);
+  background: rgba(20, 33, 42, .7);
+  color: var(--text-dim);
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  transition: all .15s ease;
+}
+.btn:hover { color: var(--text); border-color: var(--cyan); background: rgba(53, 198, 232, .12); }
+.btn:active { transform: translateY(1px); }
+.btn-sm { padding: 6px 13px; font-size: 11px; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--red), var(--red-deep));
+  border-color: transparent;
+  color: #fff;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ff5d6b, var(--red));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 22px rgba(255, 70, 85, .4);
+}
+.btn-danger:hover { border-color: var(--red); color: #ff8b95; background: rgba(255, 70, 85, .12); }
+.btn-ghost { background: transparent; }
+
+.btn-launch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 14px 54px;
+  font-family: var(--font-display);
+  border: none;
+  background: linear-gradient(135deg, var(--red), var(--red-deep));
+  color: #fff;
+  cursor: pointer;
+  clip-path: var(--clip);
+  box-shadow: 0 0 30px rgba(255, 70, 85, .35);
+  transition: all .18s ease;
+}
+.btn-launch span { font-size: 17px; font-weight: 700; letter-spacing: .2em; }
+.btn-launch em { font-style: normal; font-size: 10px; letter-spacing: .14em; opacity: .8; }
+.btn-launch:hover { transform: translateY(-2px); box-shadow: 0 6px 40px rgba(255, 70, 85, .55); }
+.btn-launch:disabled { background: #1a2a34; color: var(--text-mute); box-shadow: none; cursor: not-allowed; transform: none; }
+
+/* =========================================================
+   LAYOUT / PANEL
+   ========================================================= */
+.app {
+  position: relative;
+  z-index: 2;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 24px 26px 70px;
+}
+
+.view { animation: fade-up .35s ease both; }
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.panel {
+  background: linear-gradient(160deg, rgba(20, 33, 42, .92), rgba(13, 21, 27, .92));
+  border: 1px solid var(--line);
+  position: relative;
+}
+.panel-clip { clip-path: var(--clip); }
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(9, 14, 18, .45);
+  flex-wrap: wrap;
+}
+.panel-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  letter-spacing: .2em;
+}
+.panel-head h2 .idx {
+  font-size: 10px;
+  color: var(--red);
+  border: 1px solid rgba(255, 70, 85, .45);
+  padding: 1px 6px;
+  letter-spacing: .1em;
+}
+.panel-sub { margin: 0; font-size: 11px; color: var(--text-mute); }
+.panel-head-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.panel-body { padding: 18px 20px; }
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(420px, 1.35fr);
+  gap: 18px;
+}
+.panel-wide { grid-column: 1 / -1; }
+
+/* =========================================================
+   FORM CONTROLS
+   ========================================================= */
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+.field > label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: .18em;
+  color: var(--text-dim);
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+input[type="text"], input[type="search"], textarea, select {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(9, 14, 18, .8);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgba(53, 198, 232, .14);
+}
+textarea { resize: vertical; line-height: 1.6; }
+select { appearance: none; cursor: pointer; }
+
+/* map select */
+.map-select { display: flex; flex-wrap: wrap; gap: 6px; }
+.map-opt {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  background: rgba(9, 14, 18, .6);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .12em;
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  transition: all .15s;
+}
+.map-opt:hover { color: var(--text); border-color: var(--line-hot); }
+.map-opt.is-active {
+  color: #061014;
+  background: linear-gradient(135deg, var(--cyan), #1E9FBD);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+/* side toggle */
+.side-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.side-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: rgba(9, 14, 18, .6);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: .16em;
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  transition: all .15s;
+}
+.side-btn .dot { width: 8px; height: 8px; background: currentColor; border-radius: 50%; opacity: .6; }
+.side-btn[data-side="ATK"].is-active {
+  color: #fff; border-color: var(--red);
+  background: linear-gradient(135deg, rgba(255, 70, 85, .3), rgba(255, 70, 85, .08));
+  box-shadow: inset 0 0 20px rgba(255, 70, 85, .16);
+}
+.side-btn[data-side="DEF"].is-active {
+  color: #fff; border-color: var(--teal);
+  background: linear-gradient(135deg, rgba(34, 211, 166, .28), rgba(34, 211, 166, .06));
+  box-shadow: inset 0 0 20px rgba(34, 211, 166, .16);
+}
+.side-btn.is-active .dot { opacity: 1; box-shadow: 0 0 10px currentColor; }
+
+/* segmented control */
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg button {
+  flex: 1;
+  min-width: 56px;
+  padding: 9px 6px;
+  border: 1px solid var(--line);
+  background: rgba(9, 14, 18, .6);
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .12em;
+  cursor: pointer;
+  transition: all .15s;
+}
+.seg button:hover { color: var(--text); border-color: var(--line-hot); }
+.seg button.is-active {
+  color: #fff;
+  border-color: var(--red);
+  background: rgba(255, 70, 85, .18);
+}
+
+/* =========================================================
+   ROSTER (setup)
+   ========================================================= */
+.roster-body { display: grid; grid-template-columns: 1fr 42px 1fr; gap: 10px; align-items: start; }
+
+.roster-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  letter-spacing: .14em;
+  margin-bottom: 12px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+.roster-title span:last-child {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.tag {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .18em;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  flex-shrink: 0;
+}
+.tag-ally  { color: var(--cyan); }
+.tag-enemy { color: var(--red); }
+
+.roster-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 180px;
+  position: relative;
+}
+.roster-divider::before {
+  content: '';
+  position: absolute;
+  top: 6px; bottom: 6px; left: 50%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--line-hot), transparent);
+}
+.roster-divider span {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--text-mute);
+  background: var(--panel);
+  padding: 4px 2px;
+}
+
+.slot-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: rgba(9, 14, 18, .55);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  clip-path: var(--clip-sm);
+  transition: all .15s;
+}
+.slot:hover { border-color: var(--line-hot); background: rgba(20, 33, 42, .8); transform: translateX(2px); }
+.slot.is-empty { border-style: dashed; }
+
+.avatar {
+  width: 38px; height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #08111a;
+  background: #1b2a34;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  position: relative;
+}
+.avatar.is-empty { color: var(--text-mute); background: #16222b; }
+
+.slot-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.slot-agent {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .1em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.slot-role { font-size: 10px; letter-spacing: .1em; color: var(--text-mute); }
+.slot-player {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 84px;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   TACTIC DECK
+   ========================================================= */
+.deck-filter { display: flex; gap: 7px; margin-bottom: 14px; }
+.chip {
+  padding: 5px 14px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  cursor: pointer;
+  transition: all .15s;
+}
+.chip:hover { color: var(--text); }
+.chip.is-active { color: #fff; background: rgba(255, 70, 85, .18); border-color: var(--red); }
+
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+  gap: 12px;
+}
+
+.tcard {
+  position: relative;
+  padding: 14px 15px 13px;
+  border: 1px solid var(--line);
+  background: linear-gradient(150deg, rgba(20, 33, 42, .9), rgba(11, 18, 23, .95));
+  clip-path: var(--clip-sm);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.tcard::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--line-hot);
+}
+.tcard[data-side="ATK"]::before  { background: var(--red); box-shadow: 0 0 14px rgba(255, 70, 85, .5); }
+.tcard[data-side="DEF"]::before  { background: var(--teal); box-shadow: 0 0 14px rgba(34, 211, 166, .5); }
+.tcard[data-side="BOTH"]::before { background: linear-gradient(180deg, var(--red), var(--teal)); }
+.tcard:hover { transform: translateY(-3px); border-color: var(--line-hot); box-shadow: 0 10px 26px rgba(0, 0, 0, .45); }
+
+.tcard-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.tcard-site {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid var(--line-hot);
+  padding: 0 8px;
+  min-width: 30px;
+  text-align: center;
+}
+.tcard-kind {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .16em;
+  color: var(--gold);
+  border: 1px solid rgba(245, 166, 35, .4);
+  padding: 1px 7px;
+}
+.tcard-sidetag {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  color: var(--text-mute);
+}
+.tcard-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: .04em;
+  line-height: 1.35;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+.tcard-note {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tcard-stat {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  color: var(--text-mute);
+}
+
+.deck-empty {
+  color: var(--text-mute);
+  font-size: 12.5px;
+  text-align: center;
+  padding: 26px 10px;
+  border: 1px dashed var(--line);
+  margin: 0;
+}
+.deck-empty b { color: var(--text-dim); }
+
+/* =========================================================
+   SETUP FOOTER
+   ========================================================= */
+.setup-footer {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(20, 33, 42, .8), rgba(11, 18, 23, .6));
+  clip-path: var(--clip);
+  flex-wrap: wrap;
+}
+.ready-list { display: flex; gap: 22px; flex-wrap: wrap; flex: 1; }
+.ready-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  letter-spacing: .12em;
+  color: var(--text-mute);
+}
+.ready-item .mark {
+  width: 18px; height: 18px;
+  display: grid; place-items: center;
+  border: 1px solid currentColor;
+  font-size: 11px;
+}
+.ready-item.is-ok { color: var(--teal); }
+.ready-item.is-ng { color: var(--red); }
+
+/* =========================================================
+   SCOREBOARD
+   ========================================================= */
+.scorebar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 26px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(20, 33, 42, .95), rgba(10, 16, 21, .95));
+  margin-bottom: 16px;
+}
+.score-team { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.score-enemy { align-items: flex-end; text-align: right; }
+.team-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: .12em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
+.team-side {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .22em;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  align-self: flex-start;
+}
+.score-enemy .team-side { align-self: flex-end; }
+.team-side[data-side="ATK"] { color: var(--red); }
+.team-side[data-side="DEF"] { color: var(--teal); }
+
+.score-core { display: flex; align-items: center; gap: 22px; }
+.score-num {
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 62px;
+  text-align: center;
+  text-shadow: 0 0 26px currentColor;
+}
+.score-num-ally  { color: var(--cyan); }
+.score-num-enemy { color: var(--red); }
+.score-mid { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.score-mid b {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .2em;
+  color: var(--text);
+}
+.score-mid small {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .24em;
+  color: var(--text-mute);
+}
+
+.match-banner {
+  margin: -6px 0 16px;
+  padding: 11px 22px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .22em;
+  border: 1px solid;
+  clip-path: var(--clip-sm);
+}
+.match-banner.win  { color: var(--teal); border-color: rgba(34, 211, 166, .5); background: rgba(34, 211, 166, .1); }
+.match-banner.loss { color: var(--red);  border-color: rgba(255, 70, 85, .5);  background: rgba(255, 70, 85, .1); }
+.match-banner.point { color: var(--gold); border-color: rgba(245, 166, 35, .5); background: rgba(245, 166, 35, .08); }
+
+/* =========================================================
+   BOARD
+   ========================================================= */
+.board {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr) 232px;
+  gap: 16px;
+  align-items: start;
+}
+
+.board-side {
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(20, 33, 42, .82), rgba(11, 18, 23, .9));
+  clip-path: var(--clip);
+  padding: 14px 13px;
+}
+.board-side-title { margin-bottom: 11px; display: flex; }
+.board-roster { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+
+.broster-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  background: rgba(9, 14, 18, .5);
+  clip-path: var(--clip-sm);
+}
+.broster-item .avatar { width: 32px; height: 32px; font-size: 11px; }
+.broster-item .slot-agent { font-size: 12px; }
+.board-enemy .broster-item { border-color: rgba(255, 70, 85, .22); }
+.board-ally  .broster-item { border-color: rgba(53, 198, 232, .22); }
+
+/* --- stage --- */
+.stage { min-height: 420px; display: flex; flex-direction: column; gap: 14px; }
+
+.stage-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  border: 1px solid var(--line);
+  background: rgba(13, 21, 27, .9);
+  clip-path: var(--clip-sm);
+  flex-wrap: wrap;
+}
+.stage-head h3 { font-size: 13px; letter-spacing: .2em; }
+.stage-head p { margin: 0; font-size: 11.5px; color: var(--text-dim); flex-basis: 100%; }
+.stage-head .stage-actions { margin-left: auto; display: flex; gap: 8px; }
+
+.result-pill {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .2em;
+  padding: 3px 12px;
+  border: 1px solid currentColor;
+}
+.result-pill.win  { color: var(--teal); }
+.result-pill.loss { color: var(--red); }
+
+/* --- 現在ラウンドの戦術カード --- */
+.live-card {
+  position: relative;
+  border: 1px solid var(--line-hot);
+  background:
+    linear-gradient(150deg, rgba(24, 39, 49, .96), rgba(10, 16, 21, .96));
+  clip-path: var(--clip);
+  padding: 26px 28px 24px;
+  overflow: hidden;
+  animation: card-in .3s ease both;
+}
+@keyframes card-in { from { opacity: 0; transform: scale(.985) translateY(8px); } to { opacity: 1; transform: none; } }
+
+.live-card::after {
+  content: '';
+  position: absolute;
+  right: -60px; top: -60px;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(255, 70, 85, .16), transparent 68%);
+  pointer-events: none;
+}
+.live-card[data-side="DEF"]::after { background: radial-gradient(circle, rgba(34, 211, 166, .16), transparent 68%); }
+
+.live-card .lc-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--red);
+  box-shadow: 0 0 22px rgba(255, 70, 85, .6);
+}
+.live-card[data-side="DEF"] .lc-bar { background: var(--teal); box-shadow: 0 0 22px rgba(34, 211, 166, .6); }
+
+.lc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.lc-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .3em;
+  color: var(--text-mute);
+}
+.lc-site {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+  border: 2px solid var(--line-hot);
+  padding: 4px 14px;
+}
+.lc-name {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.2vw, 40px);
+  font-weight: 700;
+  letter-spacing: .03em;
+  line-height: 1.18;
+  margin: 0 0 10px;
+  text-shadow: 0 0 40px rgba(255, 255, 255, .08);
+  word-break: break-word;
+}
+.lc-note {
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--text-dim);
+  border-left: 2px solid var(--line-hot);
+  padding-left: 14px;
+  margin: 0 0 18px;
+  white-space: pre-wrap;
+}
+.lc-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.meta-pill {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+  padding: 3px 10px;
+  background: rgba(9, 14, 18, .6);
+}
+
+.lc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.res-btn {
+  padding: 18px;
+  border: 1px solid;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: .28em;
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  background: transparent;
+  transition: all .16s ease;
+}
+.res-btn small {
+  display: block;
+  font-size: 9.5px;
+  letter-spacing: .2em;
+  opacity: .65;
+  margin-top: 3px;
+  font-weight: 400;
+}
+.res-win  { color: var(--teal); border-color: rgba(34, 211, 166, .45); }
+.res-win:hover {
+  background: linear-gradient(135deg, rgba(34, 211, 166, .28), rgba(34, 211, 166, .06));
+  color: #fff; border-color: var(--teal);
+  box-shadow: 0 0 28px rgba(34, 211, 166, .3);
+  transform: translateY(-2px);
+}
+.res-loss { color: var(--red); border-color: rgba(255, 70, 85, .45); }
+.res-loss:hover {
+  background: linear-gradient(135deg, rgba(255, 70, 85, .28), rgba(255, 70, 85, .06));
+  color: #fff; border-color: var(--red);
+  box-shadow: 0 0 28px rgba(255, 70, 85, .3);
+  transform: translateY(-2px);
+}
+
+/* --- 戦術選択（ピック） --- */
+.pick-list { display: grid; gap: 10px; }
+
+.pick {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(120deg, rgba(20, 33, 42, .85), rgba(11, 18, 23, .9));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  transition: transform .14s, border-color .14s, box-shadow .14s;
+}
+.pick:hover { transform: translateX(4px); border-color: var(--line-hot); box-shadow: 0 6px 22px rgba(0, 0, 0, .4); }
+.pick.is-top { border-color: rgba(34, 211, 166, .5); box-shadow: inset 0 0 30px rgba(34, 211, 166, .07); }
+
+.pick-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+.pick-score b { font-size: 23px; font-weight: 700; }
+.pick-score small { font-size: 8.5px; letter-spacing: .18em; color: var(--text-mute); margin-top: 3px; }
+.pick-score.good b { color: var(--teal); text-shadow: 0 0 16px rgba(34, 211, 166, .5); }
+.pick-score.warn b { color: var(--gold); }
+.pick-score.bad  b { color: var(--red); }
+
+.pick-main { min-width: 0; }
+.pick-name {
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  letter-spacing: .04em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.pick-name .badge {
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  padding: 1px 7px;
+  border: 1px solid currentColor;
+}
+.badge-atk { color: var(--red); }
+.badge-def { color: var(--teal); }
+.badge-both { color: var(--violet); }
+.badge-site { color: var(--text); background: rgba(255, 255, 255, .07); border-color: var(--line-hot); }
+
+.pick-reasons { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 6px; }
+.reason {
+  font-size: 10.5px;
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+}
+.reason.good { color: var(--teal); border-color: rgba(34, 211, 166, .3); }
+.reason.bad  { color: var(--red);  border-color: rgba(255, 70, 85, .3); }
+.reason.warn { color: var(--gold); border-color: rgba(245, 166, 35, .3); }
+
+.pick-record {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--text-mute);
+  text-align: right;
+  white-space: nowrap;
+}
+.pick-record b { color: var(--text); font-size: 13px; }
+
+.pick-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pick-tools .eco-seg { display: flex; gap: 5px; }
+.pick-tools .eco-seg button {
+  padding: 5px 11px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .12em;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  cursor: pointer;
+  transition: all .15s;
+}
+.pick-tools .eco-seg button.is-active { color: #fff; border-color: var(--cyan); background: rgba(53, 198, 232, .14); }
+
+/* =========================================================
+   TIMELINE / PERFORMANCE
+   ========================================================= */
+.lower {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+.tl-row {
+  display: grid;
+  grid-template-columns: 46px 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  background: rgba(9, 14, 18, .5);
+  font-size: 12px;
+}
+.tl-row.win  { border-left-color: var(--teal); }
+.tl-row.loss { border-left-color: var(--red); }
+.tl-round { font-family: var(--font-display); font-size: 12px; color: var(--text-mute); letter-spacing: .08em; }
+.tl-side { font-family: var(--font-display); font-size: 9.5px; letter-spacing: .12em; }
+.tl-side[data-side="ATK"] { color: var(--red); }
+.tl-side[data-side="DEF"] { color: var(--teal); }
+.tl-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-res { font-family: var(--font-display); font-size: 11px; letter-spacing: .18em; }
+.tl-row.win .tl-res  { color: var(--teal); }
+.tl-row.loss .tl-res { color: var(--red); }
+
+.perf-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; max-height: 340px; overflow-y: auto; }
+.perf-item { display: flex; flex-direction: column; gap: 5px; }
+.perf-top { display: flex; align-items: baseline; gap: 8px; font-size: 12px; }
+.perf-name {
+  font-family: var(--font-display);
+  letter-spacing: .04em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
+}
+.perf-rate { font-family: var(--font-display); font-size: 13px; }
+.perf-count { font-size: 10.5px; color: var(--text-mute); }
+.perf-bar { height: 5px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.perf-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--teal-deep), var(--teal)); }
+.perf-bar.low span { background: linear-gradient(90deg, var(--red-deep), var(--red)); }
+.perf-bar.mid span { background: linear-gradient(90deg, #b8791a, var(--gold)); }
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+.modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 22px; }
+.modal[hidden] { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(4, 8, 11, .82); backdrop-filter: blur(4px); }
+.modal-card {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #16232c, #0C141A);
+  border: 1px solid var(--line-hot);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .7);
+  animation: card-in .22s ease both;
+}
+.modal-head {
+  display: flex; align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.modal-head h2 { font-size: 13px; letter-spacing: .22em; }
+.modal-close {
+  margin-left: auto;
+  width: 30px; height: 30px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-close:hover { color: var(--red); border-color: var(--red); }
+.modal-body { padding: 18px 20px; overflow-y: auto; }
+.modal-foot { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
+
+.agent-tools { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.agent-tools input[type="search"] { flex: 1; min-width: 180px; }
+.role-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+.role-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .14em;
+  cursor: pointer;
+  transition: all .15s;
+}
+.role-chip:hover { color: var(--text); }
+.role-chip.is-active { color: #fff; border-color: currentColor; }
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  max-height: 42vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.agent-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 6px 9px;
+  border: 1px solid var(--line);
+  background: rgba(9, 14, 18, .6);
+  color: var(--text-dim);
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  transition: all .14s;
+}
+.agent-opt:hover { transform: translateY(-2px); color: var(--text); border-color: var(--line-hot); }
+.agent-opt.is-active { border-color: var(--cyan); background: rgba(53, 198, 232, .1); color: #fff; }
+.agent-opt .avatar { width: 40px; height: 40px; }
+.agent-opt b { font-family: var(--font-display); font-size: 11px; letter-spacing: .08em; }
+.agent-opt small { font-size: 9px; letter-spacing: .1em; color: var(--text-mute); }
+
+.agent-extra {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.agent-extra label {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: .16em;
+  color: var(--text-dim);
+}
+.agent-extra input { flex: 1; min-width: 140px; }
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 30px;
+  transform: translateX(-50%);
+  z-index: 80;
+  padding: 12px 26px;
+  background: rgba(13, 21, 27, .96);
+  border: 1px solid var(--line-hot);
+  border-left: 3px solid var(--cyan);
+  color: var(--text);
+  font-size: 12.5px;
+  clip-path: var(--clip-sm);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .6);
+  animation: toast-in .22s ease both;
+}
+.toast.err { border-left-color: var(--red); }
+.toast.ok  { border-left-color: var(--teal); }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 1180px) {
+  .board { grid-template-columns: 1fr; }
+  .board-side { order: 2; }
+  .stage { order: 1; }
+  .board-roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .lower { grid-template-columns: 1fr; }
+  .setup-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 820px) {
+  .topbar { flex-wrap: wrap; gap: 12px; padding: 12px 16px; }
+  .phase-nav { margin-left: 0; order: 3; width: 100%; }
+  .phase-tab { flex: 1; justify-content: center; }
+  .topbar-actions { margin-left: auto; }
+  .app { padding: 16px 14px 60px; }
+  .roster-body { grid-template-columns: 1fr; }
+  .roster-divider { min-height: 0; height: 26px; }
+  .roster-divider::before { top: 50%; bottom: auto; left: 0; right: 0; width: auto; height: 1px; background: linear-gradient(90deg, transparent, var(--line-hot), transparent); }
+  .score-core { gap: 12px; }
+  .score-num { font-size: 38px; min-width: 46px; }
+  .team-name { font-size: 14px; }
+  .field-row { grid-template-columns: 1fr; }
+  .lc-actions { grid-template-columns: 1fr; }
+  .pick { grid-template-columns: 44px minmax(0, 1fr); }
+  .pick-record { grid-column: 1 / -1; text-align: left; }
+  .setup-footer { flex-direction: column; align-items: stretch; }
+  .btn-launch { width: 100%; }
+}
+
+/* スクロールバー */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: rgba(255, 255, 255, .03); }
+::-webkit-scrollbar-thumb { background: #243a47; }
+::-webkit-scrollbar-thumb:hover { background: #33505f; }
+
+@media (max-width: 560px) {
+  .scorebar { padding: 12px 14px; gap: 10px; }
+  .score-core { gap: 8px; }
+  .score-num { font-size: 32px; min-width: 36px; }
+  .team-name { font-size: 12px; letter-spacing: .06em; }
+  .team-side { font-size: 8.5px; letter-spacing: .14em; padding: 0 6px; }
+  .score-mid b { font-size: 11px; letter-spacing: .12em; }
+  .score-mid small { font-size: 9px; letter-spacing: .16em; }
+  .tl-row { grid-template-columns: 34px 30px minmax(0, 1fr) auto; gap: 8px; padding: 7px 9px; }
+}
+</style>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">
+      <b>TACTICAL SETUP CARD</b>
+      <small>VALORANT / ROUND CALL SYSTEM</small>
+    </span>
+  </div>
+
+  <nav class="phase-nav" role="tablist" aria-label="フェーズ切り替え">
+    <button class="phase-tab is-active" data-phase="setup" role="tab" aria-selected="true">
+      <span class="num">01</span> SETUP
+    </button>
+    <button class="phase-tab" data-phase="live" role="tab" aria-selected="false">
+      <span class="num">02</span> LIVE BOARD
+    </button>
+  </nav>
+
+  <div class="topbar-actions">
+    <button class="btn btn-ghost" id="btn-export" title="現在の設定と戦績を JSON で書き出し">EXPORT</button>
+    <button class="btn btn-ghost" id="btn-import" title="JSON を読み込み">IMPORT</button>
+    <button class="btn btn-ghost btn-danger" id="btn-reset-all" title="全データを初期化">RESET</button>
+    <input type="file" id="file-import" accept="application/json,.json" hidden />
+  </div>
+</header>
+
+<main class="app">
+
+  <!-- ==================== SETUP VIEW ==================== -->
+  <section class="view" id="view-setup">
+
+    <div class="setup-grid">
+
+      <!-- --- マッチ設定 --- -->
+      <article class="panel panel-clip" id="panel-match">
+        <header class="panel-head">
+          <h2><span class="idx">01</span>MATCH SETUP</h2>
+          <p class="panel-sub">マップとサイドを設定</p>
+        </header>
+        <div class="panel-body">
+          <div class="field">
+            <label for="inp-map">MAP</label>
+            <div class="map-select" id="map-select"></div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="inp-ally-team">OUR TEAM</label>
+              <input type="text" id="inp-ally-team" maxlength="18" placeholder="チーム名" />
+            </div>
+            <div class="field">
+              <label for="inp-enemy-team">OPPONENT</label>
+              <input type="text" id="inp-enemy-team" maxlength="18" placeholder="相手チーム名" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>STARTING SIDE <span class="hint">前半のサイド / 13R で自動反転</span></label>
+            <div class="side-toggle" id="side-toggle">
+              <button class="side-btn is-active" data-side="ATK">
+                <span class="dot"></span>ATTACK
+              </button>
+              <button class="side-btn" data-side="DEF">
+                <span class="dot"></span>DEFENSE
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="inp-match-note">MATCH NOTE <span class="hint">任意</span></label>
+            <textarea id="inp-match-note" rows="2" maxlength="240" placeholder="相手の傾向・スカウト情報など"></textarea>
+          </div>
+        </div>
+      </article>
+
+      <!-- --- エージェント --- -->
+      <article class="panel panel-clip" id="panel-roster">
+        <header class="panel-head">
+          <h2><span class="idx">02</span>AGENT COMPOSITION</h2>
+          <p class="panel-sub">味方 5 / 敵 5 のエージェントをセット</p>
+        </header>
+        <div class="panel-body roster-body">
+          <div class="roster-col roster-ally">
+            <h3 class="roster-title"><span class="tag tag-ally">ALLY</span><span id="roster-ally-name">OUR TEAM</span></h3>
+            <ul class="slot-list" id="slots-ally"></ul>
+          </div>
+          <div class="roster-divider" aria-hidden="true"><span>VS</span></div>
+          <div class="roster-col roster-enemy">
+            <h3 class="roster-title"><span class="tag tag-enemy">ENEMY</span><span id="roster-enemy-name">OPPONENT</span></h3>
+            <ul class="slot-list" id="slots-enemy"></ul>
+          </div>
+        </div>
+      </article>
+
+      <!-- --- 戦術デッキ --- -->
+      <article class="panel panel-clip panel-wide" id="panel-deck">
+        <header class="panel-head">
+          <h2><span class="idx">03</span>TACTIC DECK</h2>
+          <p class="panel-sub">ラウンドで使う戦術を事前登録</p>
+          <div class="panel-head-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-seed">SAMPLE 追加</button>
+            <button class="btn btn-primary btn-sm" id="btn-add-tactic">+ 戦術を追加</button>
+          </div>
+        </header>
+        <div class="panel-body">
+          <div class="deck-filter" id="deck-filter">
+            <button class="chip is-active" data-filter="ALL">ALL</button>
+            <button class="chip" data-filter="ATK">ATTACK</button>
+            <button class="chip" data-filter="DEF">DEFENSE</button>
+          </div>
+          <div class="deck-grid" id="deck-grid"></div>
+          <p class="deck-empty" id="deck-empty" hidden>
+            まだ戦術が登録されていません。<b>「+ 戦術を追加」</b>から作成するか、<b>SAMPLE 追加</b>で雛形を読み込んでください。
+          </p>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="setup-footer">
+      <div class="ready-list" id="ready-list"></div>
+      <button class="btn btn-launch" id="btn-start">
+        <span>START MATCH</span>
+        <em>ラウンド 1 へ</em>
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== LIVE VIEW ==================== -->
+  <section class="view" id="view-live" hidden>
+
+    <!-- スコアボード -->
+    <div class="scorebar panel-clip">
+      <div class="score-team score-ally">
+        <span class="team-name" id="score-ally-name">OUR TEAM</span>
+        <span class="team-side" id="score-ally-side">ATTACK</span>
+      </div>
+      <div class="score-core">
+        <span class="score-num score-num-ally" id="score-ally">0</span>
+        <span class="score-mid">
+          <b id="score-round">ROUND 1</b>
+          <small id="score-map">ASCENT</small>
+        </span>
+        <span class="score-num score-num-enemy" id="score-enemy">0</span>
+      </div>
+      <div class="score-team score-enemy">
+        <span class="team-name" id="score-enemy-name">OPPONENT</span>
+        <span class="team-side" id="score-enemy-side">DEFENSE</span>
+      </div>
+    </div>
+    <div class="match-banner" id="match-banner" hidden></div>
+
+    <!-- ボード本体 -->
+    <div class="board">
+      <aside class="board-side board-ally">
+        <h3 class="board-side-title"><span class="tag tag-ally">ALLY</span></h3>
+        <ul class="board-roster" id="board-ally"></ul>
+      </aside>
+
+      <div class="stage" id="stage"></div>
+
+      <aside class="board-side board-enemy">
+        <h3 class="board-side-title"><span class="tag tag-enemy">ENEMY</span></h3>
+        <ul class="board-roster" id="board-enemy"></ul>
+      </aside>
+    </div>
+
+    <!-- 下段: タイムライン & 戦術成績 -->
+    <div class="lower">
+      <article class="panel panel-clip">
+        <header class="panel-head">
+          <h2><span class="idx">04</span>ROUND TIMELINE</h2>
+          <div class="panel-head-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-undo">← 直前のラウンドを取り消す</button>
+            <button class="btn btn-ghost btn-sm btn-danger" id="btn-reset-match">スコアリセット</button>
+          </div>
+        </header>
+        <div class="panel-body">
+          <ol class="timeline" id="timeline"></ol>
+          <p class="deck-empty" id="timeline-empty">まだラウンドの記録がありません。</p>
+        </div>
+      </article>
+
+      <article class="panel panel-clip">
+        <header class="panel-head">
+          <h2><span class="idx">05</span>TACTIC PERFORMANCE</h2>
+          <p class="panel-sub">戦術別の勝率</p>
+        </header>
+        <div class="panel-body">
+          <ul class="perf-list" id="perf-list"></ul>
+        </div>
+      </article>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ AGENT PICKER MODAL ============ -->
+<div class="modal" id="modal-agent" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="agent-modal-title">
+    <header class="modal-head">
+      <h2 id="agent-modal-title">SELECT AGENT</h2>
+      <button class="modal-close" data-close aria-label="閉じる">×</button>
+    </header>
+    <div class="modal-body">
+      <div class="agent-tools">
+        <input type="search" id="agent-search" placeholder="エージェント名で検索…" autocomplete="off" />
+        <div class="role-filter" id="role-filter"></div>
+      </div>
+      <div class="agent-grid" id="agent-grid"></div>
+      <div class="agent-extra">
+        <label for="agent-player">プレイヤー名 <span class="hint">任意</span></label>
+        <input type="text" id="agent-player" maxlength="16" placeholder="IGN" />
+        <button class="btn btn-ghost btn-sm" id="btn-clear-slot">スロットを空にする</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TACTIC EDITOR MODAL ============ -->
+<div class="modal" id="modal-tactic" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="tactic-modal-title">
+    <header class="modal-head">
+      <h2 id="tactic-modal-title">NEW TACTIC</h2>
+      <button class="modal-close" data-close aria-label="閉じる">×</button>
+    </header>
+    <form class="modal-body" id="tactic-form">
+      <div class="field">
+        <label for="t-name">戦術名 <span class="req">必須</span></label>
+        <input type="text" id="t-name" maxlength="60" placeholder="例: A ダブルスモーク エグゼ" required />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>使用サイド</label>
+          <div class="seg" id="t-side">
+            <button type="button" data-val="ATK">ATTACK</button>
+            <button type="button" data-val="DEF">DEFENSE</button>
+            <button type="button" data-val="BOTH" class="is-active">BOTH</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="t-site">ターゲット</label>
+          <div class="seg seg-sites" id="t-site"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="t-kind">戦術タイプ</label>
+        <select id="t-kind"></select>
+      </div>
+      <div class="field">
+        <label for="t-note">コール / 詳細</label>
+        <textarea id="t-note" rows="4" maxlength="400" placeholder="ユーティリティの使い方、タイミング、失敗時の判断など"></textarea>
+      </div>
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost btn-danger" id="btn-delete-tactic" hidden>削除</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close>キャンセル</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---- data.js ---- */
+/* =========================================================
+   VALORANT TACTICAL SETUP CARD  /  static data
+   エージェント・マップ・戦術タグなどのマスタデータ
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  /* ロール定義（カラーはボード全体のアクセントに使用） */
+  const ROLES = {
+    duelist:    { id: 'duelist',    label: 'DUELIST',    jp: 'デュエリスト',   color: '#FF4655' },
+    initiator:  { id: 'initiator',  label: 'INITIATOR',  jp: 'イニシエーター', color: '#F5A623' },
+    controller: { id: 'controller', label: 'CONTROLLER', jp: 'コントローラー', color: '#8B7BFF' },
+    sentinel:   { id: 'sentinel',   label: 'SENTINEL',   jp: 'センチネル',     color: '#22D3A6' }
+  };
+
+  /* エージェント一覧（id / 表示名 / 略号 / ロール） */
+  const AGENTS = [
+    { id: 'jett',      name: 'JETT',      jp: 'ジェット',       abbr: 'JT', role: 'duelist' },
+    { id: 'phoenix',   name: 'PHOENIX',   jp: 'フェニックス',   abbr: 'PX', role: 'duelist' },
+    { id: 'raze',      name: 'RAZE',      jp: 'レイズ',         abbr: 'RZ', role: 'duelist' },
+    { id: 'reyna',     name: 'REYNA',     jp: 'レイナ',         abbr: 'RY', role: 'duelist' },
+    { id: 'yoru',      name: 'YORU',      jp: 'ヨル',           abbr: 'YR', role: 'duelist' },
+    { id: 'neon',      name: 'NEON',      jp: 'ネオン',         abbr: 'NE', role: 'duelist' },
+    { id: 'iso',       name: 'ISO',       jp: 'アイソ',         abbr: 'IS', role: 'duelist' },
+    { id: 'waylay',    name: 'WAYLAY',    jp: 'ウェイレイ',     abbr: 'WL', role: 'duelist' },
+
+    { id: 'sova',      name: 'SOVA',      jp: 'ソーヴァ',       abbr: 'SV', role: 'initiator' },
+    { id: 'breach',    name: 'BREACH',    jp: 'ブリーチ',       abbr: 'BR', role: 'initiator' },
+    { id: 'skye',      name: 'SKYE',      jp: 'スカイ',         abbr: 'SK', role: 'initiator' },
+    { id: 'kayo',      name: 'KAY/O',     jp: 'ケイオー',       abbr: 'KO', role: 'initiator' },
+    { id: 'fade',      name: 'FADE',      jp: 'フェイド',       abbr: 'FD', role: 'initiator' },
+    { id: 'gekko',     name: 'GEKKO',     jp: 'ゲッコー',       abbr: 'GK', role: 'initiator' },
+    { id: 'tejo',      name: 'TEJO',      jp: 'テホ',           abbr: 'TJ', role: 'initiator' },
+
+    { id: 'brimstone', name: 'BRIMSTONE', jp: 'ブリムストーン', abbr: 'BS', role: 'controller' },
+    { id: 'omen',      name: 'OMEN',      jp: 'オーメン',       abbr: 'OM', role: 'controller' },
+    { id: 'viper',     name: 'VIPER',     jp: 'ヴァイパー',     abbr: 'VP', role: 'controller' },
+    { id: 'astra',     name: 'ASTRA',     jp: 'アストラ',       abbr: 'AS', role: 'controller' },
+    { id: 'harbor',    name: 'HARBOR',    jp: 'ハーバー',       abbr: 'HB', role: 'controller' },
+    { id: 'clove',     name: 'CLOVE',     jp: 'クローヴ',       abbr: 'CV', role: 'controller' },
+
+    { id: 'killjoy',   name: 'KILLJOY',   jp: 'キルジョイ',     abbr: 'KJ', role: 'sentinel' },
+    { id: 'cypher',    name: 'CYPHER',    jp: 'サイファー',     abbr: 'CY', role: 'sentinel' },
+    { id: 'sage',      name: 'SAGE',      jp: 'セージ',         abbr: 'SG', role: 'sentinel' },
+    { id: 'chamber',   name: 'CHAMBER',   jp: 'チェンバー',     abbr: 'CH', role: 'sentinel' },
+    { id: 'deadlock',  name: 'DEADLOCK',  jp: 'デッドロック',   abbr: 'DL', role: 'sentinel' },
+    { id: 'vyse',      name: 'VYSE',      jp: 'ヴァイス',       abbr: 'VY', role: 'sentinel' }
+  ];
+
+  /* マップ（サイト構成つき／戦術のターゲット候補に使う） */
+  const MAPS = [
+    { id: 'ascent',  name: 'ASCENT',  sites: ['A', 'B'] },
+    { id: 'bind',    name: 'BIND',    sites: ['A', 'B'] },
+    { id: 'haven',   name: 'HAVEN',   sites: ['A', 'B', 'C'] },
+    { id: 'split',   name: 'SPLIT',   sites: ['A', 'B'] },
+    { id: 'icebox',  name: 'ICEBOX',  sites: ['A', 'B'] },
+    { id: 'breeze',  name: 'BREEZE',  sites: ['A', 'B'] },
+    { id: 'fracture',name: 'FRACTURE',sites: ['A', 'B'] },
+    { id: 'pearl',   name: 'PEARL',   sites: ['A', 'B'] },
+    { id: 'lotus',   name: 'LOTUS',   sites: ['A', 'B', 'C'] },
+    { id: 'sunset',  name: 'SUNSET',  sites: ['A', 'B'] },
+    { id: 'abyss',   name: 'ABYSS',   sites: ['A', 'B'] },
+    { id: 'corrode', name: 'CORRODE', sites: ['A', 'B'] }
+  ];
+
+  /* 戦術タイプ */
+  const KINDS = [
+    { id: 'execute', label: 'EXECUTE',  jp: '定石エグゼキュート' },
+    { id: 'default', label: 'DEFAULT',  jp: 'デフォルト' },
+    { id: 'fast',    label: 'FAST',     jp: 'ファストプッシュ' },
+    { id: 'split',   label: 'SPLIT',    jp: 'スプリットプッシュ' },
+    { id: 'fake',    label: 'FAKE',     jp: 'フェイク' },
+    { id: 'stack',   label: 'STACK',    jp: 'スタック' },
+    { id: 'retake',  label: 'RETAKE',   jp: 'リテイク' },
+    { id: 'aggro',   label: 'AGGRO',    jp: 'アグレッシブ' },
+    { id: 'passive', label: 'PASSIVE',  jp: 'パッシブ / リテイク寄せ' },
+    { id: 'eco',     label: 'ECO',      jp: 'エコ / フォース' }
+  ];
+
+  /* サイド */
+  const SIDES = {
+    ATK: { id: 'ATK', label: 'ATTACK',  jp: 'アタッカー', color: '#FF4655' },
+    DEF: { id: 'DEF', label: 'DEFENSE', jp: 'ディフェンダー', color: '#22D3A6' }
+  };
+
+  /* ラウンドのバイ状況 */
+  const ECONOMY = [
+    { id: 'full',  label: 'FULL BUY' },
+    { id: 'force', label: 'FORCE' },
+    { id: 'eco',   label: 'ECO' },
+    { id: 'bonus', label: 'BONUS' }
+  ];
+
+  /* 初期投入されるサンプル戦術（空デッキだと使い始めが分かりにくいため） */
+  const SAMPLE_TACTICS = [
+    { name: 'A ダブルスモーク エグゼ', side: 'ATK', site: 'A',   kind: 'execute', note: 'ユーティリティ全出し。ファーストブラッド取れなければ即リグループ。' },
+    { name: 'B ファストラッシュ',      side: 'ATK', site: 'B',   kind: 'fast',    note: '開幕30秒で入る。フラッシュ2枚先行、デュエリストがエントリー。' },
+    { name: 'ミッドコントロール',      side: 'ATK', site: 'MID', kind: 'default', note: 'ミッド取り切ってから両サイトへスプリット。残り40秒でコール。' },
+    { name: 'A フェイク → B',          side: 'ATK', site: 'B',   kind: 'fake',    note: 'A に3枚見せてユーティリティを吐かせ、B へローテート。' },
+    { name: 'A スタック',              side: 'DEF', site: 'A',   kind: 'stack',   note: '3枚 A 寄せ。B はリテイク前提で最低限のディレイ。' },
+    { name: 'デフォルト 2-1-2',        side: 'DEF', site: 'MID', kind: 'default', note: '基本配置。情報取ってからローテーション。' },
+    { name: 'アグレッシブ ミッド取り', side: 'DEF', site: 'MID', kind: 'aggro',   note: 'ミッドを先に取って相手の展開を潰す。失敗したら即引く。' }
+  ];
+
+  global.VCT_DATA = { ROLES, AGENTS, MAPS, KINDS, SIDES, ECONOMY, SAMPLE_TACTICS };
+
+  /* 便利関数 */
+  global.VCT_DATA.agentById = function (id) {
+    return AGENTS.find(function (a) { return a.id === id; }) || null;
+  };
+  global.VCT_DATA.roleOf = function (agentId) {
+    const a = global.VCT_DATA.agentById(agentId);
+    return a ? ROLES[a.role] : null;
+  };
+  global.VCT_DATA.mapById = function (id) {
+    return MAPS.find(function (m) { return m.id === id; }) || null;
+  };
+  global.VCT_DATA.kindById = function (id) {
+    return KINDS.find(function (k) { return k.id === id; }) || KINDS[0];
+  };
+})(window);
+</script>
+<script>
+/* ---- store.js ---- */
+/* =========================================================
+   STATE STORE
+   状態管理・localStorage 永続化・派生値の計算
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const STORAGE_KEY = 'vct.setup-card.v1';
+  const D = global.VCT_DATA;
+
+  function uid() {
+    return 'tc_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+  }
+
+  function emptySlot() {
+    return { agent: '', player: '' };
+  }
+
+  function defaultState() {
+    return {
+      version: 1,
+      phase: 'setup',                 // 'setup' | 'live'
+      match: {
+        map: 'ascent',
+        startSide: 'ATK',             // 前半のサイド
+        allyTeam: 'OUR TEAM',
+        enemyTeam: 'OPPONENT',
+        note: ''
+      },
+      allies:  [emptySlot(), emptySlot(), emptySlot(), emptySlot(), emptySlot()],
+      enemies: [emptySlot(), emptySlot(), emptySlot(), emptySlot(), emptySlot()],
+      tactics: [],
+      rounds: [],                     // 確定したラウンドの記録
+      pending: null,                  // 現在ラウンドにセット済みの戦術 { tacticId, economy }
+      sideOverrides: {}               // { roundNumber: 'ATK'|'DEF' } 手動でサイドを上書きした場合
+    };
+  }
+
+  const state = defaultState();
+
+  /* ---------------- 永続化 ---------------- */
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) { /* プライベートモード等では黙って諦める */ }
+  }
+
+  function load() {
+    let raw = null;
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return false; }
+    if (!raw) return false;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || parsed.version !== 1) return false;
+      hydrate(parsed);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function hydrate(obj) {
+    const base = defaultState();
+    state.phase   = obj.phase === 'live' ? 'live' : 'setup';
+    state.match   = Object.assign(base.match, obj.match || {});
+    state.allies  = normalizeRoster(obj.allies);
+    state.enemies = normalizeRoster(obj.enemies);
+    state.tactics = Array.isArray(obj.tactics) ? obj.tactics.map(normalizeTactic) : [];
+    state.rounds  = Array.isArray(obj.rounds) ? obj.rounds.filter(function (r) {
+      return r && (r.result === 'WIN' || r.result === 'LOSS');
+    }) : [];
+    state.pending = obj.pending && obj.pending.tacticId ? obj.pending : null;
+    state.sideOverrides = obj.sideOverrides && typeof obj.sideOverrides === 'object' ? obj.sideOverrides : {};
+  }
+
+  function normalizeRoster(arr) {
+    const out = [];
+    for (let i = 0; i < 5; i++) {
+      const src = Array.isArray(arr) ? arr[i] : null;
+      out.push({
+        agent: src && typeof src.agent === 'string' ? src.agent : '',
+        player: src && typeof src.player === 'string' ? src.player : ''
+      });
+    }
+    return out;
+  }
+
+  function normalizeTactic(t) {
+    return {
+      id: t.id || uid(),
+      name: String(t.name || 'NO NAME').slice(0, 60),
+      side: t.side === 'ATK' || t.side === 'DEF' ? t.side : 'BOTH',
+      site: String(t.site || '-').slice(0, 8),
+      kind: t.kind || 'execute',
+      note: String(t.note || '').slice(0, 400)
+    };
+  }
+
+  /* ---------------- 戦術デッキ ---------------- */
+  function addTactic(payload) {
+    const t = normalizeTactic(Object.assign({ id: uid() }, payload));
+    state.tactics.push(t);
+    save();
+    return t;
+  }
+
+  function updateTactic(id, payload) {
+    const idx = state.tactics.findIndex(function (t) { return t.id === id; });
+    if (idx < 0) return null;
+    state.tactics[idx] = normalizeTactic(Object.assign({}, state.tactics[idx], payload, { id: id }));
+    save();
+    return state.tactics[idx];
+  }
+
+  function removeTactic(id) {
+    state.tactics = state.tactics.filter(function (t) { return t.id !== id; });
+    if (state.pending && state.pending.tacticId === id) state.pending = null;
+    save();
+  }
+
+  function tacticById(id) {
+    return state.tactics.find(function (t) { return t.id === id; }) || null;
+  }
+
+  /* ---------------- ラウンド進行 ---------------- */
+  function currentRoundNumber() {
+    return state.rounds.length + 1;
+  }
+
+  /** ラウンド n のサイド（1-12 前半 / 13-24 後半 / 25- OTは毎ラウンド交代） */
+  function sideForRound(n) {
+    const override = state.sideOverrides[String(n)];
+    if (override === 'ATK' || override === 'DEF') return override;
+    const start = state.match.startSide === 'DEF' ? 'DEF' : 'ATK';
+    const flip = start === 'ATK' ? 'DEF' : 'ATK';
+    if (n <= 12) return start;
+    if (n <= 24) return flip;
+    return (n - 25) % 2 === 0 ? start : flip;
+  }
+
+  function flipSideForRound(n) {
+    state.sideOverrides[String(n)] = sideForRound(n) === 'ATK' ? 'DEF' : 'ATK';
+    save();
+  }
+
+  function score() {
+    let win = 0;
+    for (let i = 0; i < state.rounds.length; i++) if (state.rounds[i].result === 'WIN') win++;
+    return { ally: win, enemy: state.rounds.length - win };
+  }
+
+  /** 13 先取・2 差、それ以外は OT。決着していれば勝者を返す */
+  function matchResult() {
+    const s = score();
+    const hi = Math.max(s.ally, s.enemy);
+    const diff = Math.abs(s.ally - s.enemy);
+    if (hi >= 13 && diff >= 2) return s.ally > s.enemy ? 'WIN' : 'LOSS';
+    return null;
+  }
+
+  function setPending(tacticId, economy) {
+    if (!tacticById(tacticId)) return;
+    state.pending = { tacticId: tacticId, economy: economy || 'full' };
+    save();
+  }
+
+  function clearPending() {
+    state.pending = null;
+    save();
+  }
+
+  function commitRound(result, note) {
+    if (!state.pending) return null;
+    const n = currentRoundNumber();
+    const rec = {
+      n: n,
+      side: sideForRound(n),
+      tacticId: state.pending.tacticId,
+      economy: state.pending.economy || 'full',
+      result: result === 'WIN' ? 'WIN' : 'LOSS',
+      note: String(note || '').slice(0, 200),
+      at: Date.now()
+    };
+    state.rounds.push(rec);
+    state.pending = null;
+    save();
+    return rec;
+  }
+
+  function undoLastRound() {
+    const last = state.rounds.pop();
+    if (last) {
+      state.pending = { tacticId: last.tacticId, economy: last.economy };
+      save();
+    }
+    return last || null;
+  }
+
+  function lastRound() {
+    return state.rounds.length ? state.rounds[state.rounds.length - 1] : null;
+  }
+
+  /* ---------------- 戦術ごとの成績 ---------------- */
+  function statsFor(tacticId) {
+    let win = 0, loss = 0, streak = 0, lastUsedRound = 0;
+    for (let i = 0; i < state.rounds.length; i++) {
+      const r = state.rounds[i];
+      if (r.tacticId !== tacticId) continue;
+      if (r.result === 'WIN') win++; else loss++;
+      lastUsedRound = r.n;
+    }
+    // 直近の連続使用回数
+    for (let i = state.rounds.length - 1; i >= 0; i--) {
+      if (state.rounds[i].tacticId === tacticId) streak++; else break;
+    }
+    const used = win + loss;
+    return {
+      win: win,
+      loss: loss,
+      used: used,
+      winRate: used ? Math.round((win / used) * 100) : null,
+      streak: streak,
+      lastUsedRound: lastUsedRound,
+      roundsSinceUse: lastUsedRound ? state.rounds.length - lastUsedRound + 1 : null
+    };
+  }
+
+  /* ---------------- リセット / 入出力 ---------------- */
+  function resetMatch() {
+    state.rounds = [];
+    state.pending = null;
+    state.sideOverrides = {};
+    save();
+  }
+
+  function resetAll() {
+    hydrate(defaultState());
+    save();
+  }
+
+  function exportJSON() {
+    return JSON.stringify(state, null, 2);
+  }
+
+  function importJSON(text) {
+    const parsed = JSON.parse(text);
+    if (!parsed || parsed.version !== 1) throw new Error('対応していないフォーマットです');
+    hydrate(parsed);
+    save();
+  }
+
+  global.VCT_STORE = {
+    state: state,
+    uid: uid,
+    save: save,
+    load: load,
+    addTactic: addTactic,
+    updateTactic: updateTactic,
+    removeTactic: removeTactic,
+    tacticById: tacticById,
+    currentRoundNumber: currentRoundNumber,
+    sideForRound: sideForRound,
+    flipSideForRound: flipSideForRound,
+    score: score,
+    matchResult: matchResult,
+    setPending: setPending,
+    clearPending: clearPending,
+    commitRound: commitRound,
+    undoLastRound: undoLastRound,
+    lastRound: lastRound,
+    statsFor: statsFor,
+    resetMatch: resetMatch,
+    resetAll: resetAll,
+    exportJSON: exportJSON,
+    importJSON: importJSON,
+    seedSamples: function () {
+      D.SAMPLE_TACTICS.forEach(function (t) { addTactic(t); });
+    }
+  };
+})(window);
+</script>
+<script>
+/* ---- advisor.js ---- */
+/* =========================================================
+   TACTIC ADVISOR
+   直前のラウンド結果から「次のラウンドに置く戦術」を採点する
+   ---------------------------------------------------------
+   考え方:
+   - 勝った戦術は相手が対応してくるまで継続する価値がある（+）
+   - ただし同じ戦術の連投は読まれる（連投数に応じて -）
+   - 負けた直後の同じ戦術は基本避ける（-）
+   - まだ使っていない戦術は情報アドバンテージがある（+）
+   - 通算勝率は素直に加点 / 減点
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const S = global.VCT_STORE;
+
+  /**
+   * 次ラウンド候補の採点。
+   * @param {Object} opts { side: 'ATK'|'DEF', includeOffSide: boolean }
+   * @returns {Array} [{ tactic, stats, score, reasons: [{text, tone}] , tone }]
+   */
+  function rank(opts) {
+    opts = opts || {};
+    const side = opts.side;
+    const includeOffSide = !!opts.includeOffSide;
+    const last = S.lastRound();
+    const rounds = S.state.rounds;
+
+    const list = S.state.tactics.filter(function (t) {
+      if (includeOffSide || !side) return true;
+      return t.side === 'BOTH' || t.side === side;
+    });
+
+    const scored = list.map(function (t) {
+      const st = S.statsFor(t.id);
+      let score = 50;
+      const reasons = [];
+
+      /* 通算勝率 */
+      if (st.used > 0) {
+        const delta = Math.round((st.winRate - 50) * 0.7);
+        score += delta;
+        if (st.used >= 2 && st.winRate >= 60) {
+          reasons.push({ text: '通算 ' + st.winRate + '% で機能中', tone: 'good' });
+        } else if (st.used >= 2 && st.winRate <= 40) {
+          reasons.push({ text: '通算 ' + st.winRate + '% / 相手に対応されている', tone: 'bad' });
+        }
+      }
+
+      /* 未使用ボーナス（相手に情報を与えていない） */
+      if (st.used === 0) {
+        score += 14;
+        reasons.push({ text: '未使用 / 相手に情報なし', tone: 'good' });
+      }
+
+      /* 直前ラウンドとの関係 */
+      if (last) {
+        const isSame = last.tacticId === t.id;
+        if (isSame && last.result === 'WIN') {
+          score += 10;
+          reasons.push({ text: '直前ラウンドで成功 / 継続の価値あり', tone: 'good' });
+        }
+        if (isSame && last.result === 'LOSS') {
+          score -= 22;
+          reasons.push({ text: '直前ラウンドで失敗 / 連投は危険', tone: 'bad' });
+        }
+        /* 連投による「読まれ」ペナルティ */
+        if (st.streak >= 2) {
+          const pen = 8 * st.streak;
+          score -= pen;
+          reasons.push({ text: st.streak + 'ラウンド連続で使用 / 読まれるリスク', tone: 'warn' });
+        }
+        /* 直近3ラウンド以内に使用 */
+        if (!isSame && st.roundsSinceUse !== null && st.roundsSinceUse <= 3) {
+          score -= 6;
+        }
+        /* 久しぶりの戦術は刺さりやすい */
+        if (st.roundsSinceUse !== null && st.roundsSinceUse >= 6) {
+          score += 8;
+          reasons.push({ text: st.roundsSinceUse + 'ラウンド使っていない / 再投入が刺さる', tone: 'good' });
+        }
+      }
+
+      /* 直前が敗北なら、リズムを変えるタイプに寄せる */
+      if (last && last.result === 'LOSS') {
+        const lastT = S.tacticById(last.tacticId);
+        if (lastT && lastT.site && t.site && lastT.site !== t.site && t.site !== '-') {
+          score += 7;
+          reasons.push({ text: 'ターゲット変更 (' + lastT.site + ' → ' + t.site + ')', tone: 'good' });
+        }
+        if (t.kind === 'fake' || t.kind === 'split') {
+          score += 4;
+        }
+      }
+
+      /* サイド不一致（表示だけ許可した場合）は大きく減点 */
+      if (side && t.side !== 'BOTH' && t.side !== side) {
+        score -= 30;
+        reasons.push({ text: 'サイド不一致 (' + t.side + ' 用)', tone: 'bad' });
+      }
+
+      /* ピストル / 序盤は勝率データが無いので素の並びを尊重 */
+      if (rounds.length === 0) {
+        score = 50 + (t.kind === 'execute' || t.kind === 'default' ? 6 : 0);
+        reasons.length = 0;
+        reasons.push({ text: '初動ラウンド / デッキ順で選択', tone: 'neutral' });
+      }
+
+      score = Math.max(0, Math.min(100, Math.round(score)));
+      return {
+        tactic: t,
+        stats: st,
+        score: score,
+        reasons: reasons,
+        tone: score >= 66 ? 'good' : (score <= 38 ? 'bad' : 'warn')
+      };
+    });
+
+    scored.sort(function (a, b) {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.tactic.name.localeCompare(b.tactic.name, 'ja');
+    });
+    return scored;
+  }
+
+  /** 選択画面ヘッダーに出す一言 */
+  function headline() {
+    const last = S.lastRound();
+    if (!last) return { title: 'FIRST ROUND', text: '最初の戦術をセットしてラウンドを開始してください。' };
+    const t = S.tacticById(last.tacticId);
+    const name = t ? t.name : '(削除済みの戦術)';
+    if (last.result === 'WIN') {
+      return {
+        title: 'ROUND ' + last.n + ' — WIN',
+        text: '「' + name + '」が通りました。相手が対応してくるまで継続するか、勝ちパターンを二枚重ねにするか選択してください。'
+      };
+    }
+    return {
+      title: 'ROUND ' + last.n + ' — LOSS',
+      text: '「' + name + '」が止められました。ターゲットかテンポを変える戦術を推奨します。'
+    };
+  }
+
+  global.VCT_ADVISOR = { rank: rank, headline: headline };
+})(window);
+</script>
+<script>
+/* ---- ui.js ---- */
+/* =========================================================
+   UI RENDERING
+   状態 → DOM の描画のみを担当（イベント登録は app.js 側）
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const D = global.VCT_DATA;
+  const S = global.VCT_STORE;
+  const A = global.VCT_ADVISOR;
+
+  const $ = function (id) { return document.getElementById(id); };
+
+  function esc(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* エージェントの六角アバター */
+  function avatarHTML(agentId, extraClass) {
+    const agent = D.agentById(agentId);
+    if (!agent) {
+      return '<span class="avatar is-empty ' + (extraClass || '') + '">?</span>';
+    }
+    const role = D.ROLES[agent.role];
+    const style = 'background:linear-gradient(150deg,' + role.color + ',' + shade(role.color, -34) + ');' +
+                  'box-shadow:0 0 16px ' + hexA(role.color, .35) + ';';
+    return '<span class="avatar ' + (extraClass || '') + '" style="' + style + '">' + esc(agent.abbr) + '</span>';
+  }
+
+  function hexA(hex, alpha) {
+    const c = hex.replace('#', '');
+    const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  function shade(hex, amount) {
+    const c = hex.replace('#', '');
+    let r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
+    r = Math.max(0, Math.min(255, r + amount));
+    g = Math.max(0, Math.min(255, g + amount));
+    b = Math.max(0, Math.min(255, b + amount));
+    return '#' + [r, g, b].map(function (v) { return v.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  function sideBadge(side) {
+    if (side === 'ATK') return '<span class="badge badge-atk">ATK</span>';
+    if (side === 'DEF') return '<span class="badge badge-def">DEF</span>';
+    return '<span class="badge badge-both">BOTH</span>';
+  }
+
+  /* ================= SETUP: マップ / サイド ================= */
+  function renderMapSelect() {
+    const wrap = $('map-select');
+    wrap.innerHTML = D.MAPS.map(function (m) {
+      return '<button type="button" class="map-opt' + (m.id === S.state.match.map ? ' is-active' : '') +
+             '" data-map="' + m.id + '">' + esc(m.name) + '</button>';
+    }).join('');
+  }
+
+  function renderSideToggle() {
+    const btns = $('side-toggle').querySelectorAll('.side-btn');
+    btns.forEach(function (b) {
+      b.classList.toggle('is-active', b.dataset.side === S.state.match.startSide);
+    });
+  }
+
+  function renderMatchFields() {
+    $('inp-ally-team').value = S.state.match.allyTeam;
+    $('inp-enemy-team').value = S.state.match.enemyTeam;
+    $('inp-match-note').value = S.state.match.note || '';
+    $('roster-ally-name').textContent = S.state.match.allyTeam || 'OUR TEAM';
+    $('roster-enemy-name').textContent = S.state.match.enemyTeam || 'OPPONENT';
+  }
+
+  /* ================= SETUP: ロスター ================= */
+  function renderRoster() {
+    [['ally', 'slots-ally'], ['enemy', 'slots-enemy']].forEach(function (pair) {
+      const team = pair[0];
+      const list = S.state[team === 'ally' ? 'allies' : 'enemies'];
+      $(pair[1]).innerHTML = list.map(function (slot, i) {
+        const agent = D.agentById(slot.agent);
+        const role = agent ? D.ROLES[agent.role] : null;
+        return '' +
+          '<li>' +
+            '<button type="button" class="slot' + (agent ? '' : ' is-empty') + '" data-team="' + team + '" data-index="' + i + '">' +
+              avatarHTML(slot.agent) +
+              '<span class="slot-meta">' +
+                '<span class="slot-agent">' + (agent ? esc(agent.name) : 'EMPTY SLOT') + '</span>' +
+                '<span class="slot-role">' + (role ? esc(role.label) : 'クリックして選択') + '</span>' +
+              '</span>' +
+              (slot.player ? '<span class="slot-player">' + esc(slot.player) + '</span>' : '') +
+            '</button>' +
+          '</li>';
+      }).join('');
+    });
+  }
+
+  /* ================= SETUP: 戦術デッキ ================= */
+  function renderDeck(filter) {
+    const grid = $('deck-grid');
+    const all = S.state.tactics;
+    const list = all.filter(function (t) {
+      if (filter === 'ATK') return t.side === 'ATK' || t.side === 'BOTH';
+      if (filter === 'DEF') return t.side === 'DEF' || t.side === 'BOTH';
+      return true;
+    });
+
+    $('deck-empty').hidden = all.length > 0;
+    grid.innerHTML = list.map(function (t) {
+      const st = S.statsFor(t.id);
+      const kind = D.kindById(t.kind);
+      return '' +
+        '<article class="tcard" data-side="' + t.side + '" data-id="' + t.id + '" tabindex="0">' +
+          '<div class="tcard-top">' +
+            '<span class="tcard-site">' + esc(t.site || '-') + '</span>' +
+            '<span class="tcard-kind">' + esc(kind.label) + '</span>' +
+            '<span class="tcard-sidetag">' + esc(t.side) + '</span>' +
+          '</div>' +
+          '<h3 class="tcard-name">' + esc(t.name) + '</h3>' +
+          (t.note ? '<p class="tcard-note">' + esc(t.note) + '</p>' : '') +
+          '<div class="tcard-stat">' +
+            (st.used
+              ? '<span>' + st.win + 'W ' + st.loss + 'L</span><span>/</span><span>' + st.winRate + '%</span>'
+              : '<span>未使用</span>') +
+            '<span style="margin-left:auto">編集 →</span>' +
+          '</div>' +
+        '</article>';
+    }).join('');
+  }
+
+  /* ================= SETUP: 開始条件 ================= */
+  function renderReady() {
+    const allyCount = S.state.allies.filter(function (s) { return s.agent; }).length;
+    const enemyCount = S.state.enemies.filter(function (s) { return s.agent; }).length;
+    const tacticCount = S.state.tactics.length;
+
+    const items = [
+      { label: 'ALLY AGENTS ' + allyCount + '/5', ok: allyCount === 5 },
+      { label: 'ENEMY AGENTS ' + enemyCount + '/5', ok: enemyCount === 5 },
+      { label: 'TACTICS ' + tacticCount, ok: tacticCount > 0 }
+    ];
+
+    $('ready-list').innerHTML = items.map(function (it) {
+      return '<span class="ready-item ' + (it.ok ? 'is-ok' : 'is-ng') + '">' +
+               '<span class="mark">' + (it.ok ? '✓' : '!') + '</span>' + esc(it.label) +
+             '</span>';
+    }).join('');
+
+    const ready = items.every(function (it) { return it.ok; });
+    $('btn-start').disabled = !ready;
+    $('btn-start').querySelector('em').textContent = ready
+      ? 'ラウンド ' + S.currentRoundNumber() + ' へ'
+      : '5体ずつのエージェントと戦術が必要です';
+    return ready;
+  }
+
+  /* ================= LIVE: スコアボード ================= */
+  function renderScorebar() {
+    const n = S.currentRoundNumber();
+    const side = S.sideForRound(n);
+    const sc = S.score();
+    const map = D.mapById(S.state.match.map);
+
+    $('score-ally-name').textContent = S.state.match.allyTeam || 'OUR TEAM';
+    $('score-enemy-name').textContent = S.state.match.enemyTeam || 'OPPONENT';
+    $('score-ally').textContent = sc.ally;
+    $('score-enemy').textContent = sc.enemy;
+    $('score-round').textContent = 'ROUND ' + n + (n > 24 ? ' (OT)' : '');
+    $('score-map').textContent = map ? map.name : '-';
+
+    const allySideEl = $('score-ally-side');
+    const enemySideEl = $('score-enemy-side');
+    allySideEl.textContent = D.SIDES[side].label;
+    allySideEl.dataset.side = side;
+    const opp = side === 'ATK' ? 'DEF' : 'ATK';
+    enemySideEl.textContent = D.SIDES[opp].label;
+    enemySideEl.dataset.side = opp;
+
+    /* マッチ決着 / マッチポイントのバナー */
+    const banner = $('match-banner');
+    const result = S.matchResult();
+    if (result) {
+      banner.hidden = false;
+      banner.className = 'match-banner ' + (result === 'WIN' ? 'win' : 'loss');
+      banner.textContent = result === 'WIN'
+        ? '★ MATCH WON — ' + sc.ally + ' - ' + sc.enemy
+        : 'MATCH LOST — ' + sc.ally + ' - ' + sc.enemy;
+    } else if (sc.ally >= 12 || sc.enemy >= 12) {
+      banner.hidden = false;
+      banner.className = 'match-banner point';
+      banner.textContent = sc.ally >= 12 && sc.enemy >= 12
+        ? 'OVERTIME / 2ラウンド差で決着'
+        : (sc.ally >= 12 ? 'MATCH POINT — 自チーム' : 'MATCH POINT — 相手チーム');
+    } else {
+      banner.hidden = true;
+    }
+  }
+
+  /* ================= LIVE: 両チームロスター ================= */
+  function renderBoardRosters() {
+    [['board-ally', S.state.allies], ['board-enemy', S.state.enemies]].forEach(function (pair) {
+      $(pair[0]).innerHTML = pair[1].map(function (slot) {
+        const agent = D.agentById(slot.agent);
+        const role = agent ? D.ROLES[agent.role] : null;
+        return '' +
+          '<li class="broster-item">' +
+            avatarHTML(slot.agent) +
+            '<span class="slot-meta">' +
+              '<span class="slot-agent">' + (agent ? esc(agent.name) : '—') + '</span>' +
+              '<span class="slot-role">' + (slot.player ? esc(slot.player) : (role ? esc(role.label) : '')) + '</span>' +
+            '</span>' +
+          '</li>';
+      }).join('');
+    });
+  }
+
+  /* ================= LIVE: ステージ ================= */
+  function renderStage(uiState) {
+    const stage = $('stage');
+    const n = S.currentRoundNumber();
+    const side = S.sideForRound(n);
+
+    if (S.state.pending) {
+      stage.innerHTML = liveCardHTML(n, side);
+    } else {
+      stage.innerHTML = pickHTML(n, side, uiState);
+    }
+  }
+
+  function liveCardHTML(n, side) {
+    const t = S.tacticById(S.state.pending.tacticId);
+    if (!t) { S.clearPending(); return ''; }
+    const st = S.statsFor(t.id);
+    const kind = D.kindById(t.kind);
+    const eco = D.ECONOMY.find(function (e) { return e.id === S.state.pending.economy; });
+
+    return '' +
+      '<div class="stage-head">' +
+        '<h3>ROUND ' + n + ' — 実行中</h3>' +
+        '<div class="stage-actions">' +
+          '<button class="btn btn-ghost btn-sm" data-act="change">戦術を選び直す</button>' +
+          '<button class="btn btn-ghost btn-sm" data-act="flip-side">サイド反転</button>' +
+        '</div>' +
+        '<p>コールを共有したら、ラウンド終了後に下の WIN / LOSS を押してください。</p>' +
+      '</div>' +
+      '<div class="live-card" data-side="' + side + '">' +
+        '<span class="lc-bar"></span>' +
+        '<div class="lc-top">' +
+          '<span class="lc-site">' + esc(t.site || '-') + '</span>' +
+          '<span class="lc-label">' + D.SIDES[side].label + ' / ' + esc(kind.label) + '</span>' +
+        '</div>' +
+        '<h2 class="lc-name">' + esc(t.name) + '</h2>' +
+        (t.note ? '<p class="lc-note">' + esc(t.note) + '</p>' : '') +
+        '<div class="lc-meta">' +
+          '<span class="meta-pill">' + esc(kind.jp) + '</span>' +
+          '<span class="meta-pill">' + (eco ? esc(eco.label) : 'FULL BUY') + '</span>' +
+          '<span class="meta-pill">' + (st.used ? st.win + 'W ' + st.loss + 'L / ' + st.winRate + '%' : '初使用') + '</span>' +
+          (st.streak >= 2 ? '<span class="meta-pill" style="color:#F5A623;border-color:rgba(245,166,35,.4)">' + st.streak + '連投</span>' : '') +
+        '</div>' +
+        '<div class="lc-actions">' +
+          '<button class="res-btn res-win" data-act="result" data-result="WIN">WIN<small>ラウンド取得</small></button>' +
+          '<button class="res-btn res-loss" data-act="result" data-result="LOSS">LOSS<small>ラウンド失陥</small></button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function pickHTML(n, side, uiState) {
+    const head = A.headline();
+    const includeOffSide = !!(uiState && uiState.includeOffSide);
+    const ranked = A.rank({ side: side, includeOffSide: includeOffSide });
+    const eco = (uiState && uiState.economy) || 'full';
+
+    const ecoSeg = D.ECONOMY.map(function (e) {
+      return '<button type="button" data-act="eco" data-eco="' + e.id + '"' +
+             (e.id === eco ? ' class="is-active"' : '') + '>' + esc(e.label) + '</button>';
+    }).join('');
+
+    const body = ranked.length
+      ? '<div class="pick-list">' + ranked.map(function (r, i) {
+          const st = r.stats;
+          return '' +
+            '<button type="button" class="pick' + (i === 0 ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '">' +
+              '<span class="pick-score ' + r.tone + '"><b>' + r.score + '</b><small>SCORE</small></span>' +
+              '<span class="pick-main">' +
+                '<span class="pick-name">' + esc(r.tactic.name) +
+                  sideBadge(r.tactic.side) +
+                  '<span class="badge badge-site">' + esc(r.tactic.site || '-') + '</span>' +
+                '</span>' +
+                (r.reasons.length
+                  ? '<span class="pick-reasons">' + r.reasons.map(function (rs) {
+                      return '<span class="reason ' + rs.tone + '">' + esc(rs.text) + '</span>';
+                    }).join('') + '</span>'
+                  : '') +
+              '</span>' +
+              '<span class="pick-record">' +
+                (st.used ? '<b>' + st.winRate + '%</b><br>' + st.win + 'W ' + st.loss + 'L' : '<b>—</b><br>未使用') +
+              '</span>' +
+            '</button>';
+        }).join('') + '</div>'
+      : '<p class="deck-empty">このサイドで使える戦術がありません。<b>「他サイドも表示」</b>を有効にするか、戦術を追加してください。</p>';
+
+    return '' +
+      '<div class="stage-head">' +
+        '<h3>ROUND ' + n + ' — 戦術を選択 <span class="result-pill ' +
+          (S.lastRound() ? (S.lastRound().result === 'WIN' ? 'win">前R WIN' : 'loss">前R LOSS') : '">START') +
+        '</span></h3>' +
+        '<div class="stage-actions">' +
+          '<button class="btn btn-ghost btn-sm" data-act="toggle-offside">' + (includeOffSide ? '✓ ' : '') + '他サイドも表示</button>' +
+          '<button class="btn btn-ghost btn-sm" data-act="flip-side">サイド反転</button>' +
+          '<button class="btn btn-primary btn-sm" data-act="new-tactic">+ 戦術</button>' +
+        '</div>' +
+        '<p><b>' + esc(head.title) + '</b> — ' + esc(head.text) + '</p>' +
+      '</div>' +
+      '<div class="stage-head pick-tools">' +
+        '<span class="lc-label">ECONOMY</span>' +
+        '<span class="eco-seg">' + ecoSeg + '</span>' +
+      '</div>' +
+      body;
+  }
+
+  /* ================= LIVE: タイムライン ================= */
+  function renderTimeline() {
+    const rounds = S.state.rounds;
+    $('timeline-empty').hidden = rounds.length > 0;
+    $('timeline').innerHTML = rounds.slice().reverse().map(function (r) {
+      const t = S.tacticById(r.tacticId);
+      return '' +
+        '<li class="tl-row ' + r.result.toLowerCase() + '">' +
+          '<span class="tl-round">R' + r.n + '</span>' +
+          '<span class="tl-side" data-side="' + r.side + '">' + r.side + '</span>' +
+          '<span class="tl-name">' + esc(t ? t.name : '(削除された戦術)') + '</span>' +
+          '<span class="tl-res">' + r.result + '</span>' +
+        '</li>';
+    }).join('');
+  }
+
+  /* ================= LIVE: 戦術成績 ================= */
+  function renderPerf() {
+    const list = S.state.tactics
+      .map(function (t) { return { t: t, st: S.statsFor(t.id) }; })
+      .sort(function (a, b) {
+        if (b.st.used !== a.st.used) return b.st.used - a.st.used;
+        return (b.st.winRate || 0) - (a.st.winRate || 0);
+      });
+
+    $('perf-list').innerHTML = list.map(function (row) {
+      const rate = row.st.winRate;
+      const cls = rate === null ? '' : (rate >= 60 ? '' : (rate >= 40 ? 'mid' : 'low'));
+      const color = rate === null ? 'var(--text-mute)' : (rate >= 60 ? 'var(--teal)' : (rate >= 40 ? 'var(--gold)' : 'var(--red)'));
+      return '' +
+        '<li class="perf-item">' +
+          '<span class="perf-top">' +
+            '<span class="perf-name">' + esc(row.t.name) + '</span>' +
+            '<span class="perf-rate" style="color:' + color + '">' + (rate === null ? '—' : rate + '%') + '</span>' +
+            '<span class="perf-count">' + row.st.win + 'W ' + row.st.loss + 'L</span>' +
+          '</span>' +
+          '<span class="perf-bar ' + cls + '"><span style="width:' + (rate === null ? 0 : rate) + '%"></span></span>' +
+        '</li>';
+    }).join('');
+  }
+
+  /* ================= MODAL: エージェント ================= */
+  function renderRoleFilter(active) {
+    $('role-filter').innerHTML =
+      '<button type="button" class="role-chip' + (active === 'all' ? ' is-active' : '') + '" data-role="all">ALL</button>' +
+      Object.keys(D.ROLES).map(function (k) {
+        const r = D.ROLES[k];
+        return '<button type="button" class="role-chip' + (active === k ? ' is-active' : '') +
+               '" data-role="' + k + '" style="color:' + (active === k ? r.color : '') + '">' + esc(r.label) + '</button>';
+      }).join('');
+  }
+
+  function renderAgentGrid(opts) {
+    const query = (opts.query || '').trim().toLowerCase();
+    const role = opts.role || 'all';
+    const current = opts.current || '';
+    const list = D.AGENTS.filter(function (a) {
+      if (role !== 'all' && a.role !== role) return false;
+      if (!query) return true;
+      return a.name.toLowerCase().indexOf(query) >= 0 || a.jp.indexOf(opts.query.trim()) >= 0;
+    });
+
+    $('agent-grid').innerHTML = list.length
+      ? list.map(function (a) {
+          const r = D.ROLES[a.role];
+          return '' +
+            '<button type="button" class="agent-opt' + (a.id === current ? ' is-active' : '') + '" data-agent="' + a.id + '">' +
+              avatarHTML(a.id) +
+              '<b>' + esc(a.name) + '</b>' +
+              '<small style="color:' + r.color + '">' + esc(r.label) + '</small>' +
+            '</button>';
+        }).join('')
+      : '<p class="deck-empty" style="grid-column:1/-1">該当するエージェントがいません。</p>';
+  }
+
+  /* ================= MODAL: 戦術フォーム ================= */
+  function renderKindSelect(value) {
+    $('t-kind').innerHTML = D.KINDS.map(function (k) {
+      return '<option value="' + k.id + '"' + (k.id === value ? ' selected' : '') + '>' +
+             esc(k.label) + ' — ' + esc(k.jp) + '</option>';
+    }).join('');
+  }
+
+  function renderSiteSeg(value) {
+    const map = D.mapById(S.state.match.map);
+    const sites = (map ? map.sites : ['A', 'B']).concat(['MID', '-']);
+    $('t-site').innerHTML = sites.map(function (s) {
+      return '<button type="button" data-val="' + esc(s) + '"' +
+             (s === value ? ' class="is-active"' : '') + '>' + esc(s) + '</button>';
+    }).join('');
+  }
+
+  function setSegActive(container, value) {
+    container.querySelectorAll('button').forEach(function (b) {
+      b.classList.toggle('is-active', b.dataset.val === value);
+    });
+  }
+
+  function segValue(container) {
+    const active = container.querySelector('button.is-active');
+    return active ? active.dataset.val : null;
+  }
+
+  /* ================= TOAST ================= */
+  let toastTimer = null;
+  function toast(message, kind) {
+    const el = $('toast');
+    el.textContent = message;
+    el.className = 'toast' + (kind ? ' ' + kind : '');
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.hidden = true; }, 2600);
+  }
+
+  global.VCT_UI = {
+    $: $, esc: esc, avatarHTML: avatarHTML,
+    renderMapSelect: renderMapSelect,
+    renderSideToggle: renderSideToggle,
+    renderMatchFields: renderMatchFields,
+    renderRoster: renderRoster,
+    renderDeck: renderDeck,
+    renderReady: renderReady,
+    renderScorebar: renderScorebar,
+    renderBoardRosters: renderBoardRosters,
+    renderStage: renderStage,
+    renderTimeline: renderTimeline,
+    renderPerf: renderPerf,
+    renderRoleFilter: renderRoleFilter,
+    renderAgentGrid: renderAgentGrid,
+    renderKindSelect: renderKindSelect,
+    renderSiteSeg: renderSiteSeg,
+    setSegActive: setSegActive,
+    segValue: segValue,
+    toast: toast
+  };
+})(window);
+</script>
+<script>
+/* ---- app.js ---- */
+/* =========================================================
+   APP / CONTROLLER
+   イベント登録と描画のオーケストレーション
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const D = global.VCT_DATA;
+  const S = global.VCT_STORE;
+  const U = global.VCT_UI;
+  const $ = U.$;
+
+  /* 公開ページ上でのみ使えるファイル保存 API（通常のブラウザでは null のまま） */
+  let downloadsApi = null;
+  if (global.claude && typeof global.claude.use === 'function') {
+    global.claude.use('downloads').then(function (api) {
+      downloadsApi = api;
+    }, function () { /* 使えない環境ではフォールバックする */ });
+  }
+
+  /* 画面側だけが持つ一時状態 */
+  const ui = {
+    deckFilter: 'ALL',
+    includeOffSide: false,
+    economy: 'full',
+    agentTarget: null,      // { team: 'ally'|'enemy', index: number }
+    agentRole: 'all',
+    agentQuery: '',
+    editingTacticId: null
+  };
+
+  /* ================= 描画 ================= */
+  function renderSetup() {
+    U.renderMapSelect();
+    U.renderSideToggle();
+    U.renderMatchFields();
+    U.renderRoster();
+    U.renderDeck(ui.deckFilter);
+    U.renderReady();
+  }
+
+  function renderLive() {
+    U.renderScorebar();
+    U.renderBoardRosters();
+    U.renderStage(ui);
+    U.renderTimeline();
+    U.renderPerf();
+  }
+
+  function renderAll() {
+    const live = S.state.phase === 'live';
+    $('view-setup').hidden = live;
+    $('view-live').hidden = !live;
+    document.querySelectorAll('.phase-tab').forEach(function (t) {
+      const active = (t.dataset.phase === 'live') === live;
+      t.classList.toggle('is-active', active);
+      t.setAttribute('aria-selected', String(active));
+    });
+    if (live) renderLive(); else renderSetup();
+  }
+
+  function goPhase(phase) {
+    if (phase === 'live' && !U.renderReady()) {
+      U.toast('味方・敵のエージェント 5 体ずつと、戦術を 1 つ以上登録してください。', 'err');
+      return;
+    }
+    S.state.phase = phase;
+    S.save();
+    renderAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ================= モーダル制御 ================= */
+  function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
+  function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
+  function closeAllModals() {
+    closeModal('modal-agent');
+    closeModal('modal-tactic');
+  }
+
+  function openAgentModal(team, index) {
+    ui.agentTarget = { team: team, index: index };
+    ui.agentQuery = '';
+    ui.agentRole = 'all';
+    const slot = rosterOf(team)[index];
+    $('agent-search').value = '';
+    $('agent-player').value = slot.player || '';
+    $('agent-modal-title').textContent =
+      (team === 'ally' ? 'ALLY' : 'ENEMY') + ' SLOT ' + (index + 1) + ' — SELECT AGENT';
+    U.renderRoleFilter(ui.agentRole);
+    U.renderAgentGrid({ query: '', role: 'all', current: slot.agent });
+    openModal('modal-agent');
+    $('agent-search').focus();
+  }
+
+  function rosterOf(team) {
+    return team === 'ally' ? S.state.allies : S.state.enemies;
+  }
+
+  function openTacticModal(tacticId) {
+    ui.editingTacticId = tacticId || null;
+    const t = tacticId ? S.tacticById(tacticId) : null;
+    $('tactic-modal-title').textContent = t ? 'EDIT TACTIC' : 'NEW TACTIC';
+    $('t-name').value = t ? t.name : '';
+    $('t-note').value = t ? t.note : '';
+    U.renderKindSelect(t ? t.kind : 'execute');
+    U.renderSiteSeg(t ? t.site : 'A');
+    U.setSegActive($('t-side'), t ? t.side : 'BOTH');
+    $('btn-delete-tactic').hidden = !t;
+    openModal('modal-tactic');
+    setTimeout(function () { $('t-name').focus(); }, 30);
+  }
+
+  /* ================= セットアップ画面のイベント ================= */
+  function bindSetup() {
+    $('map-select').addEventListener('click', function (e) {
+      const btn = e.target.closest('.map-opt');
+      if (!btn) return;
+      S.state.match.map = btn.dataset.map;
+      S.save();
+      U.renderMapSelect();
+    });
+
+    $('side-toggle').addEventListener('click', function (e) {
+      const btn = e.target.closest('.side-btn');
+      if (!btn) return;
+      S.state.match.startSide = btn.dataset.side;
+      S.save();
+      U.renderSideToggle();
+    });
+
+    $('inp-ally-team').addEventListener('input', function (e) {
+      S.state.match.allyTeam = e.target.value;
+      S.save();
+      $('roster-ally-name').textContent = e.target.value || 'OUR TEAM';
+    });
+    $('inp-enemy-team').addEventListener('input', function (e) {
+      S.state.match.enemyTeam = e.target.value;
+      S.save();
+      $('roster-enemy-name').textContent = e.target.value || 'OPPONENT';
+    });
+    $('inp-match-note').addEventListener('input', function (e) {
+      S.state.match.note = e.target.value;
+      S.save();
+    });
+
+    ['slots-ally', 'slots-enemy'].forEach(function (id) {
+      $(id).addEventListener('click', function (e) {
+        const btn = e.target.closest('.slot');
+        if (!btn) return;
+        openAgentModal(btn.dataset.team, Number(btn.dataset.index));
+      });
+    });
+
+    $('deck-filter').addEventListener('click', function (e) {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      ui.deckFilter = chip.dataset.filter;
+      $('deck-filter').querySelectorAll('.chip').forEach(function (c) {
+        c.classList.toggle('is-active', c === chip);
+      });
+      U.renderDeck(ui.deckFilter);
+    });
+
+    $('deck-grid').addEventListener('click', function (e) {
+      const card = e.target.closest('.tcard');
+      if (!card) return;
+      openTacticModal(card.dataset.id);
+    });
+    $('deck-grid').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('.tcard');
+      if (!card) return;
+      e.preventDefault();
+      openTacticModal(card.dataset.id);
+    });
+
+    $('btn-add-tactic').addEventListener('click', function () { openTacticModal(null); });
+
+    $('btn-seed').addEventListener('click', function () {
+      S.seedSamples();
+      U.renderDeck(ui.deckFilter);
+      U.renderReady();
+      U.toast('サンプル戦術を追加しました。', 'ok');
+    });
+
+    $('btn-start').addEventListener('click', function () { goPhase('live'); });
+  }
+
+  /* ================= ライブ画面のイベント ================= */
+  function bindLive() {
+    $('stage').addEventListener('click', function (e) {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      const act = el.dataset.act;
+
+      if (act === 'pick') {
+        S.setPending(el.dataset.id, ui.economy);
+        renderLive();
+        return;
+      }
+      if (act === 'result') {
+        const rec = S.commitRound(el.dataset.result);
+        if (rec) {
+          U.toast('ROUND ' + rec.n + ' — ' + rec.result + ' を記録しました。', rec.result === 'WIN' ? 'ok' : 'err');
+        }
+        renderLive();
+        return;
+      }
+      if (act === 'change') {
+        S.clearPending();
+        renderLive();
+        return;
+      }
+      if (act === 'flip-side') {
+        S.flipSideForRound(S.currentRoundNumber());
+        renderLive();
+        return;
+      }
+      if (act === 'toggle-offside') {
+        ui.includeOffSide = !ui.includeOffSide;
+        renderLive();
+        return;
+      }
+      if (act === 'new-tactic') {
+        openTacticModal(null);
+        return;
+      }
+      if (act === 'eco') {
+        ui.economy = el.dataset.eco;
+        renderLive();
+        return;
+      }
+    });
+
+    $('btn-undo').addEventListener('click', function () {
+      const last = S.undoLastRound();
+      if (!last) { U.toast('取り消せるラウンドがありません。', 'err'); return; }
+      U.toast('ROUND ' + last.n + ' の記録を取り消しました。');
+      renderLive();
+    });
+
+    $('btn-reset-match').addEventListener('click', function () {
+      if (!confirm('スコアとラウンド履歴をリセットします。戦術デッキとエージェント編成は残ります。よろしいですか？')) return;
+      S.resetMatch();
+      renderLive();
+      U.toast('マッチをリセットしました。');
+    });
+  }
+
+  /* ================= モーダルのイベント ================= */
+  function bindAgentModal() {
+    $('agent-search').addEventListener('input', function (e) {
+      ui.agentQuery = e.target.value;
+      const slot = ui.agentTarget ? rosterOf(ui.agentTarget.team)[ui.agentTarget.index] : { agent: '' };
+      U.renderAgentGrid({ query: ui.agentQuery, role: ui.agentRole, current: slot.agent });
+    });
+
+    $('role-filter').addEventListener('click', function (e) {
+      const chip = e.target.closest('.role-chip');
+      if (!chip) return;
+      ui.agentRole = chip.dataset.role;
+      U.renderRoleFilter(ui.agentRole);
+      const slot = ui.agentTarget ? rosterOf(ui.agentTarget.team)[ui.agentTarget.index] : { agent: '' };
+      U.renderAgentGrid({ query: ui.agentQuery, role: ui.agentRole, current: slot.agent });
+    });
+
+    $('agent-grid').addEventListener('click', function (e) {
+      const opt = e.target.closest('.agent-opt');
+      if (!opt || !ui.agentTarget) return;
+      const slot = rosterOf(ui.agentTarget.team)[ui.agentTarget.index];
+      slot.agent = opt.dataset.agent;
+      slot.player = $('agent-player').value.trim();
+      S.save();
+      closeModal('modal-agent');
+      renderAll();
+    });
+
+    $('agent-player').addEventListener('input', function (e) {
+      if (!ui.agentTarget) return;
+      rosterOf(ui.agentTarget.team)[ui.agentTarget.index].player = e.target.value.trim();
+      S.save();
+    });
+
+    $('btn-clear-slot').addEventListener('click', function () {
+      if (!ui.agentTarget) return;
+      const slot = rosterOf(ui.agentTarget.team)[ui.agentTarget.index];
+      slot.agent = '';
+      slot.player = '';
+      S.save();
+      closeModal('modal-agent');
+      renderAll();
+    });
+  }
+
+  function bindTacticModal() {
+    $('t-side').addEventListener('click', function (e) {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      U.setSegActive($('t-side'), btn.dataset.val);
+    });
+    $('t-site').addEventListener('click', function (e) {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      U.setSegActive($('t-site'), btn.dataset.val);
+    });
+
+    $('tactic-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const name = $('t-name').value.trim();
+      if (!name) { U.toast('戦術名を入力してください。', 'err'); return; }
+      const payload = {
+        name: name,
+        side: U.segValue($('t-side')) || 'BOTH',
+        site: U.segValue($('t-site')) || '-',
+        kind: $('t-kind').value,
+        note: $('t-note').value.trim()
+      };
+      if (ui.editingTacticId) {
+        S.updateTactic(ui.editingTacticId, payload);
+        U.toast('戦術を更新しました。', 'ok');
+      } else {
+        S.addTactic(payload);
+        U.toast('戦術を追加しました。', 'ok');
+      }
+      ui.editingTacticId = null;
+      closeModal('modal-tactic');
+      renderAll();
+    });
+
+    $('btn-delete-tactic').addEventListener('click', function () {
+      if (!ui.editingTacticId) return;
+      const t = S.tacticById(ui.editingTacticId);
+      if (!confirm('「' + (t ? t.name : '') + '」を削除します。よろしいですか？')) return;
+      S.removeTactic(ui.editingTacticId);
+      ui.editingTacticId = null;
+      closeModal('modal-tactic');
+      renderAll();
+      U.toast('戦術を削除しました。');
+    });
+  }
+
+  /* ================= 書き出し ================= */
+  function exportFileName() {
+    const map = D.mapById(S.state.match.map);
+    return 'valorant-setup-card_' + (map ? map.name.toLowerCase() : 'match') + '.json';
+  }
+
+  function exportData() {
+    const json = S.exportJSON();
+    const filename = exportFileName();
+
+    /* 公開ページ上ではビューアーに確認を出してから保存する */
+    if (downloadsApi) {
+      downloadsApi.save({ filename: filename, data: json }).then(function () {
+        U.toast('JSON を書き出しました。', 'ok');
+      }, function (err) {
+        if (err && err.code === 'declined') {
+          U.toast('書き出しをキャンセルしました。');
+        } else {
+          U.toast('書き出しに失敗しました: ' + ((err && err.message) || '不明なエラー'), 'err');
+        }
+      });
+      return;
+    }
+
+    /* 通常のブラウザ / 配布ファイル */
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    U.toast('JSON を書き出しました。', 'ok');
+  }
+
+  /* ================= 共通イベント ================= */
+  function bindGlobal() {
+    document.querySelectorAll('.phase-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () { goPhase(tab.dataset.phase); });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close]')) closeAllModals();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeAllModals(); return; }
+
+      const modalOpen = !$('modal-agent').hidden || !$('modal-tactic').hidden;
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if (modalOpen || typing || S.state.phase !== 'live') return;
+
+      /* ライブ中のショートカット */
+      if (S.state.pending) {
+        if (e.key === 'w' || e.key === 'W') {
+          S.commitRound('WIN'); renderLive(); U.toast('WIN を記録しました。', 'ok');
+        } else if (e.key === 'l' || e.key === 'L') {
+          S.commitRound('LOSS'); renderLive(); U.toast('LOSS を記録しました。', 'err');
+        }
+      } else if (/^[1-9]$/.test(e.key)) {
+        const picks = $('stage').querySelectorAll('.pick');
+        const target = picks[Number(e.key) - 1];
+        if (target) target.click();
+      }
+    });
+
+    /* 書き出し */
+    $('btn-export').addEventListener('click', exportData);
+
+    /* 読み込み */
+    $('btn-import').addEventListener('click', function () { $('file-import').click(); });
+    $('file-import').addEventListener('change', function (e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        try {
+          S.importJSON(String(reader.result));
+          renderAll();
+          U.toast('データを読み込みました。', 'ok');
+        } catch (err) {
+          U.toast('読み込みに失敗しました: ' + err.message, 'err');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    $('btn-reset-all').addEventListener('click', function () {
+      if (!confirm('すべてのデータ（編成・戦術デッキ・戦績）を初期化します。よろしいですか？')) return;
+      S.resetAll();
+      ui.deckFilter = 'ALL';
+      renderAll();
+      U.toast('初期化しました。');
+    });
+  }
+
+  /* ================= 起動 ================= */
+  function init() {
+    const restored = S.load();
+    if (!restored && S.state.tactics.length === 0) {
+      S.seedSamples();   // 初回起動時は雛形を入れて操作感を掴めるようにする
+    }
+    bindSetup();
+    bindLive();
+    bindAgentModal();
+    bindTacticModal();
+    bindGlobal();
+    renderAll();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})(window);
+</script>

@@ -10,6 +10,14 @@
   const U = global.VCT_UI;
   const $ = U.$;
 
+  /* 公開ページ上でのみ使えるファイル保存 API（通常のブラウザでは null のまま） */
+  let downloadsApi = null;
+  if (global.claude && typeof global.claude.use === 'function') {
+    global.claude.use('downloads').then(function (api) {
+      downloadsApi = api;
+    }, function () { /* 使えない環境ではフォールバックする */ });
+  }
+
   /* 画面側だけが持つ一時状態 */
   const ui = {
     deckFilter: 'ALL',
@@ -332,6 +340,43 @@
     });
   }
 
+  /* ================= 書き出し ================= */
+  function exportFileName() {
+    const map = D.mapById(S.state.match.map);
+    return 'valorant-setup-card_' + (map ? map.name.toLowerCase() : 'match') + '.json';
+  }
+
+  function exportData() {
+    const json = S.exportJSON();
+    const filename = exportFileName();
+
+    /* 公開ページ上ではビューアーに確認を出してから保存する */
+    if (downloadsApi) {
+      downloadsApi.save({ filename: filename, data: json }).then(function () {
+        U.toast('JSON を書き出しました。', 'ok');
+      }, function (err) {
+        if (err && err.code === 'declined') {
+          U.toast('書き出しをキャンセルしました。');
+        } else {
+          U.toast('書き出しに失敗しました: ' + ((err && err.message) || '不明なエラー'), 'err');
+        }
+      });
+      return;
+    }
+
+    /* 通常のブラウザ / 配布ファイル */
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    U.toast('JSON を書き出しました。', 'ok');
+  }
+
   /* ================= 共通イベント ================= */
   function bindGlobal() {
     document.querySelectorAll('.phase-tab').forEach(function (tab) {
@@ -364,19 +409,7 @@
     });
 
     /* 書き出し */
-    $('btn-export').addEventListener('click', function () {
-      const blob = new Blob([S.exportJSON()], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const map = D.mapById(S.state.match.map);
-      a.href = url;
-      a.download = 'valorant-setup-card_' + (map ? map.name.toLowerCase() : 'match') + '.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-      U.toast('JSON を書き出しました。', 'ok');
-    });
+    $('btn-export').addEventListener('click', exportData);
 
     /* 読み込み */
     $('btn-import').addEventListener('click', function () { $('file-import').click(); });

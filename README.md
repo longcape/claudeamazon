@@ -83,6 +83,22 @@ npx http-server . -p 8080
 # → http://localhost:8080
 ```
 
+## 配布用ビルド
+
+全ファイルを 1 枚の HTML に束ねます（依存パッケージなし）。
+
+```bash
+node build.js
+```
+
+| 生成物 | 用途 |
+| --- | --- |
+| `dist/valorant-tactical-setup-card.html` | スタンドアロン版。このファイル 1 つを配ればよく、ダブルクリックで起動、オフラインでも動作 |
+| `dist/artifact-body.html` | 公開ページ発行用（外側の `html` / `head` / `body` は発行側で付与される） |
+
+EXPORT ボタンは、通常のブラウザでは Blob 経由でダウンロードし、
+公開ページ上では閲覧者に確認を出してから保存します（`downloads` capability）。
+
 ## ファイル構成
 
 ```
@@ -93,6 +109,8 @@ assets/js/store.js      状態管理・localStorage 永続化・スコアやサ�
 assets/js/advisor.js    次ラウンドの戦術推奨ロジック
 assets/js/ui.js         描画処理
 assets/js/app.js        イベント登録・画面遷移
+build.js                単一 HTML へのバンドル
+dist/                   ビルド生成物
 ```
 
 > 本アプリは非公式のファンメイドツールです。Riot Games とは関係ありません。
