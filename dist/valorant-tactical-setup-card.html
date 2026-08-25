@@ -461,21 +461,40 @@ select { appearance: none; cursor: pointer; }
 .slot:hover { border-color: var(--line-hot); background: rgba(20, 33, 42, .8); transform: translateX(2px); }
 .slot.is-empty { border-style: dashed; }
 
+/* エージェントアイコン: 外側がロール色のリング、内側がエージェント固有色 */
 .avatar {
+  --hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   width: 38px; height: 38px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  color: #08111a;
-  background: #1b2a34;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  padding: 2px;
+  box-sizing: border-box;
+  background: #33505f;
+  clip-path: var(--hex);
   position: relative;
 }
-.avatar.is-empty { color: var(--text-mute); background: #16222b; }
+.avatar-core {
+  width: 100%; height: 100%;
+  display: grid;
+  place-items: center;
+  clip-path: var(--hex);
+  background: #1b2a34;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  overflow: hidden;
+}
+.avatar-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+  display: block;
+}
+.avatar.is-empty { background: #24333d; }
+.avatar.is-empty .avatar-core { color: var(--text-mute); background: #16222b; }
 
 .slot-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
 .slot-agent {
@@ -740,7 +759,8 @@ select { appearance: none; cursor: pointer; }
   background: rgba(9, 14, 18, .5);
   clip-path: var(--clip-sm);
 }
-.broster-item .avatar { width: 32px; height: 32px; font-size: 11px; }
+.broster-item .avatar { width: 32px; height: 32px; }
+.broster-item .avatar-core { font-size: 10px; }
 .broster-item .slot-agent { font-size: 12px; }
 .board-enemy .broster-item { border-color: rgba(255, 70, 85, .22); }
 .board-ally  .broster-item { border-color: rgba(53, 198, 232, .22); }
@@ -1104,7 +1124,8 @@ select { appearance: none; cursor: pointer; }
 }
 .agent-opt:hover { transform: translateY(-2px); color: var(--text); border-color: var(--line-hot); }
 .agent-opt.is-active { border-color: var(--cyan); background: rgba(53, 198, 232, .1); color: #fff; }
-.agent-opt .avatar { width: 40px; height: 40px; }
+.agent-opt .avatar { width: 44px; height: 44px; }
+.agent-opt .avatar-core { font-size: 13px; }
 .agent-opt b { font-family: var(--font-display); font-size: 11px; letter-spacing: .08em; }
 .agent-opt small { font-size: 9px; letter-spacing: .1em; color: var(--text-mute); }
 
@@ -1432,7 +1453,8 @@ select { appearance: none; cursor: pointer; }
   color: var(--text-mute);
   margin-right: 4px;
 }
-.avatar-sm { width: 24px !important; height: 24px !important; font-size: 9px !important; }
+.avatar-sm { width: 24px !important; height: 24px !important; padding: 1px !important; }
+.avatar-sm .avatar-core { font-size: 8px; }
 
 .post-foot {
   display: flex;
@@ -1517,6 +1539,106 @@ select { appearance: none; cursor: pointer; }
   .community-tools .btn-primary { margin-left: 0; width: 100%; }
   .verdict-score { font-size: 24px; }
 }
+
+
+/* =========================================================
+   CJK 時のタイポグラフィ調整
+   欧文向けの広い字間は日本語・韓国語だと間延びして見えるため詰める
+   ========================================================= */
+html[lang="ja"] .panel-head h2,
+html[lang="ko"] .panel-head h2,
+html[lang="ja"] .stage-head h3,
+html[lang="ko"] .stage-head h3,
+html[lang="ja"] .modal-head h2,
+html[lang="ko"] .modal-head h2 { letter-spacing: .08em; }
+
+html[lang="ja"] .phase-tab,
+html[lang="ko"] .phase-tab,
+html[lang="ja"] .btn,
+html[lang="ko"] .btn,
+html[lang="ja"] .field > label,
+html[lang="ko"] .field > label { letter-spacing: .06em; }
+
+html[lang="ja"] .res-btn,
+html[lang="ko"] .res-btn { letter-spacing: .16em; }
+
+html[lang="ja"] .verdict,
+html[lang="ko"] .verdict { letter-spacing: .1em; }
+
+/* =========================================================
+   MAP SCHEMATIC
+   ========================================================= */
+.map-figure { margin-top: 14px; }
+
+.map-fig-wrap {
+  margin: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.map-fig-wrap figcaption {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .16em;
+  color: var(--text-mute);
+}
+
+.map-fig {
+  display: block;
+  background: rgba(9, 14, 18, .6);
+  clip-path: var(--clip-sm);
+}
+.map-shot {
+  display: block;
+  border: 1px solid var(--line);
+  clip-path: var(--clip-sm);
+  max-width: 100%;
+  height: auto;
+}
+
+.ml-frame { fill: none; stroke: var(--line); stroke-width: 1; }
+.ml-lane  { stroke: #2A3F4C; stroke-width: 2.4; stroke-linecap: round; }
+.ml-lane.is-hot { stroke: var(--cyan); stroke-width: 3.2; }
+.ml-link  { fill: none; stroke: var(--violet); stroke-width: 1.6; stroke-dasharray: 3 3; opacity: .8; }
+
+.ml-site { fill: #16242D; stroke: #3A5464; stroke-width: 1.4; }
+.ml-site.is-hot { fill: rgba(53, 198, 232, .22); stroke: var(--cyan); stroke-width: 2; }
+.ml-site-label {
+  fill: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.ml-site-label.is-hot { fill: #fff; }
+
+.ml-mid { fill: #16242D; stroke: #3A5464; stroke-width: 1.2; }
+.ml-mid.is-hot { fill: rgba(53, 198, 232, .22); stroke: var(--cyan); stroke-width: 1.8; }
+.ml-mid-label {
+  fill: var(--text-mute);
+  font-family: var(--font-display);
+  font-size: 6px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.ml-spawn { fill: #223341; stroke: #3A5464; stroke-width: 1; }
+.ml-spawn-atk.is-ours { fill: rgba(255, 70, 85, .5); stroke: var(--red); }
+.ml-spawn-def.is-ours { fill: rgba(34, 211, 166, .5); stroke: var(--teal); }
+
+/* ライブカードでは右上に浮かせる */
+.live-card .map-fig-wrap {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  z-index: 2;
+  opacity: .92;
+}
+
+@media (max-width: 1180px) {
+  .live-card .map-fig-wrap { position: static; margin-bottom: 14px; }
+}
 </style>
 </head>
 <body>
@@ -1572,6 +1694,7 @@ select { appearance: none; cursor: pointer; }
           <div class="field">
             <label data-i18n="field.map">MAP</label>
             <div class="map-select" id="map-select"></div>
+            <div class="map-figure" id="map-figure"></div>
           </div>
 
           <div class="field-row">
@@ -2024,12 +2147,12 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   /* --- 共通 --- */
   'app.title': 'TACTICAL SETUP CARD',
   'app.subtitle': 'VALORANT / ROUND CALL SYSTEM',
-  'nav.setup': 'SETUP',
-  'nav.live': 'LIVE BOARD',
-  'nav.community': 'COMMUNITY',
-  'btn.export': 'EXPORT',
-  'btn.import': 'IMPORT',
-  'btn.reset': 'RESET',
+  'nav.setup': 'セットアップ',
+  'nav.live': 'ライブボード',
+  'nav.community': 'コミュニティ',
+  'btn.export': '書き出し',
+  'btn.import': '読み込み',
+  'btn.reset': '初期化',
   'btn.export.title': '現在の設定と戦績を JSON で書き出し',
   'btn.import.title': 'JSON を読み込み',
   'btn.reset.title': '全データを初期化',
@@ -2043,92 +2166,92 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'common.unused': '未使用',
 
   /* --- セットアップ --- */
-  'setup.match.title': 'MATCH SETUP',
+  'setup.match.title': 'マッチ設定',
   'setup.match.sub': 'マップとサイドを設定',
-  'field.map': 'MAP',
-  'field.ourTeam': 'OUR TEAM',
-  'field.opponent': 'OPPONENT',
+  'field.map': 'マップ',
+  'field.ourTeam': '自チーム',
+  'field.opponent': '相手チーム',
   'field.ourTeam.ph': 'チーム名',
   'field.opponent.ph': '相手チーム名',
-  'field.startSide': 'STARTING SIDE',
+  'field.startSide': '前半のサイド',
   'field.startSide.hint': '前半のサイド / 13R で自動反転',
-  'field.matchNote': 'MATCH NOTE',
+  'field.matchNote': 'マッチメモ',
   'field.matchNote.ph': '相手の傾向・スカウト情報など',
-  'side.attack': 'ATTACK',
-  'side.defense': 'DEFENSE',
-  'team.ally.default': 'OUR TEAM',
-  'team.enemy.default': 'OPPONENT',
+  'side.attack': 'アタッカー',
+  'side.defense': 'ディフェンダー',
+  'team.ally.default': '自チーム',
+  'team.enemy.default': '相手チーム',
 
-  'setup.roster.title': 'AGENT COMPOSITION',
+  'setup.roster.title': 'エージェント構成',
   'setup.roster.sub': '味方 5 / 敵 5 のエージェントをセット',
-  'tag.ally': 'ALLY',
-  'tag.enemy': 'ENEMY',
-  'roster.empty': 'EMPTY SLOT',
+  'tag.ally': '味方',
+  'tag.enemy': '敵',
+  'roster.empty': '空きスロット',
   'roster.clickToSelect': 'クリックして選択',
 
-  'setup.deck.title': 'TACTIC DECK',
+  'setup.deck.title': '戦術デッキ',
   'setup.deck.sub': 'ラウンドで使う戦術を事前登録',
   'deck.sample': 'SAMPLE 追加',
   'deck.add': '+ 戦術を追加',
   'deck.empty': 'まだ戦術が登録されていません。「+ 戦術を追加」から作成するか、SAMPLE 追加で雛形を読み込んでください。',
   'deck.edit': '編集 →',
-  'filter.all': 'ALL',
-  'filter.atk': 'ATTACK',
-  'filter.def': 'DEFENSE',
+  'filter.all': 'すべて',
+  'filter.atk': 'アタッカー',
+  'filter.def': 'ディフェンダー',
 
-  'ready.ally': 'ALLY AGENTS {n}/5',
-  'ready.enemy': 'ENEMY AGENTS {n}/5',
-  'ready.tactics': 'TACTICS {n}',
-  'btn.start': 'START MATCH',
+  'ready.ally': '味方エージェント {n}/5',
+  'ready.enemy': '敵エージェント {n}/5',
+  'ready.tactics': '戦術 {n}',
+  'btn.start': 'マッチ開始',
   'btn.start.ready': 'ラウンド {n} へ',
   'btn.start.notReady': '5体ずつのエージェントと戦術が必要です',
 
   /* --- ライブボード --- */
-  'live.round': 'ROUND {n}',
-  'live.ot': '(OT)',
-  'live.executing': 'ROUND {n} — 実行中',
-  'live.selecting': 'ROUND {n} — 戦術を選択',
-  'live.hint': 'コールを共有したら、ラウンド終了後に下の WIN / LOSS を押してください。',
+  'live.round': 'ラウンド {n}',
+  'live.ot': '(延長)',
+  'live.executing': 'ラウンド {n} — 実行中',
+  'live.selecting': 'ラウンド {n} — 戦術を選択',
+  'live.hint': 'コールを共有したら、ラウンド終了後に下の 勝利 / 敗北 を押してください。',
   'stage.change': '戦術を選び直す',
   'stage.flipSide': 'サイド反転',
   'stage.showOffside': '他サイドも表示',
   'stage.newTactic': '+ 戦術',
-  'stage.prevWin': '前R WIN',
-  'stage.prevLoss': '前R LOSS',
-  'stage.start': 'START',
-  'eco.label': 'ECONOMY',
-  'eco.full': 'FULL BUY',
-  'eco.force': 'FORCE',
-  'eco.eco': 'ECO',
-  'eco.bonus': 'BONUS',
-  'res.win': 'WIN',
-  'res.loss': 'LOSS',
+  'stage.prevWin': '前R 勝利',
+  'stage.prevLoss': '前R 敗北',
+  'stage.start': '開始',
+  'eco.label': 'バイ',
+  'eco.full': 'フルバイ',
+  'eco.force': 'フォース',
+  'eco.eco': 'エコ',
+  'eco.bonus': 'ボーナス',
+  'res.win': '勝利',
+  'res.loss': '敗北',
   'res.win.sub': 'ラウンド取得',
   'res.loss.sub': 'ラウンド失陥',
   'meta.firstUse': '初使用',
   'meta.streak': '{n}連投',
-  'pick.score': 'SCORE',
+  'pick.score': '推奨度',
   'pick.noTactics': 'このサイドで使える戦術がありません。「他サイドも表示」を有効にするか、戦術を追加してください。',
 
-  'headline.first.title': 'FIRST ROUND',
+  'headline.first.title': '最初のラウンド',
   'headline.first.text': '最初の戦術をセットしてラウンドを開始してください。',
-  'headline.win.title': 'ROUND {n} — WIN',
+  'headline.win.title': 'ラウンド {n} — 勝利',
   'headline.win.text': '「{name}」が通りました。相手が対応してくるまで継続するか、勝ちパターンを二枚重ねにするか選択してください。',
-  'headline.loss.title': 'ROUND {n} — LOSS',
+  'headline.loss.title': 'ラウンド {n} — 敗北',
   'headline.loss.text': '「{name}」が止められました。ターゲットかテンポを変える戦術を推奨します。',
 
-  'banner.won': '★ MATCH WON — {a} - {b}',
-  'banner.lost': 'MATCH LOST — {a} - {b}',
-  'banner.pointAlly': 'MATCH POINT — 自チーム',
-  'banner.pointEnemy': 'MATCH POINT — 相手チーム',
-  'banner.overtime': 'OVERTIME / 2ラウンド差で決着',
+  'banner.won': '★ マッチ勝利 — {a} - {b}',
+  'banner.lost': 'マッチ敗北 — {a} - {b}',
+  'banner.pointAlly': 'マッチポイント — 自チーム',
+  'banner.pointEnemy': 'マッチポイント — 相手チーム',
+  'banner.overtime': '延長戦 / 2ラウンド差で決着',
 
-  'timeline.title': 'ROUND TIMELINE',
+  'timeline.title': 'ラウンド履歴',
   'timeline.undo': '← 直前のラウンドを取り消す',
   'timeline.resetMatch': 'スコアリセット',
   'timeline.empty': 'まだラウンドの記録がありません。',
   'timeline.deleted': '(削除された戦術)',
-  'perf.title': 'TACTIC PERFORMANCE',
+  'perf.title': '戦術別成績',
   'perf.sub': '戦術別の勝率',
 
   /* --- 推奨理由 --- */
@@ -2144,20 +2267,20 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'reason.firstRound': '初動ラウンド / デッキ順で選択',
 
   /* --- モーダル --- */
-  'modal.agent.title': '{team} SLOT {n} — SELECT AGENT',
+  'modal.agent.title': '{team} スロット {n} — エージェント選択',
   'agent.search.ph': 'エージェント名で検索…',
   'agent.player': 'プレイヤー名',
-  'agent.player.ph': 'IGN',
+  'agent.player.ph': 'プレイヤー名',
   'agent.clearSlot': 'スロットを空にする',
   'agent.none': '該当するエージェントがいません。',
-  'role.all': 'ALL',
-  'role.duelist': 'DUELIST',
-  'role.initiator': 'INITIATOR',
-  'role.controller': 'CONTROLLER',
-  'role.sentinel': 'SENTINEL',
+  'role.all': 'すべて',
+  'role.duelist': 'デュエリスト',
+  'role.initiator': 'イニシエーター',
+  'role.controller': 'コントローラー',
+  'role.sentinel': 'センチネル',
 
-  'modal.tactic.new': 'NEW TACTIC',
-  'modal.tactic.edit': 'EDIT TACTIC',
+  'modal.tactic.new': '戦術を新規作成',
+  'modal.tactic.edit': '戦術を編集',
   't.name': '戦術名',
   't.name.ph': '例: A ダブルスモーク エグゼ',
   't.side': '使用サイド',
@@ -2165,7 +2288,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   't.kind': '戦術タイプ',
   't.note': 'コール / 詳細',
   't.note.ph': 'ユーティリティの使い方、タイミング、失敗時の判断など',
-  'side.both': 'BOTH',
+  'side.both': '両サイド',
 
   'kind.execute': '定石エグゼキュート',
   'kind.default': 'デフォルト',
@@ -2179,7 +2302,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'kind.eco': 'エコ / フォース',
 
   /* --- 相性判定 --- */
-  'analyst.title': 'MATCHUP ANALYSIS',
+  'analyst.title': '構成相性の判定',
   'analyst.sub': '相手構成との相性',
   'analyst.run': '相性を判定',
   'analyst.needComp': '相性判定には味方・敵それぞれ 5 体の設定が必要です。',
@@ -2246,14 +2369,14 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'f.mapTightSmoke': '{map} の狭い進行にはスモークが足りない',
 
   /* --- 共有 --- */
-  'share.title': 'SHARE',
+  'share.title': '共有',
   'share.x': 'X にポスト',
   'share.copy': 'テキストをコピー',
   'share.copied': 'コピーしました。',
   'share.text': '【{name}】\n{map} / {side} / {site}\n相性判定: {verdict} ({score}/100)\n{note}',
 
   /* --- コミュニティ --- */
-  'community.title': 'COMMUNITY TACTICS',
+  'community.title': 'コミュニティ戦術',
   'community.sub': '世界中の戦術を見る・投稿する',
   'community.post': '戦術を投稿',
   'community.postTitle': '僕の考えた最強の戦術',
@@ -2286,8 +2409,8 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'toast.tacticAdded': '戦術を追加しました。',
   'toast.tacticUpdated': '戦術を更新しました。',
   'toast.tacticDeleted': '戦術を削除しました。',
-  'toast.roundRecorded': 'ROUND {n} — {result} を記録しました。',
-  'toast.undone': 'ROUND {n} の記録を取り消しました。',
+  'toast.roundRecorded': 'ラウンド {n} — {result} を記録しました。',
+  'toast.undone': 'ラウンド {n} の記録を取り消しました。',
   'toast.noUndo': '取り消せるラウンドがありません。',
   'toast.matchReset': 'マッチをリセットしました。',
   'toast.exported': 'JSON を書き出しました。',
@@ -2322,7 +2445,9 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
 
   'f.rushNoInfo': '索敵せずに速く入るため、待ち構えられていると対応できない',
   'f.enemyMollyRush': '相手の地点排除 {n} 枚で、入り口で足を止められる',
-  'f.enemyLineup': '相手の定点ユーティリティ {n} 枚が設置後に効いてくる'
+  'f.enemyLineup': '相手の定点ユーティリティ {n} 枚が設置後に効いてくる',
+
+  'map.schematic': '簡易図'
 });
 </script>
 <script>
@@ -2620,7 +2745,9 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
 
   'f.rushNoInfo': 'Pushing fast without recon leaves you blind to a set defense',
   'f.enemyMollyRush': 'Their {n} area-denial abilities stall you at the entry',
-  'f.enemyLineup': 'Their {n} lineup abilities come into play after the plant'
+  'f.enemyLineup': 'Their {n} lineup abilities come into play after the plant',
+
+  'map.schematic': 'Schematic'
 });
 </script>
 <script>
@@ -2629,12 +2756,12 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
 window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'app.title': 'TACTICAL SETUP CARD',
   'app.subtitle': 'VALORANT / ROUND CALL SYSTEM',
-  'nav.setup': 'SETUP',
-  'nav.live': 'LIVE BOARD',
-  'nav.community': 'COMMUNITY',
-  'btn.export': 'EXPORT',
-  'btn.import': 'IMPORT',
-  'btn.reset': 'RESET',
+  'nav.setup': '설정',
+  'nav.live': '라이브 보드',
+  'nav.community': '커뮤니티',
+  'btn.export': '내보내기',
+  'btn.import': '불러오기',
+  'btn.reset': '초기화',
   'btn.export.title': '현재 설정과 전적을 JSON으로 내보내기',
   'btn.import.title': 'JSON 불러오기',
   'btn.reset.title': '모든 데이터 초기화',
@@ -2647,91 +2774,91 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'common.loading': '불러오는 중…',
   'common.unused': '미사용',
 
-  'setup.match.title': 'MATCH SETUP',
+  'setup.match.title': '매치 설정',
   'setup.match.sub': '맵과 진영 설정',
-  'field.map': 'MAP',
-  'field.ourTeam': 'OUR TEAM',
-  'field.opponent': 'OPPONENT',
+  'field.map': '맵',
+  'field.ourTeam': '우리 팀',
+  'field.opponent': '상대 팀',
   'field.ourTeam.ph': '팀 이름',
   'field.opponent.ph': '상대 팀 이름',
-  'field.startSide': 'STARTING SIDE',
+  'field.startSide': '전반 진영',
   'field.startSide.hint': '전반 진영 / 13라운드에 자동 전환',
-  'field.matchNote': 'MATCH NOTE',
+  'field.matchNote': '매치 메모',
   'field.matchNote.ph': '상대 성향, 스카우팅 메모 등',
-  'side.attack': 'ATTACK',
-  'side.defense': 'DEFENSE',
-  'team.ally.default': 'OUR TEAM',
-  'team.enemy.default': 'OPPONENT',
+  'side.attack': '공격',
+  'side.defense': '수비',
+  'team.ally.default': '우리 팀',
+  'team.enemy.default': '상대 팀',
 
-  'setup.roster.title': 'AGENT COMPOSITION',
+  'setup.roster.title': '요원 조합',
   'setup.roster.sub': '아군 5명 / 적군 5명 요원 설정',
-  'tag.ally': 'ALLY',
-  'tag.enemy': 'ENEMY',
-  'roster.empty': 'EMPTY SLOT',
+  'tag.ally': '아군',
+  'tag.enemy': '적군',
+  'roster.empty': '빈 슬롯',
   'roster.clickToSelect': '클릭해서 선택',
 
-  'setup.deck.title': 'TACTIC DECK',
+  'setup.deck.title': '전술 덱',
   'setup.deck.sub': '라운드에서 쓸 전술을 미리 등록',
   'deck.sample': '샘플 추가',
   'deck.add': '+ 전술 추가',
   'deck.empty': '등록된 전술이 없습니다. "+ 전술 추가"로 만들거나 샘플 추가로 예시를 불러오세요.',
   'deck.edit': '편집 →',
-  'filter.all': 'ALL',
-  'filter.atk': 'ATTACK',
-  'filter.def': 'DEFENSE',
+  'filter.all': '전체',
+  'filter.atk': '공격',
+  'filter.def': '수비',
 
-  'ready.ally': 'ALLY AGENTS {n}/5',
-  'ready.enemy': 'ENEMY AGENTS {n}/5',
-  'ready.tactics': 'TACTICS {n}',
-  'btn.start': 'START MATCH',
+  'ready.ally': '아군 요원 {n}/5',
+  'ready.enemy': '적군 요원 {n}/5',
+  'ready.tactics': '전술 {n}',
+  'btn.start': '매치 시작',
   'btn.start.ready': '{n} 라운드로',
   'btn.start.notReady': '양 팀 5명씩과 전술 1개 이상이 필요합니다',
 
-  'live.round': 'ROUND {n}',
-  'live.ot': '(OT)',
-  'live.executing': 'ROUND {n} — 진행 중',
-  'live.selecting': 'ROUND {n} — 전술 선택',
-  'live.hint': '콜을 공유한 뒤, 라운드가 끝나면 WIN / LOSS를 누르세요.',
+  'live.round': '라운드 {n}',
+  'live.ot': '(연장)',
+  'live.executing': '라운드 {n} — 진행 중',
+  'live.selecting': '라운드 {n} — 전술 선택',
+  'live.hint': '콜을 공유한 뒤, 라운드가 끝나면 승리 / 패배를 누르세요.',
   'stage.change': '전술 다시 고르기',
   'stage.flipSide': '진영 전환',
   'stage.showOffside': '다른 진영도 표시',
   'stage.newTactic': '+ 전술',
-  'stage.prevWin': '직전 WIN',
-  'stage.prevLoss': '직전 LOSS',
-  'stage.start': 'START',
-  'eco.label': 'ECONOMY',
-  'eco.full': 'FULL BUY',
-  'eco.force': 'FORCE',
-  'eco.eco': 'ECO',
-  'eco.bonus': 'BONUS',
-  'res.win': 'WIN',
-  'res.loss': 'LOSS',
+  'stage.prevWin': '직전 승리',
+  'stage.prevLoss': '직전 패배',
+  'stage.start': '시작',
+  'eco.label': '구매',
+  'eco.full': '풀 구매',
+  'eco.force': '포스',
+  'eco.eco': '에코',
+  'eco.bonus': '보너스',
+  'res.win': '승리',
+  'res.loss': '패배',
   'res.win.sub': '라운드 획득',
   'res.loss.sub': '라운드 상실',
   'meta.firstUse': '첫 사용',
   'meta.streak': '{n}연속',
-  'pick.score': 'SCORE',
+  'pick.score': '추천도',
   'pick.noTactics': '이 진영에서 쓸 전술이 없습니다. "다른 진영도 표시"를 켜거나 전술을 추가하세요.',
 
-  'headline.first.title': 'FIRST ROUND',
+  'headline.first.title': '첫 라운드',
   'headline.first.text': '첫 전술을 세팅하고 라운드를 시작하세요.',
-  'headline.win.title': 'ROUND {n} — WIN',
+  'headline.win.title': '라운드 {n} — 승리',
   'headline.win.text': '"{name}"이(가) 통했습니다. 상대가 대응할 때까지 이어가거나, 이기는 패턴을 하나 더 겹치세요.',
-  'headline.loss.title': 'ROUND {n} — LOSS',
+  'headline.loss.title': '라운드 {n} — 패배',
   'headline.loss.text': '"{name}"이(가) 막혔습니다. 타겟이나 템포를 바꾸는 전술을 추천합니다.',
 
-  'banner.won': '★ MATCH WON — {a} - {b}',
-  'banner.lost': 'MATCH LOST — {a} - {b}',
-  'banner.pointAlly': 'MATCH POINT — 우리 팀',
-  'banner.pointEnemy': 'MATCH POINT — 상대 팀',
-  'banner.overtime': 'OVERTIME / 2라운드 차로 결정',
+  'banner.won': '★ 매치 승리 — {a} - {b}',
+  'banner.lost': '매치 패배 — {a} - {b}',
+  'banner.pointAlly': '매치 포인트 — 우리 팀',
+  'banner.pointEnemy': '매치 포인트 — 상대 팀',
+  'banner.overtime': '연장전 / 2라운드 차로 결정',
 
-  'timeline.title': 'ROUND TIMELINE',
+  'timeline.title': '라운드 기록',
   'timeline.undo': '← 직전 라운드 취소',
   'timeline.resetMatch': '스코어 초기화',
   'timeline.empty': '아직 라운드 기록이 없습니다.',
   'timeline.deleted': '(삭제된 전술)',
-  'perf.title': 'TACTIC PERFORMANCE',
+  'perf.title': '전술별 성적',
   'perf.sub': '전술별 승률',
 
   'reason.winrateGood': '통산 {n}%로 통하는 중',
@@ -2745,20 +2872,20 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'reason.sideMismatch': '진영 불일치 ({side}용)',
   'reason.firstRound': '초반 라운드 / 덱 순서대로',
 
-  'modal.agent.title': '{team} SLOT {n} — SELECT AGENT',
+  'modal.agent.title': '{team} 슬롯 {n} — 요원 선택',
   'agent.search.ph': '요원 이름 검색…',
   'agent.player': '플레이어 이름',
-  'agent.player.ph': 'IGN',
+  'agent.player.ph': '플레이어 이름',
   'agent.clearSlot': '슬롯 비우기',
   'agent.none': '해당하는 요원이 없습니다.',
-  'role.all': 'ALL',
-  'role.duelist': 'DUELIST',
-  'role.initiator': 'INITIATOR',
-  'role.controller': 'CONTROLLER',
-  'role.sentinel': 'SENTINEL',
+  'role.all': '전체',
+  'role.duelist': '타격대',
+  'role.initiator': '척후대',
+  'role.controller': '전략가',
+  'role.sentinel': '감시자',
 
-  'modal.tactic.new': 'NEW TACTIC',
-  'modal.tactic.edit': 'EDIT TACTIC',
+  'modal.tactic.new': '새 전술',
+  'modal.tactic.edit': '전술 편집',
   't.name': '전술 이름',
   't.name.ph': '예: A 더블 연막 강행',
   't.side': '사용 진영',
@@ -2766,7 +2893,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   't.kind': '전술 유형',
   't.note': '콜 / 상세',
   't.note.ph': '스킬 사용법, 타이밍, 실패 시 판단 등',
-  'side.both': 'BOTH',
+  'side.both': '양쪽',
 
   'kind.execute': '정석 강행',
   'kind.default': '디폴트',
@@ -2779,7 +2906,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'kind.passive': '수비적 / 리테이크 중심',
   'kind.eco': '에코 / 포스',
 
-  'analyst.title': 'MATCHUP ANALYSIS',
+  'analyst.title': '조합 상성 분석',
   'analyst.sub': '상대 조합과의 상성',
   'analyst.run': '상성 분석',
   'analyst.needComp': '상성 분석에는 양 팀 5명씩 설정이 필요합니다.',
@@ -2845,13 +2972,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'f.mapOpenNoOp': '{map}은 개활지라 장거리를 잡을 수단이 필요',
   'f.mapTightSmoke': '{map}의 좁은 동선에는 연막이 부족',
 
-  'share.title': 'SHARE',
+  'share.title': '공유',
   'share.x': 'X에 포스트',
   'share.copy': '텍스트 복사',
   'share.copied': '복사했습니다.',
   'share.text': '[{name}]\n{map} / {side} / {site}\n상성: {verdict} ({score}/100)\n{note}',
 
-  'community.title': 'COMMUNITY TACTICS',
+  'community.title': '커뮤니티 전술',
   'community.sub': '전 세계의 전술을 보고 공유하기',
   'community.post': '전술 올리기',
   'community.postTitle': '내가 생각한 최강의 전술',
@@ -2883,8 +3010,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'toast.tacticAdded': '전술을 추가했습니다.',
   'toast.tacticUpdated': '전술을 수정했습니다.',
   'toast.tacticDeleted': '전술을 삭제했습니다.',
-  'toast.roundRecorded': 'ROUND {n} — {result} 기록했습니다.',
-  'toast.undone': 'ROUND {n} 기록을 취소했습니다.',
+  'toast.roundRecorded': '라운드 {n} — {result} 기록했습니다.',
+  'toast.undone': '라운드 {n} 기록을 취소했습니다.',
   'toast.noUndo': '취소할 라운드가 없습니다.',
   'toast.matchReset': '매치를 초기화했습니다.',
   'toast.exported': 'JSON을 내보냈습니다.',
@@ -2918,7 +3045,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   'f.rushNoInfo': '정찰 없이 빠르게 들어가면 대기 중인 수비에 대응할 수 없음',
   'f.enemyMollyRush': '상대 지역 차단 {n}개에 입구에서 발이 묶임',
-  'f.enemyLineup': '상대의 정점 스킬 {n}개가 설치 후에 작용함'
+  'f.enemyLineup': '상대의 정점 스킬 {n}개가 설치 후에 작용함',
+
+  'map.schematic': '약도'
 });
 </script>
 <script>
@@ -2963,13 +3092,15 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     { id: 'astra',     name: 'ASTRA',     jp: 'アストラ',       abbr: 'AS', role: 'controller' },
     { id: 'harbor',    name: 'HARBOR',    jp: 'ハーバー',       abbr: 'HB', role: 'controller' },
     { id: 'clove',     name: 'CLOVE',     jp: 'クローヴ',       abbr: 'CV', role: 'controller' },
+    { id: 'miks',      name: 'MIKS',      jp: 'ミクス',         abbr: 'MK', role: 'controller' },
 
     { id: 'killjoy',   name: 'KILLJOY',   jp: 'キルジョイ',     abbr: 'KJ', role: 'sentinel' },
     { id: 'cypher',    name: 'CYPHER',    jp: 'サイファー',     abbr: 'CY', role: 'sentinel' },
     { id: 'sage',      name: 'SAGE',      jp: 'セージ',         abbr: 'SG', role: 'sentinel' },
     { id: 'chamber',   name: 'CHAMBER',   jp: 'チェンバー',     abbr: 'CH', role: 'sentinel' },
     { id: 'deadlock',  name: 'DEADLOCK',  jp: 'デッドロック',   abbr: 'DL', role: 'sentinel' },
-    { id: 'vyse',      name: 'VYSE',      jp: 'ヴァイス',       abbr: 'VY', role: 'sentinel' }
+    { id: 'vyse',      name: 'VYSE',      jp: 'ヴァイス',       abbr: 'VY', role: 'sentinel' },
+    { id: 'veto',      name: 'VETO',      jp: 'ヴィトー',       abbr: 'VT', role: 'sentinel' }
   ];
 
   /* マップ（サイト構成つき／戦術のターゲット候補に使う） */
@@ -3104,6 +3235,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     astra:     { provides: ['smoke', 'stun', 'wall', 'postplant'], note: 'ctrl.astra' },
     harbor:    { provides: ['smoke', 'wall', 'stun', 'postplant'], note: 'ctrl.harbor' },
     clove:     { provides: ['smoke', 'heal', 'entry'], note: 'ctrl.clove' },
+    /* ミクス: 遠隔設置スモーク + バトルスティム + スタン/回復の切替 + ノックバックULT */
+    miks:      { provides: ['smoke', 'heal', 'stun', 'lineup'], note: 'ctrl.miks' },
 
     /* --- SENTINEL --- */
     killjoy:   { provides: ['trap', 'molly', 'postplant', 'info'], note: 'sent.killjoy' },
@@ -3111,7 +3244,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     sage:      { provides: ['wall', 'heal', 'stun', 'postplant'], note: 'sent.sage' },
     chamber:   { provides: ['trap', 'teleport', 'opflex'], note: 'sent.chamber' },
     deadlock:  { provides: ['trap', 'wall', 'stun', 'info'], note: 'sent.deadlock' },
-    vyse:      { provides: ['trap', 'wall', 'antiutil', 'info'], note: 'sent.vyse' }
+    vyse:      { provides: ['trap', 'wall', 'antiutil', 'info'], note: 'sent.vyse' },
+    /* ヴィトー: 拘束トラップ + 設置点へのテレポート + アビリティ無効化 + 回復ULT */
+    veto:      { provides: ['trap', 'antiutil', 'teleport', 'stun', 'heal'], note: 'sent.veto' }
   };
 
   /** 構成 5 体の provides タグを集計する */
@@ -3144,6 +3279,274 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   global.VCT_TRAITS = { TRAITS: TRAITS, aggregate: aggregate };
+})(window);
+</script>
+<script>
+/* ---- assets/js/portraits.js ---- */
+/* =========================================================
+   AGENT PORTRAITS
+   ---------------------------------------------------------
+   1) 公式画像がある場合
+      tools/fetch-assets.mjs を実行すると、Riot の公式アセット
+      （valorant-api.com 経由）から各エージェントのアイコンを取得し、
+      このファイルの OFFICIAL を書き換える。以降はそちらが使われる。
+
+   2) 公式画像が無い場合（既定）
+      下の SIGNATURE 配色でエージェントごとに色分けした
+      六角アイコンを描画する。ロールは外周のリングで示す。
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  /* fetch-assets.mjs が { agentId: 'data:image/webp;base64,...' } を書き込む */
+  const OFFICIAL = {};
+
+  /* エージェントごとの識別色。ロール色だけだと 8 体のデュエリストが
+     すべて同じ赤になり見分けられないため、1 体ずつ固有色を割り当てる。 */
+  const SIGNATURE = {
+    /* DUELIST */
+    jett:      '#9FE3F5',
+    phoenix:   '#F4842A',
+    raze:      '#FFB03B',
+    reyna:     '#B14BE0',
+    yoru:      '#3B5BF5',
+    neon:      '#22D3FF',
+    iso:       '#7A5CFF',
+    waylay:    '#FFD54A',
+    /* INITIATOR */
+    sova:      '#3FA9F5',
+    breach:    '#D9773A',
+    skye:      '#6BBF59',
+    kayo:      '#8FB3C9',
+    fade:      '#6B5BA8',
+    gekko:     '#9BE04F',
+    tejo:      '#2FA8A0',
+    /* CONTROLLER */
+    brimstone: '#C4552A',
+    omen:      '#6E72C4',
+    viper:     '#3FD16B',
+    astra:     '#8E5AC9',
+    harbor:    '#2AA7C4',
+    clove:     '#E05FA8',
+    miks:      '#B8E62E',
+    /* SENTINEL */
+    killjoy:   '#F2D74E',
+    cypher:    '#D8D3C8',
+    sage:      '#6FE3C9',
+    chamber:   '#E8C86A',
+    deadlock:  '#9BB3C9',
+    vyse:      '#A46BD8',
+    veto:      '#D14A6B'
+  };
+
+  function official(agentId) {
+    return OFFICIAL[agentId] || null;
+  }
+
+  function signature(agentId) {
+    return SIGNATURE[agentId] || '#6B7F8C';
+  }
+
+  function hasOfficial() {
+    return Object.keys(OFFICIAL).length > 0;
+  }
+
+  global.VCT_PORTRAITS = {
+    official: official,
+    signature: signature,
+    hasOfficial: hasOfficial,
+    OFFICIAL: OFFICIAL,
+    SIGNATURE: SIGNATURE
+  };
+})(window);
+</script>
+<script>
+/* ---- assets/js/maps-layout.js ---- */
+/* =========================================================
+   MAP LAYOUTS — 簡易図（SCHEMATIC）
+   ---------------------------------------------------------
+   実寸のミニマップではなく、「サイトがどの位置関係にあるか」を
+   戦術ボード上で即座に読めるようにするための簡略図。
+   座標は 0-100 の正規化空間、y=0 が上（ディフェンダー側）。
+
+   公式ミニマップに差し替えたい場合は tools/fetch-assets.mjs を
+   実行すると MINIMAP に画像が入り、そちらが優先される。
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  /* fetch-assets.mjs が { mapId: 'data:image/webp;base64,...' } を書き込む */
+  const MINIMAP = {};
+
+  const N = function (x, y) { return { x: x, y: y }; };
+
+  const LAYOUTS = {
+    ascent: {
+      atk: N(50, 90), def: N(50, 10),
+      sites: { A: N(78, 34), B: N(22, 34) }, mid: N(50, 56),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B'], ['def', 'mid']]
+    },
+    bind: {
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(24, 36), B: N(76, 36) }, mid: null,
+      lanes: [['atk', 'A'], ['atk', 'B'], ['def', 'A'], ['def', 'B']],
+      links: [['A', 'B']]   /* テレポーター */
+    },
+    haven: {
+      atk: N(50, 90), def: N(50, 10),
+      sites: { A: N(82, 32), B: N(50, 30), C: N(18, 32) }, mid: N(50, 58),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'C'], ['mid', 'B'], ['mid', 'A'], ['mid', 'C'], ['def', 'A'], ['def', 'B'], ['def', 'C']]
+    },
+    split: {
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(76, 32), B: N(24, 34) }, mid: N(50, 52),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    icebox: {
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(26, 32), B: N(76, 34) }, mid: N(50, 56),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    breeze: {
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(80, 32), B: N(20, 34) }, mid: N(50, 58),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    fracture: {
+      /* アタッカーが両側から挟み込む特殊構造 */
+      atk: N(12, 84), atk2: N(88, 84), def: N(50, 26),
+      sites: { A: N(80, 46), B: N(20, 46) }, mid: null,
+      lanes: [['atk', 'B'], ['atk2', 'A'], ['atk', 'A'], ['atk2', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    pearl: {
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(24, 32), B: N(76, 34) }, mid: N(50, 56),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    lotus: {
+      atk: N(50, 90), def: N(50, 10),
+      sites: { A: N(18, 32), B: N(50, 28), C: N(82, 32) }, mid: N(50, 58),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'C'], ['mid', 'B'], ['mid', 'A'], ['mid', 'C'], ['def', 'A'], ['def', 'B'], ['def', 'C']]
+    },
+    sunset: {
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(26, 32), B: N(76, 34) }, mid: N(50, 56),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    abyss: {
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(26, 30), B: N(74, 32) }, mid: N(50, 58),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    corrode: {
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(26, 32), B: N(74, 32) }, mid: N(50, 56),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    }
+  };
+
+  function nodeOf(layout, key) {
+    if (key === 'atk') return layout.atk;
+    if (key === 'atk2') return layout.atk2;
+    if (key === 'def') return layout.def;
+    if (key === 'mid') return layout.mid;
+    return layout.sites[key] || null;
+  }
+
+  /**
+   * マップの簡易図を SVG 文字列で返す。
+   * @param {Object} opts { map, highlight, side, size }
+   *   highlight … 'A' | 'B' | 'C' | 'MID' | '-'
+   *   side      … 'ATK' | 'DEF'（進行方向の矢印の向きに使う）
+   */
+  function render(opts) {
+    const id = opts.map;
+    const layout = LAYOUTS[id];
+    if (!layout) return '';
+
+    const size = opts.size || 150;
+    const highlight = String(opts.highlight || '').toUpperCase();
+    const side = opts.side === 'DEF' ? 'DEF' : 'ATK';
+    const parts = [];
+
+    /* 通路 */
+    layout.lanes.forEach(function (lane) {
+      const a = nodeOf(layout, lane[0]);
+      const b = nodeOf(layout, lane[1]);
+      if (!a || !b) return;
+      const hot = highlight && (lane[0] === highlight || lane[1] === highlight ||
+                                (highlight === 'MID' && (lane[0] === 'mid' || lane[1] === 'mid')));
+      parts.push('<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y +
+                 '" class="ml-lane' + (hot ? ' is-hot' : '') + '" />');
+    });
+
+    /* テレポーターなどの特殊接続 */
+    (layout.links || []).forEach(function (link) {
+      const a = nodeOf(layout, link[0]);
+      const b = nodeOf(layout, link[1]);
+      if (!a || !b) return;
+      parts.push('<path d="M' + a.x + ' ' + a.y + ' Q 50 8 ' + b.x + ' ' + b.y + '" class="ml-link" />');
+    });
+
+    /* ミッド */
+    if (layout.mid) {
+      const hot = highlight === 'MID';
+      parts.push('<circle cx="' + layout.mid.x + '" cy="' + layout.mid.y + '" r="6" class="ml-mid' + (hot ? ' is-hot' : '') + '" />');
+      parts.push('<text x="' + layout.mid.x + '" y="' + (layout.mid.y + 2.6) + '" class="ml-mid-label">M</text>');
+    }
+
+    /* サイト */
+    Object.keys(layout.sites).forEach(function (key) {
+      const n = layout.sites[key];
+      const hot = highlight === key;
+      parts.push('<rect x="' + (n.x - 8) + '" y="' + (n.y - 8) + '" width="16" height="16" rx="2" ' +
+                 'class="ml-site' + (hot ? ' is-hot' : '') + '" />');
+      parts.push('<text x="' + n.x + '" y="' + (n.y + 3.4) + '" class="ml-site-label' + (hot ? ' is-hot' : '') + '">' + key + '</text>');
+    });
+
+    /* スポーン */
+    [['atk', layout.atk], ['atk2', layout.atk2], ['def', layout.def]].forEach(function (pair) {
+      const n = pair[1];
+      if (!n) return;
+      const isAtk = pair[0] !== 'def';
+      parts.push('<circle cx="' + n.x + '" cy="' + n.y + '" r="4.5" class="ml-spawn ml-spawn-' +
+                 (isAtk ? 'atk' : 'def') + (side === (isAtk ? 'ATK' : 'DEF') ? ' is-ours' : '') + '" />');
+    });
+
+    return '<svg class="map-fig" viewBox="0 0 100 100" width="' + size + '" height="' + size +
+           '" role="img" aria-label="' + id + ' schematic">' +
+             '<rect x="2" y="2" width="96" height="96" rx="4" class="ml-frame" />' +
+             parts.join('') +
+           '</svg>';
+  }
+
+  function minimap(mapId) { return MINIMAP[mapId] || null; }
+  function has(mapId) { return !!LAYOUTS[mapId]; }
+
+  global.VCT_MAPS = { render: render, minimap: minimap, has: has, LAYOUTS: LAYOUTS, MINIMAP: MINIMAP };
+})(window);
+</script>
+<script>
+/* ---- assets/js/official-assets.js ---- */
+/* =========================================================
+   OFFICIAL ASSETS （自動生成されるファイル）
+   ---------------------------------------------------------
+   このファイルは既定では何もしない。
+   `node tools/fetch-assets.mjs` を実行すると、Riot の公式アセットを
+   取得して、このファイルを上書きする。
+   実行後はエージェントアイコンとマップのミニマップが公式画像に差し替わる。
+
+   ※ このリポジトリが動く環境では valorant-api.com への通信が
+     ネットワークポリシーで遮断されているため、取得はローカルで行うこと。
+   ========================================================= */
+(function (global) {
+  'use strict';
+  /* 生成後はここに { agentId: 'assets/img/agents/xxx.png' } などが入る */
+  const AGENTS = {};
+  const MAPS = {};
+
+  if (global.VCT_PORTRAITS) Object.assign(global.VCT_PORTRAITS.OFFICIAL, AGENTS);
+  if (global.VCT_MAPS) Object.assign(global.VCT_MAPS.MINIMAP, MAPS);
 })(window);
 </script>
 <script>
@@ -4231,27 +4634,54 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /* ================= 共通パーツ ================= */
+  const P = global.VCT_PORTRAITS;
+
+  /**
+   * エージェントアイコン。
+   * 公式画像が読み込まれていればそれを、無ければエージェント固有色の
+   * 六角アイコンを描く。外周のリングはロール色。
+   */
   function avatarHTML(agentId, extraClass) {
     const agent = D.agentById(agentId);
-    if (!agent) return '<span class="avatar is-empty ' + (extraClass || '') + '">?</span>';
+    if (!agent) {
+      return '<span class="avatar is-empty ' + (extraClass || '') + '"><span class="avatar-core">?</span></span>';
+    }
+
     const role = D.ROLES[agent.role];
-    const style = 'background:linear-gradient(150deg,' + role.color + ',' + shade(role.color, -34) + ');' +
-                  'box-shadow:0 0 16px ' + hexA(role.color, .35) + ';';
-    return '<span class="avatar ' + (extraClass || '') + '" style="' + style + '">' + esc(agent.abbr) + '</span>';
+    const sig = P.signature(agent.id);
+    const img = P.official(agent.id);
+
+    const core = img
+      ? '<span class="avatar-core"><img class="avatar-img" src="' + img + '" alt="' + esc(agent.name) + '" loading="lazy" /></span>'
+      : '<span class="avatar-core" style="background:linear-gradient(150deg,' + sig + ',' + shade(sig, -46) + ');color:' + readable(sig) + '">' +
+          esc(agent.abbr) +
+        '</span>';
+
+    return '<span class="avatar ' + (extraClass || '') + '" title="' + esc(agent.name) + '"' +
+           ' style="background:' + role.color + ';box-shadow:0 0 14px ' + hexA(sig, .38) + '">' + core + '</span>';
+  }
+
+  function rgbOf(hex) {
+    const c = hex.replace('#', '');
+    return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)];
   }
 
   function hexA(hex, alpha) {
-    const c = hex.replace('#', '');
-    return 'rgba(' + parseInt(c.slice(0, 2), 16) + ',' + parseInt(c.slice(2, 4), 16) + ',' +
-           parseInt(c.slice(4, 6), 16) + ',' + alpha + ')';
+    const p = rgbOf(hex);
+    return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + alpha + ')';
   }
 
   function shade(hex, amount) {
-    const c = hex.replace('#', '');
-    const parts = [c.slice(0, 2), c.slice(2, 4), c.slice(4, 6)].map(function (h) {
-      return Math.max(0, Math.min(255, parseInt(h, 16) + amount)).toString(16).padStart(2, '0');
-    });
-    return '#' + parts.join('');
+    return '#' + rgbOf(hex).map(function (v) {
+      return Math.max(0, Math.min(255, v + amount)).toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  /** 明るい下地には濃い文字、暗い下地には白文字を返す */
+  function readable(hex) {
+    const p = rgbOf(hex);
+    const luminance = (0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2]) / 255;
+    return luminance > 0.58 ? '#0A1218' : '#FFFFFF';
   }
 
   function sideBadge(side) {
@@ -4280,6 +4710,38 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       return '<button type="button" class="map-opt' + (m.id === S.state.match.map ? ' is-active' : '') +
              '" data-map="' + m.id + '">' + esc(m.name) + '</button>';
     }).join('');
+    renderMapFigure();
+  }
+
+  /** セットアップ画面のマップ図（選択中のマップの構造を示す） */
+  function renderMapFigure() {
+    const box = $('map-figure');
+    if (!box) return;
+    const map = D.mapById(S.state.match.map);
+    box.innerHTML = mapFigureHTML({
+      map: S.state.match.map,
+      side: S.state.match.startSide,
+      size: 168,
+      caption: (map ? map.name : '') + ' · ' + t('map.schematic')
+    });
+  }
+
+  /**
+   * マップ図。公式ミニマップが読み込まれていればそちらを、
+   * 無ければ簡易図（サイトの位置関係）を描く。
+   */
+  function mapFigureHTML(opts) {
+    const M = global.VCT_MAPS;
+    if (!M.has(opts.map)) return '';
+
+    const shot = M.minimap(opts.map);
+    const body = shot
+      ? '<img class="map-shot" src="' + shot + '" alt="' + esc(opts.map) + '" style="width:' + opts.size + 'px" />'
+      : M.render({ map: opts.map, highlight: opts.highlight, side: opts.side, size: opts.size });
+
+    return '<figure class="map-fig-wrap">' + body +
+             (opts.caption ? '<figcaption>' + esc(opts.caption) + '</figcaption>' : '') +
+           '</figure>';
   }
 
   function renderSideToggle() {
@@ -4452,6 +4914,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       '</div>' +
       '<div class="live-card" data-side="' + side + '">' +
         '<span class="lc-bar"></span>' +
+        mapFigureHTML({ map: S.state.match.map, highlight: tac.site, side: side, size: 132 }) +
         '<div class="lc-top">' +
           '<span class="lc-site">' + esc(tac.site || '-') + '</span>' +
           '<span class="lc-label">' + t(side === 'ATK' ? 'side.attack' : 'side.defense') + ' / ' + esc(kind.label) + '</span>' +
@@ -4832,6 +5295,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     $: $, esc: esc, avatarHTML: avatarHTML,
     renderLangPicker: renderLangPicker,
     renderMapSelect: renderMapSelect,
+    renderMapFigure: renderMapFigure,
+    mapFigureHTML: mapFigureHTML,
     renderSideToggle: renderSideToggle,
     renderMatchFields: renderMatchFields,
     renderRoster: renderRoster,

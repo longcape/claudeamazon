@@ -451,21 +451,40 @@ select { appearance: none; cursor: pointer; }
 .slot:hover { border-color: var(--line-hot); background: rgba(20, 33, 42, .8); transform: translateX(2px); }
 .slot.is-empty { border-style: dashed; }
 
+/* エージェントアイコン: 外側がロール色のリング、内側がエージェント固有色 */
 .avatar {
+  --hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
   width: 38px; height: 38px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  color: #08111a;
-  background: #1b2a34;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  padding: 2px;
+  box-sizing: border-box;
+  background: #33505f;
+  clip-path: var(--hex);
   position: relative;
 }
-.avatar.is-empty { color: var(--text-mute); background: #16222b; }
+.avatar-core {
+  width: 100%; height: 100%;
+  display: grid;
+  place-items: center;
+  clip-path: var(--hex);
+  background: #1b2a34;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  overflow: hidden;
+}
+.avatar-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+  display: block;
+}
+.avatar.is-empty { background: #24333d; }
+.avatar.is-empty .avatar-core { color: var(--text-mute); background: #16222b; }
 
 .slot-meta { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
 .slot-agent {
@@ -730,7 +749,8 @@ select { appearance: none; cursor: pointer; }
   background: rgba(9, 14, 18, .5);
   clip-path: var(--clip-sm);
 }
-.broster-item .avatar { width: 32px; height: 32px; font-size: 11px; }
+.broster-item .avatar { width: 32px; height: 32px; }
+.broster-item .avatar-core { font-size: 10px; }
 .broster-item .slot-agent { font-size: 12px; }
 .board-enemy .broster-item { border-color: rgba(255, 70, 85, .22); }
 .board-ally  .broster-item { border-color: rgba(53, 198, 232, .22); }
@@ -1094,7 +1114,8 @@ select { appearance: none; cursor: pointer; }
 }
 .agent-opt:hover { transform: translateY(-2px); color: var(--text); border-color: var(--line-hot); }
 .agent-opt.is-active { border-color: var(--cyan); background: rgba(53, 198, 232, .1); color: #fff; }
-.agent-opt .avatar { width: 40px; height: 40px; }
+.agent-opt .avatar { width: 44px; height: 44px; }
+.agent-opt .avatar-core { font-size: 13px; }
 .agent-opt b { font-family: var(--font-display); font-size: 11px; letter-spacing: .08em; }
 .agent-opt small { font-size: 9px; letter-spacing: .1em; color: var(--text-mute); }
 
@@ -1422,7 +1443,8 @@ select { appearance: none; cursor: pointer; }
   color: var(--text-mute);
   margin-right: 4px;
 }
-.avatar-sm { width: 24px !important; height: 24px !important; font-size: 9px !important; }
+.avatar-sm { width: 24px !important; height: 24px !important; padding: 1px !important; }
+.avatar-sm .avatar-core { font-size: 8px; }
 
 .post-foot {
   display: flex;
@@ -1506,4 +1528,104 @@ select { appearance: none; cursor: pointer; }
   .lang-picker select { min-width: 68px; font-size: 11px; }
   .community-tools .btn-primary { margin-left: 0; width: 100%; }
   .verdict-score { font-size: 24px; }
+}
+
+
+/* =========================================================
+   CJK 時のタイポグラフィ調整
+   欧文向けの広い字間は日本語・韓国語だと間延びして見えるため詰める
+   ========================================================= */
+html[lang="ja"] .panel-head h2,
+html[lang="ko"] .panel-head h2,
+html[lang="ja"] .stage-head h3,
+html[lang="ko"] .stage-head h3,
+html[lang="ja"] .modal-head h2,
+html[lang="ko"] .modal-head h2 { letter-spacing: .08em; }
+
+html[lang="ja"] .phase-tab,
+html[lang="ko"] .phase-tab,
+html[lang="ja"] .btn,
+html[lang="ko"] .btn,
+html[lang="ja"] .field > label,
+html[lang="ko"] .field > label { letter-spacing: .06em; }
+
+html[lang="ja"] .res-btn,
+html[lang="ko"] .res-btn { letter-spacing: .16em; }
+
+html[lang="ja"] .verdict,
+html[lang="ko"] .verdict { letter-spacing: .1em; }
+
+/* =========================================================
+   MAP SCHEMATIC
+   ========================================================= */
+.map-figure { margin-top: 14px; }
+
+.map-fig-wrap {
+  margin: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.map-fig-wrap figcaption {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .16em;
+  color: var(--text-mute);
+}
+
+.map-fig {
+  display: block;
+  background: rgba(9, 14, 18, .6);
+  clip-path: var(--clip-sm);
+}
+.map-shot {
+  display: block;
+  border: 1px solid var(--line);
+  clip-path: var(--clip-sm);
+  max-width: 100%;
+  height: auto;
+}
+
+.ml-frame { fill: none; stroke: var(--line); stroke-width: 1; }
+.ml-lane  { stroke: #2A3F4C; stroke-width: 2.4; stroke-linecap: round; }
+.ml-lane.is-hot { stroke: var(--cyan); stroke-width: 3.2; }
+.ml-link  { fill: none; stroke: var(--violet); stroke-width: 1.6; stroke-dasharray: 3 3; opacity: .8; }
+
+.ml-site { fill: #16242D; stroke: #3A5464; stroke-width: 1.4; }
+.ml-site.is-hot { fill: rgba(53, 198, 232, .22); stroke: var(--cyan); stroke-width: 2; }
+.ml-site-label {
+  fill: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.ml-site-label.is-hot { fill: #fff; }
+
+.ml-mid { fill: #16242D; stroke: #3A5464; stroke-width: 1.2; }
+.ml-mid.is-hot { fill: rgba(53, 198, 232, .22); stroke: var(--cyan); stroke-width: 1.8; }
+.ml-mid-label {
+  fill: var(--text-mute);
+  font-family: var(--font-display);
+  font-size: 6px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.ml-spawn { fill: #223341; stroke: #3A5464; stroke-width: 1; }
+.ml-spawn-atk.is-ours { fill: rgba(255, 70, 85, .5); stroke: var(--red); }
+.ml-spawn-def.is-ours { fill: rgba(34, 211, 166, .5); stroke: var(--teal); }
+
+/* ライブカードでは右上に浮かせる */
+.live-card .map-fig-wrap {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  z-index: 2;
+  opacity: .92;
+}
+
+@media (max-width: 1180px) {
+  .live-card .map-fig-wrap { position: static; margin-bottom: 14px; }
 }

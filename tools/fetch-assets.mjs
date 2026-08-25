@@ -1,0 +1,162 @@
+#!/usr/bin/env node
+/* =========================================================
+   公式アセット取得ツール
+   ---------------------------------------------------------
+   Riot の公式ゲームアセットを valorant-api.com（コミュニティ運営の
+   公開ミラー）から取得し、エージェントアイコンとマップのミニマップを
+   アプリに取り込む。
+
+   使い方:
+     node tools/fetch-assets.mjs            # 画像ファイルとして保存（推奨）
+     node tools/fetch-assets.mjs --inline   # エージェントアイコンを data URI で埋め込む
+                                            # （単一 HTML 配布版でも公式画像を使いたい場合）
+
+   生成/更新されるもの:
+     assets/img/agents/<id>.png
+     assets/img/maps/<id>.png
+     assets/js/official-assets.js   ← 上記を読み込ませる自動生成ファイル
+
+   実行後に `node build.js` を走らせると配布ファイルにも反映される。
+
+   注意: 画像は Riot Games の著作物です。ファンプロジェクトでの利用は
+   Riot の「Legal Jibber Jabber」ポリシーに従ってください。商用利用や
+   広告収益を伴う配信を行う場合は、事前に条件を確認することを推奨します。
+   ========================================================= */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(HERE, '..');
+const API = 'https://valorant-api.com/v1';
+const INLINE = process.argv.includes('--inline');
+
+const AGENT_DIR = path.join(ROOT, 'assets/img/agents');
+const MAP_DIR = path.join(ROOT, 'assets/img/maps');
+const OUT_FILE = path.join(ROOT, 'assets/js/official-assets.js');
+
+/** アプリが持っているエージェント / マップの id を data.js から読む。
+    配列ごとに切り出してから走査する（全体を正規表現でなめると
+    AGENTS と MAPS が混ざる）。 */
+function idsFromDataJs() {
+  const src = fs.readFileSync(path.join(ROOT, 'assets/js/data.js'), 'utf8');
+
+  const sliceArray = (declaration) => {
+    const start = src.indexOf(declaration);
+    if (start < 0) throw new Error(`data.js に ${declaration} が見つかりません`);
+    const from = src.indexOf('[', start);
+    const to = src.indexOf('\n  ];', from);
+    if (from < 0 || to < 0) throw new Error(`${declaration} の配列を読み取れません`);
+    return src.slice(from, to);
+  };
+
+  const parse = (block) =>
+    [...block.matchAll(/\{\s*id:\s*'([^']+)',\s*name:\s*'([^']+)'/g)]
+      .map(([, id, name]) => ({ id, name }));
+
+  return {
+    agents: parse(sliceArray('const AGENTS =')),
+    maps: parse(sliceArray('const MAPS ='))
+  };
+}
+
+async function getJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+  return res.json();
+}
+
+async function download(url, dest) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, buf);
+  return buf;
+}
+
+/** API の表示名をアプリ側の id に対応づける */
+function normalize(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+async function main() {
+  const { agents: wanted, maps: wantedMaps } = idsFromDataJs();
+  console.log(`data.js のエージェント ${wanted.length} 体 / マップ ${wantedMaps.length} 種を対象にします`);
+
+  const agentEntries = {};
+  const mapEntries = {};
+  const missing = [];
+
+  /* ---------- エージェント ---------- */
+  const agentsRes = await getJSON(`${API}/agents?isPlayableCharacter=true`);
+  const byName = new Map(agentsRes.data.map((a) => [normalize(a.displayName), a]));
+
+  for (const want of wanted) {
+    const found = byName.get(normalize(want.name)) || byName.get(normalize(want.id));
+    if (!found) { missing.push(`agent:${want.id}`); continue; }
+
+    const url = found.displayIconSmall || found.displayIcon;
+    if (!url) { missing.push(`agent-icon:${want.id}`); continue; }
+
+    const dest = path.join(AGENT_DIR, `${want.id}.png`);
+    const buf = await download(url, dest);
+    agentEntries[want.id] = INLINE
+      ? `data:image/png;base64,${buf.toString('base64')}`
+      : `assets/img/agents/${want.id}.png`;
+    console.log(`  agent  ${want.id.padEnd(10)} ${(buf.length / 1024).toFixed(0)} KB`);
+  }
+
+  /* API 側にあってアプリに無いエージェントを知らせる（新エージェント検出） */
+  const knownIds = new Set(wanted.map((w) => normalize(w.name)));
+  const extra = agentsRes.data.filter((a) => !knownIds.has(normalize(a.displayName)));
+  if (extra.length) {
+    console.log('\n⚠ data.js に未登録のエージェントが API 側にあります:');
+    extra.forEach((a) => console.log(`   ${a.displayName} (${a.role?.displayName ?? '-'})`));
+  }
+
+  /* ---------- マップ ---------- */
+  const mapsRes = await getJSON(`${API}/maps`);
+  const mapByName = new Map(mapsRes.data.map((m) => [normalize(m.displayName), m]));
+
+  for (const want of wantedMaps) {
+    const found = mapByName.get(normalize(want.name));
+    if (!found || !found.displayIcon) { missing.push(`map:${want.id}`); continue; }
+    const dest = path.join(MAP_DIR, `${want.id}.png`);
+    const buf = await download(found.displayIcon, dest);
+    /* ミニマップは 1 枚が大きいので、常にファイル参照にする */
+    mapEntries[want.id] = `assets/img/maps/${want.id}.png`;
+    console.log(`  map    ${want.id.padEnd(10)} ${(buf.length / 1024).toFixed(0)} KB`);
+  }
+
+  /* ---------- 生成 ---------- */
+  const out = `/* =========================================================
+   OFFICIAL ASSETS （自動生成 — 直接編集しないこと）
+   生成日時: ${new Date().toISOString()}
+   生成コマンド: node tools/fetch-assets.mjs${INLINE ? ' --inline' : ''}
+   出典: Riot Games / valorant-api.com
+   ========================================================= */
+(function (global) {
+  'use strict';
+  const AGENTS = ${JSON.stringify(agentEntries, null, 2)};
+  const MAPS = ${JSON.stringify(mapEntries, null, 2)};
+
+  if (global.VCT_PORTRAITS) Object.assign(global.VCT_PORTRAITS.OFFICIAL, AGENTS);
+  if (global.VCT_MAPS) Object.assign(global.VCT_MAPS.MINIMAP, MAPS);
+})(window);
+`;
+  fs.writeFileSync(OUT_FILE, out);
+
+  console.log(`\n✓ ${Object.keys(agentEntries).length} 体のアイコンと ${Object.keys(mapEntries).length} 枚のミニマップを取り込みました`);
+  console.log(`  → ${path.relative(ROOT, OUT_FILE)}`);
+  if (missing.length) console.log('  取得できなかったもの:', missing.join(', '));
+  if (!INLINE) {
+    console.log('\n  単一 HTML 配布版にも公式アイコンを載せたい場合は --inline を付けて再実行してください。');
+  }
+  console.log('  最後に `node build.js` を実行して配布ファイルを更新してください。');
+}
+
+main().catch((err) => {
+  console.error('取得に失敗しました:', err.message);
+  process.exit(1);
+});

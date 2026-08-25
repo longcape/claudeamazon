@@ -291,5 +291,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
 
   'f.rushNoInfo': 'Pushing fast without recon leaves you blind to a set defense',
   'f.enemyMollyRush': 'Their {n} area-denial abilities stall you at the entry',
-  'f.enemyLineup': 'Their {n} lineup abilities come into play after the plant'
+  'f.enemyLineup': 'Their {n} lineup abilities come into play after the plant',
+
+  'map.schematic': 'Schematic'
 });

@@ -22,27 +22,54 @@
   }
 
   /* ================= 共通パーツ ================= */
+  const P = global.VCT_PORTRAITS;
+
+  /**
+   * エージェントアイコン。
+   * 公式画像が読み込まれていればそれを、無ければエージェント固有色の
+   * 六角アイコンを描く。外周のリングはロール色。
+   */
   function avatarHTML(agentId, extraClass) {
     const agent = D.agentById(agentId);
-    if (!agent) return '<span class="avatar is-empty ' + (extraClass || '') + '">?</span>';
+    if (!agent) {
+      return '<span class="avatar is-empty ' + (extraClass || '') + '"><span class="avatar-core">?</span></span>';
+    }
+
     const role = D.ROLES[agent.role];
-    const style = 'background:linear-gradient(150deg,' + role.color + ',' + shade(role.color, -34) + ');' +
-                  'box-shadow:0 0 16px ' + hexA(role.color, .35) + ';';
-    return '<span class="avatar ' + (extraClass || '') + '" style="' + style + '">' + esc(agent.abbr) + '</span>';
+    const sig = P.signature(agent.id);
+    const img = P.official(agent.id);
+
+    const core = img
+      ? '<span class="avatar-core"><img class="avatar-img" src="' + img + '" alt="' + esc(agent.name) + '" loading="lazy" /></span>'
+      : '<span class="avatar-core" style="background:linear-gradient(150deg,' + sig + ',' + shade(sig, -46) + ');color:' + readable(sig) + '">' +
+          esc(agent.abbr) +
+        '</span>';
+
+    return '<span class="avatar ' + (extraClass || '') + '" title="' + esc(agent.name) + '"' +
+           ' style="background:' + role.color + ';box-shadow:0 0 14px ' + hexA(sig, .38) + '">' + core + '</span>';
+  }
+
+  function rgbOf(hex) {
+    const c = hex.replace('#', '');
+    return [parseInt(c.slice(0, 2), 16), parseInt(c.slice(2, 4), 16), parseInt(c.slice(4, 6), 16)];
   }
 
   function hexA(hex, alpha) {
-    const c = hex.replace('#', '');
-    return 'rgba(' + parseInt(c.slice(0, 2), 16) + ',' + parseInt(c.slice(2, 4), 16) + ',' +
-           parseInt(c.slice(4, 6), 16) + ',' + alpha + ')';
+    const p = rgbOf(hex);
+    return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + alpha + ')';
   }
 
   function shade(hex, amount) {
-    const c = hex.replace('#', '');
-    const parts = [c.slice(0, 2), c.slice(2, 4), c.slice(4, 6)].map(function (h) {
-      return Math.max(0, Math.min(255, parseInt(h, 16) + amount)).toString(16).padStart(2, '0');
-    });
-    return '#' + parts.join('');
+    return '#' + rgbOf(hex).map(function (v) {
+      return Math.max(0, Math.min(255, v + amount)).toString(16).padStart(2, '0');
+    }).join('');
+  }
+
+  /** 明るい下地には濃い文字、暗い下地には白文字を返す */
+  function readable(hex) {
+    const p = rgbOf(hex);
+    const luminance = (0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2]) / 255;
+    return luminance > 0.58 ? '#0A1218' : '#FFFFFF';
   }
 
   function sideBadge(side) {
@@ -71,6 +98,38 @@
       return '<button type="button" class="map-opt' + (m.id === S.state.match.map ? ' is-active' : '') +
              '" data-map="' + m.id + '">' + esc(m.name) + '</button>';
     }).join('');
+    renderMapFigure();
+  }
+
+  /** セットアップ画面のマップ図（選択中のマップの構造を示す） */
+  function renderMapFigure() {
+    const box = $('map-figure');
+    if (!box) return;
+    const map = D.mapById(S.state.match.map);
+    box.innerHTML = mapFigureHTML({
+      map: S.state.match.map,
+      side: S.state.match.startSide,
+      size: 168,
+      caption: (map ? map.name : '') + ' · ' + t('map.schematic')
+    });
+  }
+
+  /**
+   * マップ図。公式ミニマップが読み込まれていればそちらを、
+   * 無ければ簡易図（サイトの位置関係）を描く。
+   */
+  function mapFigureHTML(opts) {
+    const M = global.VCT_MAPS;
+    if (!M.has(opts.map)) return '';
+
+    const shot = M.minimap(opts.map);
+    const body = shot
+      ? '<img class="map-shot" src="' + shot + '" alt="' + esc(opts.map) + '" style="width:' + opts.size + 'px" />'
+      : M.render({ map: opts.map, highlight: opts.highlight, side: opts.side, size: opts.size });
+
+    return '<figure class="map-fig-wrap">' + body +
+             (opts.caption ? '<figcaption>' + esc(opts.caption) + '</figcaption>' : '') +
+           '</figure>';
   }
 
   function renderSideToggle() {
@@ -243,6 +302,7 @@
       '</div>' +
       '<div class="live-card" data-side="' + side + '">' +
         '<span class="lc-bar"></span>' +
+        mapFigureHTML({ map: S.state.match.map, highlight: tac.site, side: side, size: 132 }) +
         '<div class="lc-top">' +
           '<span class="lc-site">' + esc(tac.site || '-') + '</span>' +
           '<span class="lc-label">' + t(side === 'ATK' ? 'side.attack' : 'side.defense') + ' / ' + esc(kind.label) + '</span>' +
@@ -623,6 +683,8 @@
     $: $, esc: esc, avatarHTML: avatarHTML,
     renderLangPicker: renderLangPicker,
     renderMapSelect: renderMapSelect,
+    renderMapFigure: renderMapFigure,
+    mapFigureHTML: mapFigureHTML,
     renderSideToggle: renderSideToggle,
     renderMatchFields: renderMatchFields,
     renderRoster: renderRoster,

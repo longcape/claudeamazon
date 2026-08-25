@@ -38,13 +38,15 @@
     { id: 'astra',     name: 'ASTRA',     jp: 'アストラ',       abbr: 'AS', role: 'controller' },
     { id: 'harbor',    name: 'HARBOR',    jp: 'ハーバー',       abbr: 'HB', role: 'controller' },
     { id: 'clove',     name: 'CLOVE',     jp: 'クローヴ',       abbr: 'CV', role: 'controller' },
+    { id: 'miks',      name: 'MIKS',      jp: 'ミクス',         abbr: 'MK', role: 'controller' },
 
     { id: 'killjoy',   name: 'KILLJOY',   jp: 'キルジョイ',     abbr: 'KJ', role: 'sentinel' },
     { id: 'cypher',    name: 'CYPHER',    jp: 'サイファー',     abbr: 'CY', role: 'sentinel' },
     { id: 'sage',      name: 'SAGE',      jp: 'セージ',         abbr: 'SG', role: 'sentinel' },
     { id: 'chamber',   name: 'CHAMBER',   jp: 'チェンバー',     abbr: 'CH', role: 'sentinel' },
     { id: 'deadlock',  name: 'DEADLOCK',  jp: 'デッドロック',   abbr: 'DL', role: 'sentinel' },
-    { id: 'vyse',      name: 'VYSE',      jp: 'ヴァイス',       abbr: 'VY', role: 'sentinel' }
+    { id: 'vyse',      name: 'VYSE',      jp: 'ヴァイス',       abbr: 'VY', role: 'sentinel' },
+    { id: 'veto',      name: 'VETO',      jp: 'ヴィトー',       abbr: 'VT', role: 'sentinel' }
   ];
 
   /* マップ（サイト構成つき／戦術のターゲット候補に使う） */

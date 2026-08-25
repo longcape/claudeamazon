@@ -54,6 +54,8 @@
     astra:     { provides: ['smoke', 'stun', 'wall', 'postplant'], note: 'ctrl.astra' },
     harbor:    { provides: ['smoke', 'wall', 'stun', 'postplant'], note: 'ctrl.harbor' },
     clove:     { provides: ['smoke', 'heal', 'entry'], note: 'ctrl.clove' },
+    /* ミクス: 遠隔設置スモーク + バトルスティム + スタン/回復の切替 + ノックバックULT */
+    miks:      { provides: ['smoke', 'heal', 'stun', 'lineup'], note: 'ctrl.miks' },
 
     /* --- SENTINEL --- */
     killjoy:   { provides: ['trap', 'molly', 'postplant', 'info'], note: 'sent.killjoy' },
@@ -61,7 +63,9 @@
     sage:      { provides: ['wall', 'heal', 'stun', 'postplant'], note: 'sent.sage' },
     chamber:   { provides: ['trap', 'teleport', 'opflex'], note: 'sent.chamber' },
     deadlock:  { provides: ['trap', 'wall', 'stun', 'info'], note: 'sent.deadlock' },
-    vyse:      { provides: ['trap', 'wall', 'antiutil', 'info'], note: 'sent.vyse' }
+    vyse:      { provides: ['trap', 'wall', 'antiutil', 'info'], note: 'sent.vyse' },
+    /* ヴィトー: 拘束トラップ + 設置点へのテレポート + アビリティ無効化 + 回復ULT */
+    veto:      { provides: ['trap', 'antiutil', 'teleport', 'stun', 'heal'], note: 'sent.veto' }
   };
 
   /** 構成 5 体の provides タグを集計する */
