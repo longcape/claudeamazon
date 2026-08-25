@@ -17,6 +17,8 @@ const FONT_URL = 'https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400
 
 const read = function (p) { return fs.readFileSync(path.join(ROOT, p), 'utf8'); };
 
+const inlined = { count: 0, bytes: 0 };
+
 const html = read('index.html');
 const css = read('assets/css/style.css');
 
@@ -29,8 +31,29 @@ while ((m = scriptTag.exec(html)) !== null) scriptPaths.push(m[1]);
 if (scriptPaths.length === 0) throw new Error('index.html に <script src> が見つかりません');
 
 const scripts = scriptPaths.map(function (rel) {
-  return { name: rel, code: read(rel) };
+  return { name: rel, code: inlineImages(read(rel)) };
 });
+
+/**
+ * コード中の画像パスを data URI に置き換える。
+ * 単一 HTML では相対パスを解決できないため、埋め込まないと画像が出ない。
+ */
+function inlineImages(code) {
+  return code.replace(/(["'])(assets\/img\/[A-Za-z0-9_\-/]+\.(?:png|jpg|jpeg|webp))\1/g,
+    function (whole, quote, rel) {
+      const abs = path.join(ROOT, rel);
+      if (!fs.existsSync(abs)) {
+        console.warn('  ! 画像が見つかりません: ' + rel);
+        return whole;
+      }
+      const ext = path.extname(rel).slice(1).toLowerCase();
+      const mime = ext === 'jpg' ? 'jpeg' : ext;
+      const b64 = fs.readFileSync(abs).toString('base64');
+      inlined.count++;
+      inlined.bytes += b64.length;
+      return quote + 'data:image/' + mime + ';base64,' + b64 + quote;
+    });
+}
 
 /* インライン化した中身がタグを閉じてしまわないか確認する */
 function assertSafe(label, code, needle) {
@@ -91,3 +114,11 @@ fs.writeFileSync(path.join(DIST, 'artifact-body.html'), artifactBody);
 const kb = function (s) { return (Buffer.byteLength(s) / 1024).toFixed(1) + ' KB'; };
 console.log('dist/valorant-tactical-setup-card.html  ' + kb(standalone));
 console.log('dist/artifact-body.html                 ' + kb(artifactBody));
+if (inlined.count) {
+  console.log('画像 ' + inlined.count + ' 枚を埋め込み (' + (inlined.bytes / 1024 / 1024).toFixed(2) + ' MB)');
+}
+/* 公開ページの上限は 16MB。超えると発行できない */
+const limit = 16 * 1024 * 1024;
+if (Buffer.byteLength(artifactBody) > limit) {
+  console.warn('⚠ 公開ページの上限 16MB を超えています。画像を小さくしてください。');
+}

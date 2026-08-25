@@ -37,6 +37,9 @@ https://nodejs.org/ja を開き、**「推奨版（LTS）」**をダウンロー
 
 https://github.com/longcape/claudeamazon/archive/refs/heads/claude/valorant-tactical-setup-card-iiiog3.zip
 
+> `node build.js` を実行すると、画像は自動的に単一 HTML へ埋め込まれます。
+> 相対パスのままでは配布ファイルで画像が表示されないためです。
+
 > **なぜ普通のダウンロードではダメか**
 > このリポジトリはコードが作業ブランチにしか入っておらず、
 > トップページから普通にダウンロードすると中身が空になります。

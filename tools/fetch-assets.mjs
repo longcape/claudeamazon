@@ -76,10 +76,41 @@ async function getJSON(url) {
   return res.json();
 }
 
-async function download(url, dest) {
+/* 公式画像は 1024x1024 で配信されており、38px のアイコンには大きすぎる。
+   sharp があれば自動で縮小し、無ければ警告だけ出す。 */
+let sharp = null;
+let sharpChecked = false;
+async function getSharp() {
+  if (sharpChecked) return sharp;
+  sharpChecked = true;
+  try {
+    sharp = (await import('sharp')).default;
+  } catch {
+    sharp = null;
+  }
+  return sharp;
+}
+
+let oversized = 0;
+
+async function download(url, dest, resizeTo) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-  const buf = Buffer.from(await res.arrayBuffer());
+  let buf = Buffer.from(await res.arrayBuffer());
+
+  if (resizeTo) {
+    const lib = await getSharp();
+    if (lib) {
+      buf = await lib(buf)
+        .trim()
+        .resize(resizeTo, resizeTo, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png({ compressionLevel: 9 })
+        .toBuffer();
+    } else if (buf.length > 200 * 1024) {
+      oversized++;
+    }
+  }
+
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.writeFileSync(dest, buf);
   return buf;
@@ -110,7 +141,7 @@ async function main() {
     if (!url) { missing.push(`agent-icon:${want.id}`); continue; }
 
     const dest = path.join(AGENT_DIR, `${want.id}.png`);
-    const buf = await download(url, dest);
+    const buf = await download(url, dest, 192);
     agentEntries[want.id] = INLINE
       ? `data:image/png;base64,${buf.toString('base64')}`
       : `assets/img/agents/${want.id}.png`;
@@ -144,7 +175,7 @@ async function main() {
     const found = mapByName.get(normalize(want.name));
     if (!found || !found.displayIcon) { missing.push(`map:${want.id}`); continue; }
     const dest = path.join(MAP_DIR, `${want.id}.png`);
-    const buf = await download(found.displayIcon, dest);
+    const buf = await download(found.displayIcon, dest, 512);
     /* ミニマップは 1 枚が大きいので、常にファイル参照にする */
     mapEntries[want.id] = `assets/img/maps/${want.id}.png`;
     console.log(`  map    ${want.id.padEnd(10)} ${(buf.length / 1024).toFixed(0)} KB`);
@@ -171,6 +202,11 @@ async function main() {
   console.log(`\n✓ ${Object.keys(agentEntries).length} 体のアイコンと ${Object.keys(mapEntries).length} 枚のミニマップを取り込みました`);
   console.log(`  → ${path.relative(ROOT, OUT_FILE)}`);
   if (missing.length) console.log('  取得できなかったもの:', missing.join(', '));
+  if (oversized) {
+    console.log(`\n⚠ ${oversized} 枚の画像が大きいままです（1 枚あたり 200KB 超）。`);
+    console.log('  そのままでも動きますが、単一 HTML 版が重くなります。');
+    console.log('  `npm install sharp` を実行してからもう一度このツールを走らせると、自動で縮小されます。');
+  }
   if (extra.length || extraMaps.length) {
     console.log('\n⚠ 未登録のものがあります。上の一覧を Claude に伝えると追加できます。');
   }
