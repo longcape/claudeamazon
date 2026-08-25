@@ -1,0 +1,18 @@
+{
+  "name": "rakuten-room-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "楽天市場のデータから楽天ROOMの投稿計画（商品選定・紹介文・並び順・時間割）を自動生成するエンジン",
+  "main": "src/index.js",
+  "bin": { "room": "bin/room.js" },
+  "scripts": {
+    "collect": "node bin/room.js collect",
+    "launch": "node bin/room.js launch",
+    "plan": "node bin/room.js plan",
+    "next": "node bin/room.js next",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {},
+  "license": "UNLICENSED"
+}
