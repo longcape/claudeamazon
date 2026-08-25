@@ -318,6 +318,34 @@
   </div>
 </div>
 
+<!-- ============ BOARD EDITOR MODAL ============ -->
+<div class="modal" id="modal-board" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card modal-wide panel-clip" role="dialog" aria-modal="true" aria-labelledby="board-modal-title">
+    <header class="modal-head">
+      <h2 id="board-modal-title" data-i18n="board.title"></h2>
+      <span class="board-tactic-name" id="board-tactic-name"></span>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body board-layout">
+      <aside class="board-palette" id="board-palette-ally"></aside>
+
+      <div class="board-stage">
+        <div class="board-tools" id="board-tools"></div>
+        <div class="board-canvas" id="board-canvas"></div>
+        <p class="board-hint" id="board-hint"></p>
+      </div>
+
+      <aside class="board-palette" id="board-palette-enemy"></aside>
+    </div>
+    <footer class="modal-foot">
+      <button type="button" class="btn btn-ghost btn-danger" id="btn-board-clear" data-i18n="board.clear"></button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-primary" data-close data-i18n="board.done"></button>
+    </footer>
+  </div>
+</div>
+
 <!-- ============ POST MODAL ============ -->
 <div class="modal" id="modal-post" hidden>
   <div class="modal-backdrop" data-close></div>
@@ -375,12 +403,14 @@
 <script src="assets/js/locales/ko.js"></script>
 <script src="assets/js/data.js"></script>
 <script src="assets/js/agent-traits.js"></script>
+<script src="assets/js/abilities.js"></script>
 <script src="assets/js/portraits.js"></script>
 <script src="assets/js/maps-layout.js"></script>
 <script src="assets/js/official-assets.js"></script>
 <script src="assets/js/store.js"></script>
 <script src="assets/js/advisor.js"></script>
 <script src="assets/js/analyst.js"></script>
+<script src="assets/js/board.js"></script>
 <script src="assets/js/share.js"></script>
 <script src="assets/js/community.js"></script>
 <script src="assets/js/ui.js"></script>

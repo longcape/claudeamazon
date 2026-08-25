@@ -297,5 +297,29 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
 
   'f.mapMidCentric': '{map} is decided in mid, which suits this tactic',
   'f.mapMidNoRecon': 'Fighting for mid on {map} needs recon, and you have none',
-  'f.mapMovingWalls': 'The deployable walls on {map} change sightlines mid-round, so a scripted push can fall apart'
+  'f.mapMovingWalls': 'The deployable walls on {map} change sightlines mid-round, so a scripted push can fall apart',
+
+  'board.title': 'Tactical board',
+  'board.edit': 'Edit placement',
+  'board.done': 'Done',
+  'board.clear': 'Clear all',
+  'board.empty': 'Nothing placed yet. Pick something from the side palettes and drop it on the map.',
+  'board.agents': 'Agents',
+  'board.abilities': 'Abilities',
+  'board.route': 'Draw route',
+  'board.routeDone': 'Finish route',
+  'board.routeCancel': 'Cancel',
+  'board.hintPlace': 'Pick a palette item, then tap the map to place it. Drag anything placed to move it.',
+  'board.hintRoute': 'Tap the map in order to trace the push, then press Finish route.',
+  'board.hintSelected': '{name} selected. You can reorder or delete it.',
+  'board.orderUp': 'Earlier',
+  'board.orderDown': 'Later',
+  'board.delete': 'Delete',
+  'board.confirmClear': 'This clears every placement on this tactic. Continue?',
+  'board.armed': 'Placing {name}. Tap the map.',
+  'board.charges': '{n} at once',
+  'board.orderNote': 'Abilities are numbered in usage order automatically. The order can be swapped.',
+  'banner.nextMatch': 'Start a new match',
+  'tactic.limitReached': 'You have reached the limit of {n} saved tactics.',
+  'board.disarm': 'Cancel selection'
 });

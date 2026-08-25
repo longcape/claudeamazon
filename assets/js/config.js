@@ -25,7 +25,14 @@ window.VCT_CONFIG = {
   AI_REVIEW_FUNCTION: 'tactic-review',
 
   /* AI 寸評を UI に出すか。false ならボタン自体を隠す */
-  AI_REVIEW_ENABLED: true
+  AI_REVIEW_ENABLED: true,
+
+  /* 登録できる戦術の上限。0 で無制限。
+     将来的に課金要素にする場合、無料枠をここで絞る。 */
+  TACTIC_LIMIT_FREE: 0,
+
+  /* ログイン済みユーザーの上限。0 で無制限 */
+  TACTIC_LIMIT_SIGNED_IN: 0
 };
 
 window.VCT_CONFIG.isCommunityEnabled = function () {

@@ -12,6 +12,7 @@
   const C = global.VCT_COMMUNITY;
   const ANALYST = global.VCT_ANALYST;
   const SHARE = global.VCT_SHARE;
+  const BOARD = global.VCT_BOARD;
   const CFG = global.VCT_CONFIG;
   const $ = U.$;
   const t = function (key, params) { return I.t(key, params); };
@@ -40,7 +41,15 @@
     posts: [],
     postSort: 'new',
     postMap: '',
-    postTacticId: null
+    postTacticId: null,
+
+    /* 配置盤エディタ */
+    boardTactic: null,        // 編集中の戦術
+    boardSide: 'ATK',
+    armed: null,              // パレットで選択中の「これから置くもの」
+    selectedMarkId: null,     // 盤上で選択中のマーク
+    routeTeam: null,          // ルート描画中のチーム
+    draftRoute: []            // 描画途中のルート
   };
 
   /* ================= 描画 ================= */
@@ -103,7 +112,7 @@
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -195,6 +204,180 @@
       const a = D.agentById(s.agent);
       return a ? a.name : null;
     }).filter(Boolean);
+  }
+
+  /* ================= 配置盤 ================= */
+  function openBoardEditor(tactic) {
+    if (!tactic) return;
+    ui.boardTactic = tactic;
+    ui.boardSide = S.sideForRound(S.currentRoundNumber());
+    ui.armed = null;
+    ui.selectedMarkId = null;
+    ui.routeTeam = null;
+    ui.draftRoute = [];
+    BOARD.ensure(tactic);
+    U.renderBoardEditor(ui);
+    openModal('modal-board');
+  }
+
+  function refreshBoard() {
+    U.renderBoardCanvas(ui);
+    U.renderBoardTools(ui);
+    U.renderBoardHint(ui);
+    U.renderBoardPalette('ally', ui);
+    U.renderBoardPalette('enemy', ui);
+  }
+
+  function commitBoard() {
+    S.save();
+    if (ui.view === 'live') renderLive();
+  }
+
+  function bindBoardEditor() {
+    /* パレット: 押すと「これから置くもの」を選択する */
+    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
+      $(id).addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-place-kind]');
+        if (!btn) return;
+        const next = {
+          kind: btn.dataset.placeKind,
+          ref: btn.dataset.placeRef,
+          team: btn.dataset.placeTeam
+        };
+        /* トグルにすると、同じスキルを 2 つ置きたいとき
+           2 回目の選択が解除になってしまう（オーメンのスモークなど）。
+           選択は常に上書きし、解除は専用ボタンで行う。 */
+        ui.armed = next;
+        ui.selectedMarkId = null;
+        refreshBoard();
+      });
+    });
+
+    /* ツールバー */
+    $('board-tools').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-board-act]');
+      if (!btn) return;
+      const act = btn.dataset.boardAct;
+
+      if (act === 'route-start') {
+        ui.routeTeam = btn.dataset.team;
+        ui.draftRoute = [];
+        ui.armed = null;
+        ui.selectedMarkId = null;
+      } else if (act === 'route-done') {
+        if (ui.draftRoute.length >= 2) {
+          BOARD.addRoute(ui.boardTactic, ui.routeTeam, ui.draftRoute);
+          commitBoard();
+        }
+        ui.routeTeam = null;
+        ui.draftRoute = [];
+      } else if (act === 'route-cancel') {
+        ui.routeTeam = null;
+        ui.draftRoute = [];
+      } else if (act === 'disarm') {
+        ui.armed = null;
+      } else if (act === 'order-up' || act === 'order-down') {
+        BOARD.bumpOrder(ui.boardTactic, ui.selectedMarkId, act === 'order-up' ? -1 : 1);
+        commitBoard();
+      } else if (act === 'delete-mark') {
+        BOARD.removeMark(ui.boardTactic, ui.selectedMarkId);
+        ui.selectedMarkId = null;
+        commitBoard();
+      }
+      refreshBoard();
+    });
+
+    $('btn-board-clear').addEventListener('click', function () {
+      if (!ui.boardTactic) return;
+      if (!confirm(t('board.confirmClear'))) return;
+      BOARD.clearBoard(ui.boardTactic);
+      ui.selectedMarkId = null;
+      ui.armed = null;
+      ui.routeTeam = null;
+      ui.draftRoute = [];
+      commitBoard();
+      refreshBoard();
+    });
+
+    bindBoardCanvas();
+  }
+
+  /** 盤面のポインタ操作。マウスとタッチの両方を pointer event で扱う */
+  function bindBoardCanvas() {
+    const canvas = $('board-canvas');
+    let dragging = null;   // { markId, moved }
+
+    canvas.addEventListener('pointerdown', function (e) {
+      const svg = canvas.querySelector('svg[data-board]');
+      if (!svg) return;
+
+      const markEl = e.target.closest('.board-mark');
+      if (markEl && !ui.routeTeam) {
+        dragging = { markId: markEl.dataset.mark, moved: false };
+        svg.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      }
+    });
+
+    canvas.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      const svg = canvas.querySelector('svg[data-board]');
+      if (!svg) return;
+      const p = BOARD.toBoardPoint(svg, e);
+      BOARD.moveMark(ui.boardTactic, dragging.markId, p.x, p.y);
+      dragging.moved = true;
+      U.renderBoardCanvas(ui);
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('pointerup', function (e) {
+      const svg = canvas.querySelector('svg[data-board]');
+      if (!svg) return;
+      const p = BOARD.toBoardPoint(svg, e);
+
+      /* マークをドラッグしていた場合 */
+      if (dragging) {
+        if (dragging.moved) {
+          commitBoard();
+        } else {
+          /* 動かさずに離した = 選択 */
+          ui.selectedMarkId = ui.selectedMarkId === dragging.markId ? null : dragging.markId;
+          ui.armed = null;
+        }
+        dragging = null;
+        refreshBoard();
+        return;
+      }
+
+      /* ルート描画中はタップごとに点を足す */
+      if (ui.routeTeam) {
+        ui.draftRoute.push(p);
+        U.renderBoardCanvas(ui);
+        return;
+      }
+
+      /* 配置するものが選ばれていれば置く */
+      if (ui.armed) {
+        BOARD.addMark(ui.boardTactic, {
+          kind: ui.armed.kind,
+          ref: ui.armed.ref,
+          team: ui.armed.team,
+          x: p.x,
+          y: p.y
+        });
+        commitBoard();
+        refreshBoard();
+        return;
+      }
+
+      /* 何も選ばれていない状態で余白を押したら選択を解除 */
+      if (ui.selectedMarkId) {
+        ui.selectedMarkId = null;
+        refreshBoard();
+      }
+    });
+
+    canvas.addEventListener('pointercancel', function () { dragging = null; });
   }
 
   /* ================= 共有 ================= */
@@ -338,6 +521,8 @@
             U.toast(ok ? t('share.copied') : t('toast.exportFailed', { msg: 'clipboard' }), ok ? 'ok' : 'err');
           });
         }
+      } else if (act === 'edit-board') {
+        openBoardEditor(currentTactic());
       } else if (act === 'share-post') {
         openPostModal(S.state.pending ? S.state.pending.tacticId : null);
       }
@@ -350,6 +535,17 @@
       ui.aiReview = null;
       U.toast(t('toast.undone', { n: last.n }));
       renderLive();
+    });
+
+    /* 決着バナー内のボタンは再描画で作り直されるため、委譲で拾う */
+    $('match-banner').addEventListener('click', function (e) {
+      if (!e.target.closest('#btn-next-match')) return;
+      if (!confirm(t('confirm.resetMatch'))) return;
+      S.resetMatch();
+      ui.analysis = null;
+      ui.aiReview = null;
+      renderLive();
+      U.toast(t('toast.matchReset'));
     });
 
     $('btn-reset-match').addEventListener('click', function () {
@@ -571,7 +767,11 @@
         S.updateTactic(ui.editingTacticId, payload);
         U.toast(t('toast.tacticUpdated'), 'ok');
       } else {
-        S.addTactic(payload);
+        const created = S.addTactic(payload);
+        if (!created) {
+          U.toast(t('tactic.limitReached', { n: S.tacticLimit() }), 'err');
+          return;
+        }
         U.toast(t('toast.tacticAdded'), 'ok');
       }
       ui.editingTacticId = null;
@@ -646,9 +846,21 @@
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { closeAllModals(); return; }
+      if (e.key === 'Escape') {
+        /* 配置盤では、まず選択やルート描画を解除する。
+           いきなり閉じると描きかけが消えて戸惑う。 */
+        if (!$('modal-board').hidden && (ui.armed || ui.routeTeam)) {
+          ui.armed = null;
+          ui.routeTeam = null;
+          ui.draftRoute = [];
+          refreshBoard();
+          return;
+        }
+        closeAllModals();
+        return;
+      }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;
@@ -720,6 +932,7 @@
     bindSetup();
     bindLive();
     bindCommunity();
+    bindBoardEditor();
     bindAgentModal();
     bindTacticModal();
     bindGlobal();

@@ -1638,3 +1638,251 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   stroke-dasharray: 2 2.4;
   opacity: .85;
 }
+
+/* =========================================================
+   TACTICAL BOARD
+   ========================================================= */
+.board-panel .panel-head h2 .idx { color: var(--violet); border-color: rgba(139, 123, 255, .45); }
+.board-view { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+
+.board-svg {
+  display: block;
+  background: rgba(9, 14, 18, .7);
+  border: 1px solid var(--line);
+  clip-path: var(--clip-sm);
+  flex-shrink: 0;
+  max-width: 100%;
+  height: auto;
+}
+.board-svg.is-interactive { cursor: crosshair; touch-action: none; }
+.board-base { opacity: .55; }
+
+.board-mark { cursor: grab; }
+.board-svg:not(.is-interactive) .board-mark { cursor: default; }
+.board-mark-label,
+.board-mark-slot {
+  font-family: var(--font-display);
+  font-size: 3.4px;
+  font-weight: 700;
+  text-anchor: middle;
+  fill: #06111a;
+  pointer-events: none;
+}
+.board-mark-slot { fill: #fff; font-size: 4px; }
+.board-mark.is-selected circle:first-child,
+.board-mark.is-selected rect { stroke: #fff; stroke-width: 1.1; }
+
+.board-order-bg { fill: #0B1116; stroke: var(--gold); stroke-width: .6; }
+.board-order {
+  font-family: var(--font-display);
+  font-size: 3.2px;
+  font-weight: 700;
+  text-anchor: middle;
+  fill: var(--gold);
+  pointer-events: none;
+}
+
+.board-route {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .9;
+}
+.board-route-ally  { stroke: var(--cyan); }
+.board-route-enemy { stroke: var(--red); }
+.board-route.is-draft { stroke-dasharray: 2 2; opacity: .7; }
+
+/* --- 凡例（使用順） --- */
+.board-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  flex: 1;
+}
+.board-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  background: rgba(9, 14, 18, .5);
+  font-size: 12px;
+}
+.board-legend-order {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 14px;
+  text-align: center;
+}
+.board-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.board-legend-agent { font-family: var(--font-display); font-size: 11.5px; letter-spacing: .06em; }
+.board-legend-slot {
+  font-family: var(--font-display);
+  font-size: 10px;
+  padding: 0 6px;
+  border: 1px solid var(--line-hot);
+  color: var(--text-dim);
+}
+.board-legend-name {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   BOARD EDITOR MODAL
+   ========================================================= */
+.modal-wide { width: min(1180px, 100%); }
+.board-tactic-name {
+  margin-left: 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board-layout {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr) 236px;
+  gap: 16px;
+  align-items: start;
+}
+
+.board-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.pal-title { margin-bottom: 2px; display: flex; }
+
+.pal-group {
+  border: 1px solid var(--line);
+  background: rgba(9, 14, 18, .5);
+  clip-path: var(--clip-sm);
+  padding: 8px;
+}
+.pal-agent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  text-align: left;
+  transition: all .14s;
+}
+.pal-agent:hover { border-color: var(--line-hot); background: rgba(255, 255, 255, .04); }
+.pal-agent.is-armed { border-color: var(--cyan); background: rgba(53, 198, 232, .14); }
+
+.pal-abilities { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 7px; }
+.pal-ability {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--sig, var(--line-hot));
+  background: rgba(9, 14, 18, .6);
+  color: var(--text-dim);
+  cursor: pointer;
+  text-align: left;
+  transition: all .14s;
+  min-width: 0;
+}
+.pal-ability:hover { color: var(--text); border-color: var(--line-hot); border-left-color: var(--sig); }
+.pal-ability.is-armed { border-color: var(--cyan); background: rgba(53, 198, 232, .14); color: #fff; }
+.pal-ability b { font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; }
+.pal-ability span {
+  font-size: 9.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.pal-ability em {
+  position: absolute;
+  top: 4px; right: 5px;
+  font-style: normal;
+  font-size: 8.5px;
+  color: var(--gold);
+}
+
+.board-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.board-tools { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.board-tool-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.board-tool-selected {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.dot-ally, .dot-enemy {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.dot-ally { background: var(--cyan); }
+.dot-enemy { background: var(--red); }
+
+.board-canvas { line-height: 0; }
+.board-hint {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-mute);
+  text-align: center;
+  line-height: 1.6;
+  max-width: 460px;
+}
+
+/* --- 決着バナーの「新しいマッチを始める」 --- */
+.match-banner.is-final {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.match-banner .banner-text { font-family: var(--font-display); letter-spacing: .2em; }
+
+@media (max-width: 1180px) {
+  .board-layout { grid-template-columns: 1fr; }
+  .board-palette { max-height: none; }
+  .pal-abilities { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 820px) {
+  .pal-abilities { grid-template-columns: 1fr 1fr; }
+  .board-view { justify-content: center; }
+}
+
+/* 選択中の配置物を示すボタン */
+.is-armed-note {
+  border-color: var(--cyan) !important;
+  color: var(--cyan) !important;
+  background: rgba(53, 198, 232, .12) !important;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

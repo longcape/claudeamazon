@@ -90,12 +90,64 @@
       side: t.side === 'ATK' || t.side === 'DEF' ? t.side : 'BOTH',
       site: String(t.site || '-').slice(0, 8),
       kind: t.kind || 'execute',
-      note: String(t.note || '').slice(0, 400)
+      note: String(t.note || '').slice(0, 400),
+      board: normalizeBoard(t.board)
     };
   }
 
+  /** 配置盤。壊れた入力を読み込んでも落ちないよう作り直す */
+  function normalizeBoard(board) {
+    const src = board && typeof board === 'object' ? board : {};
+    const marks = Array.isArray(src.marks) ? src.marks : [];
+    const routes = Array.isArray(src.routes) ? src.routes : [];
+
+    return {
+      marks: marks.slice(0, 60).map(function (m) {
+        return {
+          id: String(m.id || uid()),
+          kind: m.kind === 'ability' ? 'ability' : 'agent',
+          ref: String(m.ref || ''),
+          team: m.team === 'enemy' ? 'enemy' : 'ally',
+          x: numberIn(m.x),
+          y: numberIn(m.y),
+          order: Number.isFinite(m.order) ? m.order : null
+        };
+      }).filter(function (m) { return m.ref; }),
+
+      routes: routes.slice(0, 20).map(function (r) {
+        return {
+          id: String(r.id || uid()),
+          team: r.team === 'enemy' ? 'enemy' : 'ally',
+          points: (Array.isArray(r.points) ? r.points : []).slice(0, 40).map(function (p) {
+            return { x: numberIn(p && p.x), y: numberIn(p && p.y) };
+          })
+        };
+      }).filter(function (r) { return r.points.length >= 2; })
+    };
+  }
+
+  function numberIn(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 50;
+    return Math.max(2, Math.min(98, n));
+  }
+
   /* ---------------- 戦術デッキ ---------------- */
+  /** 登録できる戦術の上限。0 以下なら無制限 */
+  function tacticLimit() {
+    const cfg = global.VCT_CONFIG || {};
+    const signedIn = global.VCT_COMMUNITY && global.VCT_COMMUNITY.currentUser();
+    const limit = signedIn ? cfg.TACTIC_LIMIT_SIGNED_IN : cfg.TACTIC_LIMIT_FREE;
+    return Number.isFinite(limit) ? limit : 0;
+  }
+
+  function tacticLimitReached() {
+    const limit = tacticLimit();
+    return limit > 0 && state.tactics.length >= limit;
+  }
+
   function addTactic(payload) {
+    if (tacticLimitReached()) return null;
     const t = normalizeTactic(Object.assign({ id: uid() }, payload));
     state.tactics.push(t);
     save();
@@ -253,6 +305,8 @@
     save: save,
     load: load,
     addTactic: addTactic,
+    tacticLimit: tacticLimit,
+    tacticLimitReached: tacticLimitReached,
     updateTactic: updateTactic,
     removeTactic: removeTactic,
     tacticById: tacticById,
@@ -274,6 +328,7 @@
     seedSamples: function () {
       const I = global.VCT_I18N;
       D.SAMPLE_TACTICS.forEach(function (t) {
+        if (tacticLimitReached()) return;
         addTactic({
           name: I.t('sample.' + t.key + '.name'),
           note: I.t('sample.' + t.key + '.note'),

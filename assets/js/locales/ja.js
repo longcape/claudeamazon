@@ -307,5 +307,29 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
 
   'f.mapMidCentric': '{map} はミッドの攻防が勝敗を分ける構成で、この戦術と噛み合う',
   'f.mapMidNoRecon': '{map} のミッド戦は索敵が要るが、索敵手段が無い',
-  'f.mapMovingWalls': '{map} は展開可能な壁で射線と経路が変わるため、決め打ちの進行が崩れうる'
+  'f.mapMovingWalls': '{map} は展開可能な壁で射線と経路が変わるため、決め打ちの進行が崩れうる',
+
+  'board.title': '配置盤',
+  'board.edit': '配置を編集',
+  'board.done': '完了',
+  'board.clear': 'すべて消去',
+  'board.empty': 'まだ配置がありません。左右のパレットから選んで、マップ上に置いてください。',
+  'board.agents': 'エージェント',
+  'board.abilities': 'スキル',
+  'board.route': 'ルートを描く',
+  'board.routeDone': 'ルート確定',
+  'board.routeCancel': '取り消し',
+  'board.hintPlace': 'パレットの項目を選んでからマップをタップすると置けます。置いたものはドラッグで動かせます。',
+  'board.hintRoute': 'マップを順にタップして進行ルートを引き、「ルート確定」を押してください。',
+  'board.hintSelected': '{name} を選択中。順番の入れ替えと削除ができます。',
+  'board.orderUp': '順番を早く',
+  'board.orderDown': '順番を遅く',
+  'board.delete': '削除',
+  'board.confirmClear': 'この戦術の配置をすべて消去します。よろしいですか？',
+  'board.armed': '{name} を配置します。マップをタップしてください。',
+  'board.charges': '同時展開 {n}',
+  'board.orderNote': 'スキルには使用順の番号が自動で付きます。番号は入れ替えられます。',
+  'banner.nextMatch': '新しいマッチを始める',
+  'tactic.limitReached': '登録できる戦術の上限（{n} 件）に達しました。',
+  'board.disarm': '選択を解除'
 });

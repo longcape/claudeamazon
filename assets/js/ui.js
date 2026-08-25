@@ -23,6 +23,8 @@
 
   /* ================= 共通パーツ ================= */
   const P = global.VCT_PORTRAITS;
+  const B = global.VCT_BOARD;
+  const AB = global.VCT_ABILITIES;
 
   /**
    * エージェントアイコン。
@@ -249,11 +251,18 @@
     const result = S.matchResult();
     if (result) {
       banner.hidden = false;
-      banner.className = 'match-banner ' + (result === 'WIN' ? 'win' : 'loss');
-      banner.textContent = t(result === 'WIN' ? 'banner.won' : 'banner.lost', { a: sc.ally, b: sc.enemy });
+      banner.className = 'match-banner is-final ' + (result === 'WIN' ? 'win' : 'loss');
+      /* 決着したら「次のマッチへ」をここに大きく出す。
+         下段の小さな「スコアリセット」は見つけにくい。 */
+      banner.innerHTML =
+        '<span class="banner-text">' +
+          esc(t(result === 'WIN' ? 'banner.won' : 'banner.lost', { a: sc.ally, b: sc.enemy })) +
+        '</span>' +
+        '<button class="btn btn-primary btn-sm" id="btn-next-match">' + t('banner.nextMatch') + '</button>';
     } else if (sc.ally >= 12 || sc.enemy >= 12) {
       banner.hidden = false;
       banner.className = 'match-banner point';
+      banner.innerHTML = '';
       banner.textContent = (sc.ally >= 12 && sc.enemy >= 12)
         ? t('banner.overtime')
         : t(sc.ally >= 12 ? 'banner.pointAlly' : 'banner.pointEnemy');
@@ -323,6 +332,7 @@
         '</div>' +
         shareBarHTML() +
       '</div>' +
+      boardPanelHTML(tac, side) +
       analysisHTML(uiState);
   }
 
@@ -336,6 +346,183 @@
           ? '<button class="btn btn-ghost btn-sm" data-act="share-post">' + t('community.post') + '</button>'
           : '') +
       '</div>';
+  }
+
+  /* --- 配置盤（ライブボード上の表示） --- */
+  function boardPanelHTML(tactic, side) {
+    const empty = B.isEmpty(tactic);
+    const body = empty
+      ? '<div class="panel-body"><p class="deck-empty">' + t('board.empty') + '</p></div>'
+      : '<div class="panel-body board-view">' +
+          B.render({
+            tactic: tactic,
+            map: S.state.match.map,
+            side: side,
+            highlight: tactic.site,
+            size: 360,
+            interactive: false
+          }) +
+          boardLegendHTML(tactic) +
+        '</div>';
+
+    return '<article class="panel panel-clip board-panel">' +
+             '<header class="panel-head">' +
+               '<h2><span class="idx">▣</span>' + t('board.title') + '</h2>' +
+               '<div class="panel-head-actions">' +
+                 '<button class="btn btn-primary btn-sm" data-act="edit-board">' + t('board.edit') + '</button>' +
+               '</div>' +
+             '</header>' + body +
+           '</article>';
+  }
+
+  /** 使用順に並べたスキルの一覧。実戦ではこれを読み上げる */
+  function boardLegendHTML(tactic) {
+    const board = B.ensure(tactic);
+    const abilities = board.marks
+      .filter(function (m) { return m.kind === 'ability' && m.team === 'ally'; })
+      .sort(function (a, b) { return (a.order || 99) - (b.order || 99); });
+
+    if (!abilities.length) return '';
+
+    return '<ol class="board-legend">' + abilities.map(function (m) {
+      const parts = String(m.ref).split(':');
+      const agent = D.agentById(parts[0]);
+      const slot = parts[1] || '?';
+      const color = agent ? P.signature(agent.id) : '#6B7F8C';
+      return '<li class="board-legend-item">' +
+               '<span class="board-legend-order">' + (m.order || '-') + '</span>' +
+               '<span class="board-legend-dot" style="background:' + color + '"></span>' +
+               '<span class="board-legend-agent">' + esc(agent ? agent.name : parts[0]) + '</span>' +
+               '<span class="board-legend-slot">' + esc(slot) + '</span>' +
+               '<span class="board-legend-name">' + esc(AB.nameOf(parts[0], slot)) + '</span>' +
+             '</li>';
+    }).join('') + '</ol>';
+  }
+
+  /* --- 配置盤エディタ --- */
+  function renderBoardEditor(uiState) {
+    const tactic = uiState.boardTactic;
+    if (!tactic) return;
+
+    $('board-tactic-name').textContent = tactic.name;
+    renderBoardPalette('ally', uiState);
+    renderBoardPalette('enemy', uiState);
+    renderBoardTools(uiState);
+    renderBoardCanvas(uiState);
+    renderBoardHint(uiState);
+  }
+
+  function renderBoardPalette(team, uiState) {
+    const slots = team === 'ally' ? S.state.allies : S.state.enemies;
+    const armed = uiState.armed;
+
+    const groups = slots.map(function (slot) {
+      const agent = D.agentById(slot.agent);
+      if (!agent) return '';
+      const color = P.signature(agent.id);
+      const abilityChips = AB.listFor(agent.id).map(function (ab) {
+        const isArmed = armed && armed.kind === 'ability' && armed.ref === ab.ref && armed.team === team;
+        return '<button type="button" class="pal-ability' + (isArmed ? ' is-armed' : '') + '"' +
+                 ' data-place-kind="ability" data-place-ref="' + esc(ab.ref) + '" data-place-team="' + team + '"' +
+                 ' title="' + esc(ab.name) + (ab.charges > 1 ? ' / ' + t('board.charges', { n: ab.charges }) : '') + '"' +
+                 ' style="--sig:' + color + '">' +
+                 '<b>' + esc(ab.slot) + '</b>' +
+                 '<span>' + esc(ab.name) + '</span>' +
+                 (ab.charges > 1 ? '<em>x' + ab.charges + '</em>' : '') +
+               '</button>';
+      }).join('');
+
+      const agentArmed = armed && armed.kind === 'agent' && armed.ref === agent.id && armed.team === team;
+      return '<div class="pal-group">' +
+               '<button type="button" class="pal-agent' + (agentArmed ? ' is-armed' : '') + '"' +
+                 ' data-place-kind="agent" data-place-ref="' + esc(agent.id) + '" data-place-team="' + team + '">' +
+                 avatarHTML(agent.id, 'avatar-sm') +
+                 '<span>' + esc(agent.name) + '</span>' +
+               '</button>' +
+               '<div class="pal-abilities">' + abilityChips + '</div>' +
+             '</div>';
+    }).join('');
+
+    $('board-palette-' + team).innerHTML =
+      '<h3 class="pal-title"><span class="tag tag-' + team + '">' + t('tag.' + team) + '</span></h3>' +
+      (groups.trim() ? groups : '<p class="deck-empty">' + t('roster.clickToSelect') + '</p>');
+  }
+
+  function renderBoardTools(uiState) {
+    const routing = !!uiState.routeTeam;
+    const selected = uiState.selectedMarkId
+      ? B.findMark(uiState.boardTactic, uiState.selectedMarkId) : null;
+
+    let html = '<div class="board-tool-row">';
+    if (routing) {
+      html += '<button class="btn btn-primary btn-sm" data-board-act="route-done">' + t('board.routeDone') + '</button>' +
+              '<button class="btn btn-ghost btn-sm" data-board-act="route-cancel">' + t('board.routeCancel') + '</button>';
+    } else {
+      html += '<button class="btn btn-ghost btn-sm" data-board-act="route-start" data-team="ally">' +
+                '<span class="dot-ally"></span>' + t('board.route') + ' / ' + t('tag.ally') + '</button>' +
+              '<button class="btn btn-ghost btn-sm" data-board-act="route-start" data-team="enemy">' +
+                '<span class="dot-enemy"></span>' + t('board.route') + ' / ' + t('tag.enemy') + '</button>';
+      if (uiState.armed) {
+        html += '<button class="btn btn-ghost btn-sm is-armed-note" data-board-act="disarm">✕ ' +
+                  esc(armedLabel(uiState.armed)) + '</button>';
+      }
+    }
+    html += '</div>';
+
+    if (selected) {
+      html += '<div class="board-tool-row board-tool-selected">';
+      if (selected.kind === 'ability') {
+        html += '<button class="btn btn-ghost btn-sm" data-board-act="order-up">↑ ' + t('board.orderUp') + '</button>' +
+                '<button class="btn btn-ghost btn-sm" data-board-act="order-down">↓ ' + t('board.orderDown') + '</button>';
+      }
+      html += '<button class="btn btn-ghost btn-sm btn-danger" data-board-act="delete-mark">' + t('board.delete') + '</button>' +
+              '</div>';
+    }
+
+    $('board-tools').innerHTML = html;
+  }
+
+  function renderBoardCanvas(uiState) {
+    $('board-canvas').innerHTML = B.render({
+      tactic: uiState.boardTactic,
+      map: S.state.match.map,
+      side: uiState.boardSide,
+      highlight: uiState.boardTactic.site,
+      size: 460,
+      interactive: true,
+      selectedId: uiState.selectedMarkId,
+      draftRoute: uiState.draftRoute,
+      draftTeam: uiState.routeTeam
+    });
+  }
+
+  function renderBoardHint(uiState) {
+    const el = $('board-hint');
+    if (uiState.routeTeam) { el.textContent = t('board.hintRoute'); return; }
+    if (uiState.armed) {
+      el.textContent = t('board.armed', { name: armedLabel(uiState.armed) });
+      return;
+    }
+    const selected = uiState.selectedMarkId
+      ? B.findMark(uiState.boardTactic, uiState.selectedMarkId) : null;
+    if (selected) {
+      el.textContent = t('board.hintSelected', { name: markLabel(selected) });
+      return;
+    }
+    el.textContent = t('board.hintPlace') + ' ' + t('board.orderNote');
+  }
+
+  function armedLabel(armed) {
+    if (armed.kind === 'agent') {
+      const a = D.agentById(armed.ref);
+      return a ? a.name : armed.ref;
+    }
+    const parts = String(armed.ref).split(':');
+    return AB.nameOf(parts[0], parts[1]);
+  }
+
+  function markLabel(mark) {
+    return armedLabel({ kind: mark.kind, ref: mark.ref });
   }
 
   /* --- 相性判定パネル --- */
@@ -693,6 +880,11 @@
     renderScorebar: renderScorebar,
     renderBoardRosters: renderBoardRosters,
     renderStage: renderStage,
+    renderBoardEditor: renderBoardEditor,
+    renderBoardCanvas: renderBoardCanvas,
+    renderBoardTools: renderBoardTools,
+    renderBoardHint: renderBoardHint,
+    renderBoardPalette: renderBoardPalette,
     renderTimeline: renderTimeline,
     renderPerf: renderPerf,
     renderAccount: renderAccount,
