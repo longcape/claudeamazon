@@ -91,15 +91,16 @@
     { id: 'bonus', label: 'BONUS' }
   ];
 
-  /* 初期投入されるサンプル戦術（空デッキだと使い始めが分かりにくいため） */
+  /* 初期投入されるサンプル戦術（空デッキだと使い始めが分かりにくいため）
+     名前と詳細は表示言語に合わせて解決する */
   const SAMPLE_TACTICS = [
-    { name: 'A ダブルスモーク エグゼ', side: 'ATK', site: 'A',   kind: 'execute', note: 'ユーティリティ全出し。ファーストブラッド取れなければ即リグループ。' },
-    { name: 'B ファストラッシュ',      side: 'ATK', site: 'B',   kind: 'fast',    note: '開幕30秒で入る。フラッシュ2枚先行、デュエリストがエントリー。' },
-    { name: 'ミッドコントロール',      side: 'ATK', site: 'MID', kind: 'default', note: 'ミッド取り切ってから両サイトへスプリット。残り40秒でコール。' },
-    { name: 'A フェイク → B',          side: 'ATK', site: 'B',   kind: 'fake',    note: 'A に3枚見せてユーティリティを吐かせ、B へローテート。' },
-    { name: 'A スタック',              side: 'DEF', site: 'A',   kind: 'stack',   note: '3枚 A 寄せ。B はリテイク前提で最低限のディレイ。' },
-    { name: 'デフォルト 2-1-2',        side: 'DEF', site: 'MID', kind: 'default', note: '基本配置。情報取ってからローテーション。' },
-    { name: 'アグレッシブ ミッド取り', side: 'DEF', site: 'MID', kind: 'aggro',   note: 'ミッドを先に取って相手の展開を潰す。失敗したら即引く。' }
+    { key: 's1', side: 'ATK', site: 'A',   kind: 'execute' },
+    { key: 's2', side: 'ATK', site: 'B',   kind: 'fast' },
+    { key: 's3', side: 'ATK', site: 'MID', kind: 'default' },
+    { key: 's4', side: 'ATK', site: 'B',   kind: 'fake' },
+    { key: 's5', side: 'DEF', site: 'A',   kind: 'stack' },
+    { key: 's6', side: 'DEF', site: 'MID', kind: 'default' },
+    { key: 's7', side: 'DEF', site: 'MID', kind: 'aggro' }
   ];
 
   global.VCT_DATA = { ROLES, AGENTS, MAPS, KINDS, SIDES, ECONOMY, SAMPLE_TACTICS };

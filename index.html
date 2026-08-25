@@ -7,7 +7,7 @@
 <meta name="description" content="VALORANT 競技シーン向け ラウンド戦術セットアップカード。戦術を事前登録し、ラウンドの勝敗に応じて次の戦術を選択・記録する。" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
@@ -19,24 +19,31 @@
   <div class="brand">
     <span class="brand-mark" aria-hidden="true"></span>
     <span class="brand-text">
-      <b>TACTICAL SETUP CARD</b>
-      <small>VALORANT / ROUND CALL SYSTEM</small>
+      <b data-i18n="app.title">TACTICAL SETUP CARD</b>
+      <small data-i18n="app.subtitle">VALORANT / ROUND CALL SYSTEM</small>
     </span>
   </div>
 
-  <nav class="phase-nav" role="tablist" aria-label="フェーズ切り替え">
+  <nav class="phase-nav" role="tablist">
     <button class="phase-tab is-active" data-phase="setup" role="tab" aria-selected="true">
-      <span class="num">01</span> SETUP
+      <span class="num">01</span> <span data-i18n="nav.setup">SETUP</span>
     </button>
     <button class="phase-tab" data-phase="live" role="tab" aria-selected="false">
-      <span class="num">02</span> LIVE BOARD
+      <span class="num">02</span> <span data-i18n="nav.live">LIVE BOARD</span>
+    </button>
+    <button class="phase-tab" data-phase="community" role="tab" aria-selected="false" id="tab-community" hidden>
+      <span class="num">03</span> <span data-i18n="nav.community">COMMUNITY</span>
     </button>
   </nav>
 
   <div class="topbar-actions">
-    <button class="btn btn-ghost" id="btn-export" title="現在の設定と戦績を JSON で書き出し">EXPORT</button>
-    <button class="btn btn-ghost" id="btn-import" title="JSON を読み込み">IMPORT</button>
-    <button class="btn btn-ghost btn-danger" id="btn-reset-all" title="全データを初期化">RESET</button>
+    <label class="lang-picker">
+      <span class="lang-globe" aria-hidden="true">🌐</span>
+      <select id="lang-select" aria-label="Language"></select>
+    </label>
+    <button class="btn btn-ghost" id="btn-export" data-i18n="btn.export" data-i18n-title="btn.export.title">EXPORT</button>
+    <button class="btn btn-ghost" id="btn-import" data-i18n="btn.import" data-i18n-title="btn.import.title">IMPORT</button>
+    <button class="btn btn-ghost btn-danger" id="btn-reset-all" data-i18n="btn.reset" data-i18n-title="btn.reset.title">RESET</button>
     <input type="file" id="file-import" accept="application/json,.json" hidden />
   </div>
 </header>
@@ -45,108 +52,111 @@
 
   <!-- ==================== SETUP VIEW ==================== -->
   <section class="view" id="view-setup">
-
     <div class="setup-grid">
 
-      <!-- --- マッチ設定 --- -->
       <article class="panel panel-clip" id="panel-match">
         <header class="panel-head">
-          <h2><span class="idx">01</span>MATCH SETUP</h2>
-          <p class="panel-sub">マップとサイドを設定</p>
+          <h2><span class="idx">01</span><span data-i18n="setup.match.title">MATCH SETUP</span></h2>
+          <p class="panel-sub" data-i18n="setup.match.sub"></p>
         </header>
         <div class="panel-body">
           <div class="field">
-            <label for="inp-map">MAP</label>
+            <label data-i18n="field.map">MAP</label>
             <div class="map-select" id="map-select"></div>
           </div>
 
           <div class="field-row">
             <div class="field">
-              <label for="inp-ally-team">OUR TEAM</label>
-              <input type="text" id="inp-ally-team" maxlength="18" placeholder="チーム名" />
+              <label for="inp-ally-team" data-i18n="field.ourTeam">OUR TEAM</label>
+              <input type="text" id="inp-ally-team" maxlength="18" data-i18n-ph="field.ourTeam.ph" />
             </div>
             <div class="field">
-              <label for="inp-enemy-team">OPPONENT</label>
-              <input type="text" id="inp-enemy-team" maxlength="18" placeholder="相手チーム名" />
+              <label for="inp-enemy-team" data-i18n="field.opponent">OPPONENT</label>
+              <input type="text" id="inp-enemy-team" maxlength="18" data-i18n-ph="field.opponent.ph" />
             </div>
           </div>
 
           <div class="field">
-            <label>STARTING SIDE <span class="hint">前半のサイド / 13R で自動反転</span></label>
+            <label>
+              <span data-i18n="field.startSide">STARTING SIDE</span>
+              <span class="hint" data-i18n="field.startSide.hint"></span>
+            </label>
             <div class="side-toggle" id="side-toggle">
               <button class="side-btn is-active" data-side="ATK">
-                <span class="dot"></span>ATTACK
+                <span class="dot"></span><span data-i18n="side.attack">ATTACK</span>
               </button>
               <button class="side-btn" data-side="DEF">
-                <span class="dot"></span>DEFENSE
+                <span class="dot"></span><span data-i18n="side.defense">DEFENSE</span>
               </button>
             </div>
           </div>
 
           <div class="field">
-            <label for="inp-match-note">MATCH NOTE <span class="hint">任意</span></label>
-            <textarea id="inp-match-note" rows="2" maxlength="240" placeholder="相手の傾向・スカウト情報など"></textarea>
+            <label for="inp-match-note">
+              <span data-i18n="field.matchNote">MATCH NOTE</span>
+              <span class="hint" data-i18n="common.optional"></span>
+            </label>
+            <textarea id="inp-match-note" rows="2" maxlength="240" data-i18n-ph="field.matchNote.ph"></textarea>
           </div>
         </div>
       </article>
 
-      <!-- --- エージェント --- -->
       <article class="panel panel-clip" id="panel-roster">
         <header class="panel-head">
-          <h2><span class="idx">02</span>AGENT COMPOSITION</h2>
-          <p class="panel-sub">味方 5 / 敵 5 のエージェントをセット</p>
+          <h2><span class="idx">02</span><span data-i18n="setup.roster.title">AGENT COMPOSITION</span></h2>
+          <p class="panel-sub" data-i18n="setup.roster.sub"></p>
         </header>
         <div class="panel-body roster-body">
           <div class="roster-col roster-ally">
-            <h3 class="roster-title"><span class="tag tag-ally">ALLY</span><span id="roster-ally-name">OUR TEAM</span></h3>
+            <h3 class="roster-title">
+              <span class="tag tag-ally" data-i18n="tag.ally">ALLY</span>
+              <span id="roster-ally-name">OUR TEAM</span>
+            </h3>
             <ul class="slot-list" id="slots-ally"></ul>
           </div>
           <div class="roster-divider" aria-hidden="true"><span>VS</span></div>
           <div class="roster-col roster-enemy">
-            <h3 class="roster-title"><span class="tag tag-enemy">ENEMY</span><span id="roster-enemy-name">OPPONENT</span></h3>
+            <h3 class="roster-title">
+              <span class="tag tag-enemy" data-i18n="tag.enemy">ENEMY</span>
+              <span id="roster-enemy-name">OPPONENT</span>
+            </h3>
             <ul class="slot-list" id="slots-enemy"></ul>
           </div>
         </div>
       </article>
 
-      <!-- --- 戦術デッキ --- -->
       <article class="panel panel-clip panel-wide" id="panel-deck">
         <header class="panel-head">
-          <h2><span class="idx">03</span>TACTIC DECK</h2>
-          <p class="panel-sub">ラウンドで使う戦術を事前登録</p>
+          <h2><span class="idx">03</span><span data-i18n="setup.deck.title">TACTIC DECK</span></h2>
+          <p class="panel-sub" data-i18n="setup.deck.sub"></p>
           <div class="panel-head-actions">
-            <button class="btn btn-ghost btn-sm" id="btn-seed">SAMPLE 追加</button>
-            <button class="btn btn-primary btn-sm" id="btn-add-tactic">+ 戦術を追加</button>
+            <button class="btn btn-ghost btn-sm" id="btn-seed" data-i18n="deck.sample"></button>
+            <button class="btn btn-primary btn-sm" id="btn-add-tactic" data-i18n="deck.add"></button>
           </div>
         </header>
         <div class="panel-body">
           <div class="deck-filter" id="deck-filter">
-            <button class="chip is-active" data-filter="ALL">ALL</button>
-            <button class="chip" data-filter="ATK">ATTACK</button>
-            <button class="chip" data-filter="DEF">DEFENSE</button>
+            <button class="chip is-active" data-filter="ALL" data-i18n="filter.all">ALL</button>
+            <button class="chip" data-filter="ATK" data-i18n="filter.atk">ATTACK</button>
+            <button class="chip" data-filter="DEF" data-i18n="filter.def">DEFENSE</button>
           </div>
           <div class="deck-grid" id="deck-grid"></div>
-          <p class="deck-empty" id="deck-empty" hidden>
-            まだ戦術が登録されていません。<b>「+ 戦術を追加」</b>から作成するか、<b>SAMPLE 追加</b>で雛形を読み込んでください。
-          </p>
+          <p class="deck-empty" id="deck-empty" data-i18n="deck.empty" hidden></p>
         </div>
       </article>
-
     </div>
 
     <div class="setup-footer">
       <div class="ready-list" id="ready-list"></div>
       <button class="btn btn-launch" id="btn-start">
-        <span>START MATCH</span>
-        <em>ラウンド 1 へ</em>
+        <span data-i18n="btn.start">START MATCH</span>
+        <em></em>
       </button>
     </div>
   </section>
 
   <!-- ==================== LIVE VIEW ==================== -->
   <section class="view" id="view-live" hidden>
-
-    <!-- スコアボード -->
     <div class="scorebar panel-clip">
       <div class="score-team score-ally">
         <span class="team-name" id="score-ally-name">OUR TEAM</span>
@@ -167,47 +177,68 @@
     </div>
     <div class="match-banner" id="match-banner" hidden></div>
 
-    <!-- ボード本体 -->
     <div class="board">
       <aside class="board-side board-ally">
-        <h3 class="board-side-title"><span class="tag tag-ally">ALLY</span></h3>
+        <h3 class="board-side-title"><span class="tag tag-ally" data-i18n="tag.ally">ALLY</span></h3>
         <ul class="board-roster" id="board-ally"></ul>
       </aside>
 
       <div class="stage" id="stage"></div>
 
       <aside class="board-side board-enemy">
-        <h3 class="board-side-title"><span class="tag tag-enemy">ENEMY</span></h3>
+        <h3 class="board-side-title"><span class="tag tag-enemy" data-i18n="tag.enemy">ENEMY</span></h3>
         <ul class="board-roster" id="board-enemy"></ul>
       </aside>
     </div>
 
-    <!-- 下段: タイムライン & 戦術成績 -->
     <div class="lower">
       <article class="panel panel-clip">
         <header class="panel-head">
-          <h2><span class="idx">04</span>ROUND TIMELINE</h2>
+          <h2><span class="idx">04</span><span data-i18n="timeline.title">ROUND TIMELINE</span></h2>
           <div class="panel-head-actions">
-            <button class="btn btn-ghost btn-sm" id="btn-undo">← 直前のラウンドを取り消す</button>
-            <button class="btn btn-ghost btn-sm btn-danger" id="btn-reset-match">スコアリセット</button>
+            <button class="btn btn-ghost btn-sm" id="btn-undo" data-i18n="timeline.undo"></button>
+            <button class="btn btn-ghost btn-sm btn-danger" id="btn-reset-match" data-i18n="timeline.resetMatch"></button>
           </div>
         </header>
         <div class="panel-body">
           <ol class="timeline" id="timeline"></ol>
-          <p class="deck-empty" id="timeline-empty">まだラウンドの記録がありません。</p>
+          <p class="deck-empty" id="timeline-empty" data-i18n="timeline.empty"></p>
         </div>
       </article>
 
       <article class="panel panel-clip">
         <header class="panel-head">
-          <h2><span class="idx">05</span>TACTIC PERFORMANCE</h2>
-          <p class="panel-sub">戦術別の勝率</p>
+          <h2><span class="idx">05</span><span data-i18n="perf.title">TACTIC PERFORMANCE</span></h2>
+          <p class="panel-sub" data-i18n="perf.sub"></p>
         </header>
         <div class="panel-body">
           <ul class="perf-list" id="perf-list"></ul>
         </div>
       </article>
     </div>
+  </section>
+
+  <!-- ==================== COMMUNITY VIEW ==================== -->
+  <section class="view" id="view-community" hidden>
+    <article class="panel panel-clip">
+      <header class="panel-head">
+        <h2><span class="idx">06</span><span data-i18n="community.title">COMMUNITY TACTICS</span></h2>
+        <p class="panel-sub" data-i18n="community.sub"></p>
+        <div class="panel-head-actions" id="community-account"></div>
+      </header>
+      <div class="panel-body">
+        <div class="community-tools">
+          <div class="deck-filter" id="community-sort">
+            <button class="chip is-active" data-sort="new" data-i18n="community.sortNew"></button>
+            <button class="chip" data-sort="top" data-i18n="community.sortTop"></button>
+          </div>
+          <select id="community-map" class="community-map"></select>
+          <button class="btn btn-primary btn-sm" id="btn-open-post" data-i18n="community.post"></button>
+        </div>
+        <div class="post-grid" id="post-grid"></div>
+        <p class="deck-empty" id="post-empty" hidden></p>
+      </div>
+    </article>
   </section>
 
 </main>
@@ -218,18 +249,21 @@
   <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="agent-modal-title">
     <header class="modal-head">
       <h2 id="agent-modal-title">SELECT AGENT</h2>
-      <button class="modal-close" data-close aria-label="閉じる">×</button>
+      <button class="modal-close" data-close aria-label="close">×</button>
     </header>
     <div class="modal-body">
       <div class="agent-tools">
-        <input type="search" id="agent-search" placeholder="エージェント名で検索…" autocomplete="off" />
+        <input type="search" id="agent-search" data-i18n-ph="agent.search.ph" autocomplete="off" />
         <div class="role-filter" id="role-filter"></div>
       </div>
       <div class="agent-grid" id="agent-grid"></div>
       <div class="agent-extra">
-        <label for="agent-player">プレイヤー名 <span class="hint">任意</span></label>
-        <input type="text" id="agent-player" maxlength="16" placeholder="IGN" />
-        <button class="btn btn-ghost btn-sm" id="btn-clear-slot">スロットを空にする</button>
+        <label for="agent-player">
+          <span data-i18n="agent.player"></span>
+          <span class="hint" data-i18n="common.optional"></span>
+        </label>
+        <input type="text" id="agent-player" maxlength="16" data-i18n-ph="agent.player.ph" />
+        <button class="btn btn-ghost btn-sm" id="btn-clear-slot" data-i18n="agent.clearSlot"></button>
       </div>
     </div>
   </div>
@@ -241,50 +275,110 @@
   <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="tactic-modal-title">
     <header class="modal-head">
       <h2 id="tactic-modal-title">NEW TACTIC</h2>
-      <button class="modal-close" data-close aria-label="閉じる">×</button>
+      <button class="modal-close" data-close aria-label="close">×</button>
     </header>
     <form class="modal-body" id="tactic-form">
       <div class="field">
-        <label for="t-name">戦術名 <span class="req">必須</span></label>
-        <input type="text" id="t-name" maxlength="60" placeholder="例: A ダブルスモーク エグゼ" required />
+        <label for="t-name">
+          <span data-i18n="t.name"></span>
+          <span class="req" data-i18n="common.required"></span>
+        </label>
+        <input type="text" id="t-name" maxlength="60" data-i18n-ph="t.name.ph" required />
       </div>
       <div class="field-row">
         <div class="field">
-          <label>使用サイド</label>
+          <label data-i18n="t.side"></label>
           <div class="seg" id="t-side">
-            <button type="button" data-val="ATK">ATTACK</button>
-            <button type="button" data-val="DEF">DEFENSE</button>
-            <button type="button" data-val="BOTH" class="is-active">BOTH</button>
+            <button type="button" data-val="ATK" data-i18n="side.attack"></button>
+            <button type="button" data-val="DEF" data-i18n="side.defense"></button>
+            <button type="button" data-val="BOTH" class="is-active" data-i18n="side.both"></button>
           </div>
         </div>
         <div class="field">
-          <label for="t-site">ターゲット</label>
+          <label data-i18n="t.site"></label>
           <div class="seg seg-sites" id="t-site"></div>
         </div>
       </div>
       <div class="field">
-        <label for="t-kind">戦術タイプ</label>
+        <label for="t-kind" data-i18n="t.kind"></label>
         <select id="t-kind"></select>
       </div>
       <div class="field">
-        <label for="t-note">コール / 詳細</label>
-        <textarea id="t-note" rows="4" maxlength="400" placeholder="ユーティリティの使い方、タイミング、失敗時の判断など"></textarea>
+        <label for="t-note" data-i18n="t.note"></label>
+        <textarea id="t-note" rows="4" maxlength="400" data-i18n-ph="t.note.ph"></textarea>
       </div>
       <footer class="modal-foot">
-        <button type="button" class="btn btn-ghost btn-danger" id="btn-delete-tactic" hidden>削除</button>
+        <button type="button" class="btn btn-ghost btn-danger" id="btn-delete-tactic" data-i18n="btn.delete" hidden></button>
         <span class="spacer"></span>
-        <button type="button" class="btn btn-ghost" data-close>キャンセル</button>
-        <button type="submit" class="btn btn-primary">保存</button>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary" data-i18n="btn.save"></button>
       </footer>
     </form>
   </div>
 </div>
 
+<!-- ============ POST MODAL ============ -->
+<div class="modal" id="modal-post" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="post-modal-title">
+    <header class="modal-head">
+      <h2 id="post-modal-title" data-i18n="community.postTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <form class="modal-body" id="post-form">
+      <div class="field">
+        <label for="post-tactic" data-i18n="setup.deck.title"></label>
+        <select id="post-tactic"></select>
+      </div>
+      <div class="field">
+        <label for="post-author" data-i18n="community.author"></label>
+        <input type="text" id="post-author" maxlength="24" data-i18n-ph="community.author.ph" />
+      </div>
+      <div id="post-preview" class="post-preview"></div>
+      <footer class="modal-foot">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary" data-i18n="community.post"></button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<!-- ============ LOGIN MODAL ============ -->
+<div class="modal" id="modal-login" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-narrow" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+    <header class="modal-head">
+      <h2 id="login-modal-title" data-i18n="community.login"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body">
+      <p class="login-note" data-i18n="community.loginNeeded"></p>
+      <button class="btn btn-discord" id="btn-login-discord" data-i18n="community.loginDiscord"></button>
+      <div class="login-sep"><span>—</span></div>
+      <div class="field">
+        <label for="login-email" data-i18n="community.loginEmail"></label>
+        <input type="email" id="login-email" placeholder="you@example.com" />
+      </div>
+      <button class="btn btn-ghost" id="btn-login-email" data-i18n="community.loginEmail"></button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
+<script src="assets/js/config.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/locales/ja.js"></script>
+<script src="assets/js/locales/en.js"></script>
+<script src="assets/js/locales/ko.js"></script>
 <script src="assets/js/data.js"></script>
+<script src="assets/js/agent-traits.js"></script>
 <script src="assets/js/store.js"></script>
 <script src="assets/js/advisor.js"></script>
+<script src="assets/js/analyst.js"></script>
+<script src="assets/js/share.js"></script>
+<script src="assets/js/community.js"></script>
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/app.js"></script>
 </body>

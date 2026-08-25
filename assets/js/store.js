@@ -272,7 +272,16 @@
     exportJSON: exportJSON,
     importJSON: importJSON,
     seedSamples: function () {
-      D.SAMPLE_TACTICS.forEach(function (t) { addTactic(t); });
+      const I = global.VCT_I18N;
+      D.SAMPLE_TACTICS.forEach(function (t) {
+        addTactic({
+          name: I.t('sample.' + t.key + '.name'),
+          note: I.t('sample.' + t.key + '.note'),
+          side: t.side,
+          site: t.site,
+          kind: t.kind
+        });
+      });
     }
   };
 })(window);

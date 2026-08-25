@@ -1196,6 +1196,327 @@ select { appearance: none; cursor: pointer; }
   .score-mid small { font-size: 9px; letter-spacing: .16em; }
   .tl-row { grid-template-columns: 34px 30px minmax(0, 1fr) auto; gap: 8px; padding: 7px 9px; }
 }
+
+/* =========================================================
+   LANGUAGE PICKER
+   ========================================================= */
+.lang-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--line-hot);
+  background: rgba(20, 33, 42, .7);
+  clip-path: var(--clip-sm);
+}
+.lang-globe { font-size: 12px; opacity: .75; }
+.lang-picker select {
+  width: auto;
+  min-width: 96px;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+.lang-picker select:focus { box-shadow: none; color: var(--text); }
+.lang-picker select option { background: #0F171E; color: var(--text); }
+
+/* =========================================================
+   MATCHUP ANALYSIS
+   ========================================================= */
+.analysis-panel { margin-top: 4px; }
+.analysis-panel .panel-head h2 .idx {
+  color: var(--cyan);
+  border-color: rgba(53, 198, 232, .45);
+}
+
+.verdict-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.verdict {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  padding: 5px 16px;
+  border: 1px solid currentColor;
+  clip-path: var(--clip-sm);
+}
+.verdict-strong { color: var(--teal); background: rgba(34, 211, 166, .12); }
+.verdict-even   { color: var(--gold); background: rgba(245, 166, 35, .1); }
+.verdict-weak   { color: var(--red);  background: rgba(255, 70, 85, .12); }
+
+.verdict-score {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+.verdict-score small { font-size: 12px; color: var(--text-mute); font-weight: 400; }
+
+.verdict-bar {
+  flex: 1;
+  min-width: 120px;
+  height: 6px;
+  background: rgba(255, 255, 255, .06);
+  overflow: hidden;
+}
+.verdict-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--red), var(--gold) 45%, var(--teal));
+}
+
+.finding-block { margin-bottom: 16px; }
+.finding-block:last-child { margin-bottom: 0; }
+.finding-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .18em;
+  color: var(--text-dim);
+  margin-bottom: 9px;
+}
+.finding-title.finding-good { color: var(--teal); }
+.finding-title.finding-bad  { color: var(--red); }
+
+.finding-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.finding {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  background: rgba(9, 14, 18, .5);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.finding-good { border-left-color: var(--teal); }
+.finding-bad  { border-left-color: var(--red); }
+.finding-warn { border-left-color: var(--gold); }
+.finding-cat {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .14em;
+  color: var(--text-mute);
+  border: 1px solid var(--line-hot);
+  padding: 1px 7px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ai-block {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(53, 198, 232, .28);
+  background: linear-gradient(140deg, rgba(53, 198, 232, .07), rgba(9, 14, 18, .5));
+  clip-path: var(--clip-sm);
+}
+.ai-block.is-running {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+.ai-summary { margin: 0 0 12px; font-size: 13px; line-height: 1.75; color: var(--text); }
+.ai-trigger { margin-top: 16px; }
+
+.spinner {
+  width: 15px; height: 15px;
+  border: 2px solid rgba(53, 198, 232, .25);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+  .view, .live-card, .modal-card { animation: none; }
+}
+
+.meta-pill.is-warn { color: var(--gold); border-color: rgba(245, 166, 35, .4); }
+
+/* =========================================================
+   SHARE BAR
+   ========================================================= */
+.share-bar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.btn-x:hover { border-color: var(--text); color: var(--text); background: rgba(255, 255, 255, .08); }
+
+/* =========================================================
+   COMMUNITY
+   ========================================================= */
+.community-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.community-tools .deck-filter { margin-bottom: 0; }
+.community-map {
+  width: auto;
+  min-width: 130px;
+  padding: 6px 10px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .1em;
+}
+.community-tools .btn-primary { margin-left: auto; }
+
+.account-name {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  letter-spacing: .1em;
+  color: var(--cyan);
+  padding: 5px 10px;
+  border: 1px solid rgba(53, 198, 232, .3);
+}
+
+.post-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+}
+
+.post-card {
+  position: relative;
+  padding: 15px 16px 13px;
+  border: 1px solid var(--line);
+  background: linear-gradient(150deg, rgba(20, 33, 42, .9), rgba(11, 18, 23, .95));
+  clip-path: var(--clip-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.post-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--line-hot);
+}
+.post-card[data-side="ATK"]::before  { background: var(--red); }
+.post-card[data-side="DEF"]::before  { background: var(--teal); }
+.post-card[data-side="BOTH"]::before { background: linear-gradient(180deg, var(--red), var(--teal)); }
+
+.comp-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0 4px;
+  flex-wrap: wrap;
+}
+.comp-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: .14em;
+  color: var(--text-mute);
+  margin-right: 4px;
+}
+.avatar-sm { width: 24px !important; height: 24px !important; font-size: 9px !important; }
+
+.post-foot {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: auto;
+  padding-top: 12px;
+  flex-wrap: wrap;
+}
+.post-author {
+  font-size: 11px;
+  color: var(--text-mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+.post-score {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--cyan);
+  letter-spacing: .06em;
+}
+.btn-like {
+  margin-left: auto;
+  padding: 4px 11px;
+  border: 1px solid var(--line-hot);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-like:hover { color: var(--red); border-color: var(--red); background: rgba(255, 70, 85, .1); }
+
+.post-preview { margin: 16px 0; }
+.preview-card {
+  padding: 14px 16px;
+  border: 1px solid var(--line-hot);
+  background: rgba(9, 14, 18, .6);
+  clip-path: var(--clip-sm);
+}
+.preview-card h4 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  margin: 6px 0 8px;
+  letter-spacing: .03em;
+}
+.preview-card p { margin: 0 0 10px; font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+
+/* --- ログイン --- */
+.modal-narrow { width: min(430px, 100%); }
+.login-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.7; margin: 0 0 18px; }
+.btn-discord {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  background: #5865F2;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .12em;
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  transition: filter .15s;
+}
+.btn-discord:hover { filter: brightness(1.14); }
+.login-sep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0;
+  color: var(--text-mute);
+  font-size: 11px;
+}
+#btn-login-email { width: 100%; margin-top: 12px; }
+
+@media (max-width: 820px) {
+  .lang-picker select { min-width: 68px; font-size: 11px; }
+  .community-tools .btn-primary { margin-left: 0; width: 100%; }
+  .verdict-score { font-size: 24px; }
+}
 </style>
 </head>
 <body>
@@ -1207,24 +1528,31 @@ select { appearance: none; cursor: pointer; }
   <div class="brand">
     <span class="brand-mark" aria-hidden="true"></span>
     <span class="brand-text">
-      <b>TACTICAL SETUP CARD</b>
-      <small>VALORANT / ROUND CALL SYSTEM</small>
+      <b data-i18n="app.title">TACTICAL SETUP CARD</b>
+      <small data-i18n="app.subtitle">VALORANT / ROUND CALL SYSTEM</small>
     </span>
   </div>
 
-  <nav class="phase-nav" role="tablist" aria-label="フェーズ切り替え">
+  <nav class="phase-nav" role="tablist">
     <button class="phase-tab is-active" data-phase="setup" role="tab" aria-selected="true">
-      <span class="num">01</span> SETUP
+      <span class="num">01</span> <span data-i18n="nav.setup">SETUP</span>
     </button>
     <button class="phase-tab" data-phase="live" role="tab" aria-selected="false">
-      <span class="num">02</span> LIVE BOARD
+      <span class="num">02</span> <span data-i18n="nav.live">LIVE BOARD</span>
+    </button>
+    <button class="phase-tab" data-phase="community" role="tab" aria-selected="false" id="tab-community" hidden>
+      <span class="num">03</span> <span data-i18n="nav.community">COMMUNITY</span>
     </button>
   </nav>
 
   <div class="topbar-actions">
-    <button class="btn btn-ghost" id="btn-export" title="現在の設定と戦績を JSON で書き出し">EXPORT</button>
-    <button class="btn btn-ghost" id="btn-import" title="JSON を読み込み">IMPORT</button>
-    <button class="btn btn-ghost btn-danger" id="btn-reset-all" title="全データを初期化">RESET</button>
+    <label class="lang-picker">
+      <span class="lang-globe" aria-hidden="true">🌐</span>
+      <select id="lang-select" aria-label="Language"></select>
+    </label>
+    <button class="btn btn-ghost" id="btn-export" data-i18n="btn.export" data-i18n-title="btn.export.title">EXPORT</button>
+    <button class="btn btn-ghost" id="btn-import" data-i18n="btn.import" data-i18n-title="btn.import.title">IMPORT</button>
+    <button class="btn btn-ghost btn-danger" id="btn-reset-all" data-i18n="btn.reset" data-i18n-title="btn.reset.title">RESET</button>
     <input type="file" id="file-import" accept="application/json,.json" hidden />
   </div>
 </header>
@@ -1233,108 +1561,111 @@ select { appearance: none; cursor: pointer; }
 
   <!-- ==================== SETUP VIEW ==================== -->
   <section class="view" id="view-setup">
-
     <div class="setup-grid">
 
-      <!-- --- マッチ設定 --- -->
       <article class="panel panel-clip" id="panel-match">
         <header class="panel-head">
-          <h2><span class="idx">01</span>MATCH SETUP</h2>
-          <p class="panel-sub">マップとサイドを設定</p>
+          <h2><span class="idx">01</span><span data-i18n="setup.match.title">MATCH SETUP</span></h2>
+          <p class="panel-sub" data-i18n="setup.match.sub"></p>
         </header>
         <div class="panel-body">
           <div class="field">
-            <label for="inp-map">MAP</label>
+            <label data-i18n="field.map">MAP</label>
             <div class="map-select" id="map-select"></div>
           </div>
 
           <div class="field-row">
             <div class="field">
-              <label for="inp-ally-team">OUR TEAM</label>
-              <input type="text" id="inp-ally-team" maxlength="18" placeholder="チーム名" />
+              <label for="inp-ally-team" data-i18n="field.ourTeam">OUR TEAM</label>
+              <input type="text" id="inp-ally-team" maxlength="18" data-i18n-ph="field.ourTeam.ph" />
             </div>
             <div class="field">
-              <label for="inp-enemy-team">OPPONENT</label>
-              <input type="text" id="inp-enemy-team" maxlength="18" placeholder="相手チーム名" />
+              <label for="inp-enemy-team" data-i18n="field.opponent">OPPONENT</label>
+              <input type="text" id="inp-enemy-team" maxlength="18" data-i18n-ph="field.opponent.ph" />
             </div>
           </div>
 
           <div class="field">
-            <label>STARTING SIDE <span class="hint">前半のサイド / 13R で自動反転</span></label>
+            <label>
+              <span data-i18n="field.startSide">STARTING SIDE</span>
+              <span class="hint" data-i18n="field.startSide.hint"></span>
+            </label>
             <div class="side-toggle" id="side-toggle">
               <button class="side-btn is-active" data-side="ATK">
-                <span class="dot"></span>ATTACK
+                <span class="dot"></span><span data-i18n="side.attack">ATTACK</span>
               </button>
               <button class="side-btn" data-side="DEF">
-                <span class="dot"></span>DEFENSE
+                <span class="dot"></span><span data-i18n="side.defense">DEFENSE</span>
               </button>
             </div>
           </div>
 
           <div class="field">
-            <label for="inp-match-note">MATCH NOTE <span class="hint">任意</span></label>
-            <textarea id="inp-match-note" rows="2" maxlength="240" placeholder="相手の傾向・スカウト情報など"></textarea>
+            <label for="inp-match-note">
+              <span data-i18n="field.matchNote">MATCH NOTE</span>
+              <span class="hint" data-i18n="common.optional"></span>
+            </label>
+            <textarea id="inp-match-note" rows="2" maxlength="240" data-i18n-ph="field.matchNote.ph"></textarea>
           </div>
         </div>
       </article>
 
-      <!-- --- エージェント --- -->
       <article class="panel panel-clip" id="panel-roster">
         <header class="panel-head">
-          <h2><span class="idx">02</span>AGENT COMPOSITION</h2>
-          <p class="panel-sub">味方 5 / 敵 5 のエージェントをセット</p>
+          <h2><span class="idx">02</span><span data-i18n="setup.roster.title">AGENT COMPOSITION</span></h2>
+          <p class="panel-sub" data-i18n="setup.roster.sub"></p>
         </header>
         <div class="panel-body roster-body">
           <div class="roster-col roster-ally">
-            <h3 class="roster-title"><span class="tag tag-ally">ALLY</span><span id="roster-ally-name">OUR TEAM</span></h3>
+            <h3 class="roster-title">
+              <span class="tag tag-ally" data-i18n="tag.ally">ALLY</span>
+              <span id="roster-ally-name">OUR TEAM</span>
+            </h3>
             <ul class="slot-list" id="slots-ally"></ul>
           </div>
           <div class="roster-divider" aria-hidden="true"><span>VS</span></div>
           <div class="roster-col roster-enemy">
-            <h3 class="roster-title"><span class="tag tag-enemy">ENEMY</span><span id="roster-enemy-name">OPPONENT</span></h3>
+            <h3 class="roster-title">
+              <span class="tag tag-enemy" data-i18n="tag.enemy">ENEMY</span>
+              <span id="roster-enemy-name">OPPONENT</span>
+            </h3>
             <ul class="slot-list" id="slots-enemy"></ul>
           </div>
         </div>
       </article>
 
-      <!-- --- 戦術デッキ --- -->
       <article class="panel panel-clip panel-wide" id="panel-deck">
         <header class="panel-head">
-          <h2><span class="idx">03</span>TACTIC DECK</h2>
-          <p class="panel-sub">ラウンドで使う戦術を事前登録</p>
+          <h2><span class="idx">03</span><span data-i18n="setup.deck.title">TACTIC DECK</span></h2>
+          <p class="panel-sub" data-i18n="setup.deck.sub"></p>
           <div class="panel-head-actions">
-            <button class="btn btn-ghost btn-sm" id="btn-seed">SAMPLE 追加</button>
-            <button class="btn btn-primary btn-sm" id="btn-add-tactic">+ 戦術を追加</button>
+            <button class="btn btn-ghost btn-sm" id="btn-seed" data-i18n="deck.sample"></button>
+            <button class="btn btn-primary btn-sm" id="btn-add-tactic" data-i18n="deck.add"></button>
           </div>
         </header>
         <div class="panel-body">
           <div class="deck-filter" id="deck-filter">
-            <button class="chip is-active" data-filter="ALL">ALL</button>
-            <button class="chip" data-filter="ATK">ATTACK</button>
-            <button class="chip" data-filter="DEF">DEFENSE</button>
+            <button class="chip is-active" data-filter="ALL" data-i18n="filter.all">ALL</button>
+            <button class="chip" data-filter="ATK" data-i18n="filter.atk">ATTACK</button>
+            <button class="chip" data-filter="DEF" data-i18n="filter.def">DEFENSE</button>
           </div>
           <div class="deck-grid" id="deck-grid"></div>
-          <p class="deck-empty" id="deck-empty" hidden>
-            まだ戦術が登録されていません。<b>「+ 戦術を追加」</b>から作成するか、<b>SAMPLE 追加</b>で雛形を読み込んでください。
-          </p>
+          <p class="deck-empty" id="deck-empty" data-i18n="deck.empty" hidden></p>
         </div>
       </article>
-
     </div>
 
     <div class="setup-footer">
       <div class="ready-list" id="ready-list"></div>
       <button class="btn btn-launch" id="btn-start">
-        <span>START MATCH</span>
-        <em>ラウンド 1 へ</em>
+        <span data-i18n="btn.start">START MATCH</span>
+        <em></em>
       </button>
     </div>
   </section>
 
   <!-- ==================== LIVE VIEW ==================== -->
   <section class="view" id="view-live" hidden>
-
-    <!-- スコアボード -->
     <div class="scorebar panel-clip">
       <div class="score-team score-ally">
         <span class="team-name" id="score-ally-name">OUR TEAM</span>
@@ -1355,47 +1686,68 @@ select { appearance: none; cursor: pointer; }
     </div>
     <div class="match-banner" id="match-banner" hidden></div>
 
-    <!-- ボード本体 -->
     <div class="board">
       <aside class="board-side board-ally">
-        <h3 class="board-side-title"><span class="tag tag-ally">ALLY</span></h3>
+        <h3 class="board-side-title"><span class="tag tag-ally" data-i18n="tag.ally">ALLY</span></h3>
         <ul class="board-roster" id="board-ally"></ul>
       </aside>
 
       <div class="stage" id="stage"></div>
 
       <aside class="board-side board-enemy">
-        <h3 class="board-side-title"><span class="tag tag-enemy">ENEMY</span></h3>
+        <h3 class="board-side-title"><span class="tag tag-enemy" data-i18n="tag.enemy">ENEMY</span></h3>
         <ul class="board-roster" id="board-enemy"></ul>
       </aside>
     </div>
 
-    <!-- 下段: タイムライン & 戦術成績 -->
     <div class="lower">
       <article class="panel panel-clip">
         <header class="panel-head">
-          <h2><span class="idx">04</span>ROUND TIMELINE</h2>
+          <h2><span class="idx">04</span><span data-i18n="timeline.title">ROUND TIMELINE</span></h2>
           <div class="panel-head-actions">
-            <button class="btn btn-ghost btn-sm" id="btn-undo">← 直前のラウンドを取り消す</button>
-            <button class="btn btn-ghost btn-sm btn-danger" id="btn-reset-match">スコアリセット</button>
+            <button class="btn btn-ghost btn-sm" id="btn-undo" data-i18n="timeline.undo"></button>
+            <button class="btn btn-ghost btn-sm btn-danger" id="btn-reset-match" data-i18n="timeline.resetMatch"></button>
           </div>
         </header>
         <div class="panel-body">
           <ol class="timeline" id="timeline"></ol>
-          <p class="deck-empty" id="timeline-empty">まだラウンドの記録がありません。</p>
+          <p class="deck-empty" id="timeline-empty" data-i18n="timeline.empty"></p>
         </div>
       </article>
 
       <article class="panel panel-clip">
         <header class="panel-head">
-          <h2><span class="idx">05</span>TACTIC PERFORMANCE</h2>
-          <p class="panel-sub">戦術別の勝率</p>
+          <h2><span class="idx">05</span><span data-i18n="perf.title">TACTIC PERFORMANCE</span></h2>
+          <p class="panel-sub" data-i18n="perf.sub"></p>
         </header>
         <div class="panel-body">
           <ul class="perf-list" id="perf-list"></ul>
         </div>
       </article>
     </div>
+  </section>
+
+  <!-- ==================== COMMUNITY VIEW ==================== -->
+  <section class="view" id="view-community" hidden>
+    <article class="panel panel-clip">
+      <header class="panel-head">
+        <h2><span class="idx">06</span><span data-i18n="community.title">COMMUNITY TACTICS</span></h2>
+        <p class="panel-sub" data-i18n="community.sub"></p>
+        <div class="panel-head-actions" id="community-account"></div>
+      </header>
+      <div class="panel-body">
+        <div class="community-tools">
+          <div class="deck-filter" id="community-sort">
+            <button class="chip is-active" data-sort="new" data-i18n="community.sortNew"></button>
+            <button class="chip" data-sort="top" data-i18n="community.sortTop"></button>
+          </div>
+          <select id="community-map" class="community-map"></select>
+          <button class="btn btn-primary btn-sm" id="btn-open-post" data-i18n="community.post"></button>
+        </div>
+        <div class="post-grid" id="post-grid"></div>
+        <p class="deck-empty" id="post-empty" hidden></p>
+      </div>
+    </article>
   </section>
 
 </main>
@@ -1406,18 +1758,21 @@ select { appearance: none; cursor: pointer; }
   <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="agent-modal-title">
     <header class="modal-head">
       <h2 id="agent-modal-title">SELECT AGENT</h2>
-      <button class="modal-close" data-close aria-label="閉じる">×</button>
+      <button class="modal-close" data-close aria-label="close">×</button>
     </header>
     <div class="modal-body">
       <div class="agent-tools">
-        <input type="search" id="agent-search" placeholder="エージェント名で検索…" autocomplete="off" />
+        <input type="search" id="agent-search" data-i18n-ph="agent.search.ph" autocomplete="off" />
         <div class="role-filter" id="role-filter"></div>
       </div>
       <div class="agent-grid" id="agent-grid"></div>
       <div class="agent-extra">
-        <label for="agent-player">プレイヤー名 <span class="hint">任意</span></label>
-        <input type="text" id="agent-player" maxlength="16" placeholder="IGN" />
-        <button class="btn btn-ghost btn-sm" id="btn-clear-slot">スロットを空にする</button>
+        <label for="agent-player">
+          <span data-i18n="agent.player"></span>
+          <span class="hint" data-i18n="common.optional"></span>
+        </label>
+        <input type="text" id="agent-player" maxlength="16" data-i18n-ph="agent.player.ph" />
+        <button class="btn btn-ghost btn-sm" id="btn-clear-slot" data-i18n="agent.clearSlot"></button>
       </div>
     </div>
   </div>
@@ -1429,49 +1784,1145 @@ select { appearance: none; cursor: pointer; }
   <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="tactic-modal-title">
     <header class="modal-head">
       <h2 id="tactic-modal-title">NEW TACTIC</h2>
-      <button class="modal-close" data-close aria-label="閉じる">×</button>
+      <button class="modal-close" data-close aria-label="close">×</button>
     </header>
     <form class="modal-body" id="tactic-form">
       <div class="field">
-        <label for="t-name">戦術名 <span class="req">必須</span></label>
-        <input type="text" id="t-name" maxlength="60" placeholder="例: A ダブルスモーク エグゼ" required />
+        <label for="t-name">
+          <span data-i18n="t.name"></span>
+          <span class="req" data-i18n="common.required"></span>
+        </label>
+        <input type="text" id="t-name" maxlength="60" data-i18n-ph="t.name.ph" required />
       </div>
       <div class="field-row">
         <div class="field">
-          <label>使用サイド</label>
+          <label data-i18n="t.side"></label>
           <div class="seg" id="t-side">
-            <button type="button" data-val="ATK">ATTACK</button>
-            <button type="button" data-val="DEF">DEFENSE</button>
-            <button type="button" data-val="BOTH" class="is-active">BOTH</button>
+            <button type="button" data-val="ATK" data-i18n="side.attack"></button>
+            <button type="button" data-val="DEF" data-i18n="side.defense"></button>
+            <button type="button" data-val="BOTH" class="is-active" data-i18n="side.both"></button>
           </div>
         </div>
         <div class="field">
-          <label for="t-site">ターゲット</label>
+          <label data-i18n="t.site"></label>
           <div class="seg seg-sites" id="t-site"></div>
         </div>
       </div>
       <div class="field">
-        <label for="t-kind">戦術タイプ</label>
+        <label for="t-kind" data-i18n="t.kind"></label>
         <select id="t-kind"></select>
       </div>
       <div class="field">
-        <label for="t-note">コール / 詳細</label>
-        <textarea id="t-note" rows="4" maxlength="400" placeholder="ユーティリティの使い方、タイミング、失敗時の判断など"></textarea>
+        <label for="t-note" data-i18n="t.note"></label>
+        <textarea id="t-note" rows="4" maxlength="400" data-i18n-ph="t.note.ph"></textarea>
       </div>
       <footer class="modal-foot">
-        <button type="button" class="btn btn-ghost btn-danger" id="btn-delete-tactic" hidden>削除</button>
+        <button type="button" class="btn btn-ghost btn-danger" id="btn-delete-tactic" data-i18n="btn.delete" hidden></button>
         <span class="spacer"></span>
-        <button type="button" class="btn btn-ghost" data-close>キャンセル</button>
-        <button type="submit" class="btn btn-primary">保存</button>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary" data-i18n="btn.save"></button>
       </footer>
     </form>
+  </div>
+</div>
+
+<!-- ============ POST MODAL ============ -->
+<div class="modal" id="modal-post" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="post-modal-title">
+    <header class="modal-head">
+      <h2 id="post-modal-title" data-i18n="community.postTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <form class="modal-body" id="post-form">
+      <div class="field">
+        <label for="post-tactic" data-i18n="setup.deck.title"></label>
+        <select id="post-tactic"></select>
+      </div>
+      <div class="field">
+        <label for="post-author" data-i18n="community.author"></label>
+        <input type="text" id="post-author" maxlength="24" data-i18n-ph="community.author.ph" />
+      </div>
+      <div id="post-preview" class="post-preview"></div>
+      <footer class="modal-foot">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary" data-i18n="community.post"></button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<!-- ============ LOGIN MODAL ============ -->
+<div class="modal" id="modal-login" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-narrow" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+    <header class="modal-head">
+      <h2 id="login-modal-title" data-i18n="community.login"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body">
+      <p class="login-note" data-i18n="community.loginNeeded"></p>
+      <button class="btn btn-discord" id="btn-login-discord" data-i18n="community.loginDiscord"></button>
+      <div class="login-sep"><span>—</span></div>
+      <div class="field">
+        <label for="login-email" data-i18n="community.loginEmail"></label>
+        <input type="email" id="login-email" placeholder="you@example.com" />
+      </div>
+      <button class="btn btn-ghost" id="btn-login-email" data-i18n="community.loginEmail"></button>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast" hidden></div>
 
 <script>
-/* ---- data.js ---- */
+/* ---- assets/js/config.js ---- */
+/* =========================================================
+   CONFIG
+   コミュニティ機能（Supabase）と AI 寸評の接続設定。
+   ---------------------------------------------------------
+   空のままでもアプリは完全に動作する。値を入れた場合のみ
+   COMMUNITY タブと AI 寸評が有効になる。
+   anon key はブラウザに露出する前提の公開キーで、実際の
+   アクセス制御は Supabase 側の RLS ポリシーが行う。
+   （supabase/schema.sql を参照）
+   ========================================================= */
+window.VCT_CONFIG = {
+  /* Supabase プロジェクトの URL 例: https://xxxxxxxx.supabase.co */
+  SUPABASE_URL: '',
+
+  /* Supabase の anon / publishable key */
+  SUPABASE_ANON_KEY: '',
+
+  /* ログイン方法。competitive シーンでの導線を優先し Discord を既定にしている */
+  AUTH_PROVIDERS: ['discord'],
+
+  /* メールのマジックリンクも併用するか */
+  AUTH_EMAIL: true,
+
+  /* AI 寸評を返す Edge Function 名（supabase/functions/ 以下） */
+  AI_REVIEW_FUNCTION: 'tactic-review',
+
+  /* AI 寸評を UI に出すか。false ならボタン自体を隠す */
+  AI_REVIEW_ENABLED: true
+};
+
+window.VCT_CONFIG.isCommunityEnabled = function () {
+  return !!(window.VCT_CONFIG.SUPABASE_URL && window.VCT_CONFIG.SUPABASE_ANON_KEY);
+};
+</script>
+<script>
+/* ---- assets/js/i18n.js ---- */
+/* =========================================================
+   I18N
+   翻訳辞書の登録・切り替え・文字列展開。
+   言語を追加するときは locales/<code>.js を 1 枚足すだけでよい。
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const STORAGE_KEY = 'vct.lang';
+  const FALLBACK = 'en';
+  const dicts = {};
+  const meta = [];
+  let current = 'ja';
+  const listeners = [];
+
+  /**
+   * 言語を登録する。
+   * @param {string} code   BCP47 風の言語コード
+   * @param {Object} info   { name: 現地語表記, flag: 絵文字 }
+   * @param {Object} table  キー → 文字列
+   */
+  function register(code, info, table) {
+    dicts[code] = table;
+    meta.push({ code: code, name: info.name, flag: info.flag });
+  }
+
+  function languages() { return meta.slice(); }
+
+  function get() { return current; }
+
+  function set(code) {
+    if (!dicts[code]) return false;
+    current = code;
+    try { localStorage.setItem(STORAGE_KEY, code); } catch (e) { /* 保存できなくても動作は続行 */ }
+    document.documentElement.setAttribute('lang', code);
+    listeners.forEach(function (fn) { fn(code); });
+    return true;
+  }
+
+  function onChange(fn) { listeners.push(fn); }
+
+  /** 保存済み設定 → ブラウザ設定 → 日本語 の順で初期言語を決める */
+  function detect() {
+    let saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) { /* noop */ }
+    if (saved && dicts[saved]) return saved;
+
+    const navLangs = (navigator.languages && navigator.languages.length)
+      ? navigator.languages
+      : [navigator.language || 'ja'];
+
+    for (let i = 0; i < navLangs.length; i++) {
+      const raw = String(navLangs[i]);
+      if (dicts[raw]) return raw;
+      const base = raw.split('-')[0];
+      const hit = Object.keys(dicts).filter(function (code) {
+        return code === base || code.split('-')[0] === base;
+      })[0];
+      if (hit) return hit;
+    }
+    return dicts.ja ? 'ja' : FALLBACK;
+  }
+
+  /**
+   * 翻訳。未定義キーはフォールバック言語 → キー名の順で解決する。
+   * params は {name} 形式のプレースホルダを置換する。
+   */
+  function t(key, params) {
+    const table = dicts[current] || {};
+    let str = table[key];
+    if (str === undefined && dicts[FALLBACK]) str = dicts[FALLBACK][key];
+    if (str === undefined) return key;
+    if (!params) return str;
+    return str.replace(/\{(\w+)\}/g, function (whole, name) {
+      return params[name] !== undefined ? String(params[name]) : whole;
+    });
+  }
+
+  /** data-i18n 属性を持つ要素をまとめて置き換える */
+  function applyDom(root) {
+    (root || document).querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    (root || document).querySelectorAll('[data-i18n-ph]').forEach(function (el) {
+      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
+    });
+    (root || document).querySelectorAll('[data-i18n-title]').forEach(function (el) {
+      el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+    });
+  }
+
+  global.VCT_I18N = {
+    register: register,
+    languages: languages,
+    get: get,
+    set: set,
+    detect: detect,
+    onChange: onChange,
+    t: t,
+    applyDom: applyDom
+  };
+})(window);
+</script>
+<script>
+/* ---- assets/js/locales/ja.js ---- */
+/* 日本語 */
+window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
+  /* --- 共通 --- */
+  'app.title': 'TACTICAL SETUP CARD',
+  'app.subtitle': 'VALORANT / ROUND CALL SYSTEM',
+  'nav.setup': 'SETUP',
+  'nav.live': 'LIVE BOARD',
+  'nav.community': 'COMMUNITY',
+  'btn.export': 'EXPORT',
+  'btn.import': 'IMPORT',
+  'btn.reset': 'RESET',
+  'btn.export.title': '現在の設定と戦績を JSON で書き出し',
+  'btn.import.title': 'JSON を読み込み',
+  'btn.reset.title': '全データを初期化',
+  'btn.cancel': 'キャンセル',
+  'btn.save': '保存',
+  'btn.delete': '削除',
+  'btn.close': '閉じる',
+  'common.optional': '任意',
+  'common.required': '必須',
+  'common.loading': '読み込み中…',
+  'common.unused': '未使用',
+
+  /* --- セットアップ --- */
+  'setup.match.title': 'MATCH SETUP',
+  'setup.match.sub': 'マップとサイドを設定',
+  'field.map': 'MAP',
+  'field.ourTeam': 'OUR TEAM',
+  'field.opponent': 'OPPONENT',
+  'field.ourTeam.ph': 'チーム名',
+  'field.opponent.ph': '相手チーム名',
+  'field.startSide': 'STARTING SIDE',
+  'field.startSide.hint': '前半のサイド / 13R で自動反転',
+  'field.matchNote': 'MATCH NOTE',
+  'field.matchNote.ph': '相手の傾向・スカウト情報など',
+  'side.attack': 'ATTACK',
+  'side.defense': 'DEFENSE',
+  'team.ally.default': 'OUR TEAM',
+  'team.enemy.default': 'OPPONENT',
+
+  'setup.roster.title': 'AGENT COMPOSITION',
+  'setup.roster.sub': '味方 5 / 敵 5 のエージェントをセット',
+  'tag.ally': 'ALLY',
+  'tag.enemy': 'ENEMY',
+  'roster.empty': 'EMPTY SLOT',
+  'roster.clickToSelect': 'クリックして選択',
+
+  'setup.deck.title': 'TACTIC DECK',
+  'setup.deck.sub': 'ラウンドで使う戦術を事前登録',
+  'deck.sample': 'SAMPLE 追加',
+  'deck.add': '+ 戦術を追加',
+  'deck.empty': 'まだ戦術が登録されていません。「+ 戦術を追加」から作成するか、SAMPLE 追加で雛形を読み込んでください。',
+  'deck.edit': '編集 →',
+  'filter.all': 'ALL',
+  'filter.atk': 'ATTACK',
+  'filter.def': 'DEFENSE',
+
+  'ready.ally': 'ALLY AGENTS {n}/5',
+  'ready.enemy': 'ENEMY AGENTS {n}/5',
+  'ready.tactics': 'TACTICS {n}',
+  'btn.start': 'START MATCH',
+  'btn.start.ready': 'ラウンド {n} へ',
+  'btn.start.notReady': '5体ずつのエージェントと戦術が必要です',
+
+  /* --- ライブボード --- */
+  'live.round': 'ROUND {n}',
+  'live.ot': '(OT)',
+  'live.executing': 'ROUND {n} — 実行中',
+  'live.selecting': 'ROUND {n} — 戦術を選択',
+  'live.hint': 'コールを共有したら、ラウンド終了後に下の WIN / LOSS を押してください。',
+  'stage.change': '戦術を選び直す',
+  'stage.flipSide': 'サイド反転',
+  'stage.showOffside': '他サイドも表示',
+  'stage.newTactic': '+ 戦術',
+  'stage.prevWin': '前R WIN',
+  'stage.prevLoss': '前R LOSS',
+  'stage.start': 'START',
+  'eco.label': 'ECONOMY',
+  'eco.full': 'FULL BUY',
+  'eco.force': 'FORCE',
+  'eco.eco': 'ECO',
+  'eco.bonus': 'BONUS',
+  'res.win': 'WIN',
+  'res.loss': 'LOSS',
+  'res.win.sub': 'ラウンド取得',
+  'res.loss.sub': 'ラウンド失陥',
+  'meta.firstUse': '初使用',
+  'meta.streak': '{n}連投',
+  'pick.score': 'SCORE',
+  'pick.noTactics': 'このサイドで使える戦術がありません。「他サイドも表示」を有効にするか、戦術を追加してください。',
+
+  'headline.first.title': 'FIRST ROUND',
+  'headline.first.text': '最初の戦術をセットしてラウンドを開始してください。',
+  'headline.win.title': 'ROUND {n} — WIN',
+  'headline.win.text': '「{name}」が通りました。相手が対応してくるまで継続するか、勝ちパターンを二枚重ねにするか選択してください。',
+  'headline.loss.title': 'ROUND {n} — LOSS',
+  'headline.loss.text': '「{name}」が止められました。ターゲットかテンポを変える戦術を推奨します。',
+
+  'banner.won': '★ MATCH WON — {a} - {b}',
+  'banner.lost': 'MATCH LOST — {a} - {b}',
+  'banner.pointAlly': 'MATCH POINT — 自チーム',
+  'banner.pointEnemy': 'MATCH POINT — 相手チーム',
+  'banner.overtime': 'OVERTIME / 2ラウンド差で決着',
+
+  'timeline.title': 'ROUND TIMELINE',
+  'timeline.undo': '← 直前のラウンドを取り消す',
+  'timeline.resetMatch': 'スコアリセット',
+  'timeline.empty': 'まだラウンドの記録がありません。',
+  'timeline.deleted': '(削除された戦術)',
+  'perf.title': 'TACTIC PERFORMANCE',
+  'perf.sub': '戦術別の勝率',
+
+  /* --- 推奨理由 --- */
+  'reason.winrateGood': '通算 {n}% で機能中',
+  'reason.winrateBad': '通算 {n}% / 相手に対応されている',
+  'reason.unused': '未使用 / 相手に情報なし',
+  'reason.lastWin': '直前ラウンドで成功 / 継続の価値あり',
+  'reason.lastLoss': '直前ラウンドで失敗 / 連投は危険',
+  'reason.streak': '{n}ラウンド連続で使用 / 読まれるリスク',
+  'reason.longUnused': '{n}ラウンド使っていない / 再投入が刺さる',
+  'reason.targetChange': 'ターゲット変更 ({from} → {to})',
+  'reason.sideMismatch': 'サイド不一致 ({side} 用)',
+  'reason.firstRound': '初動ラウンド / デッキ順で選択',
+
+  /* --- モーダル --- */
+  'modal.agent.title': '{team} SLOT {n} — SELECT AGENT',
+  'agent.search.ph': 'エージェント名で検索…',
+  'agent.player': 'プレイヤー名',
+  'agent.player.ph': 'IGN',
+  'agent.clearSlot': 'スロットを空にする',
+  'agent.none': '該当するエージェントがいません。',
+  'role.all': 'ALL',
+  'role.duelist': 'DUELIST',
+  'role.initiator': 'INITIATOR',
+  'role.controller': 'CONTROLLER',
+  'role.sentinel': 'SENTINEL',
+
+  'modal.tactic.new': 'NEW TACTIC',
+  'modal.tactic.edit': 'EDIT TACTIC',
+  't.name': '戦術名',
+  't.name.ph': '例: A ダブルスモーク エグゼ',
+  't.side': '使用サイド',
+  't.site': 'ターゲット',
+  't.kind': '戦術タイプ',
+  't.note': 'コール / 詳細',
+  't.note.ph': 'ユーティリティの使い方、タイミング、失敗時の判断など',
+  'side.both': 'BOTH',
+
+  'kind.execute': '定石エグゼキュート',
+  'kind.default': 'デフォルト',
+  'kind.fast': 'ファストプッシュ',
+  'kind.split': 'スプリットプッシュ',
+  'kind.fake': 'フェイク',
+  'kind.stack': 'スタック',
+  'kind.retake': 'リテイク',
+  'kind.aggro': 'アグレッシブ',
+  'kind.passive': 'パッシブ / リテイク寄せ',
+  'kind.eco': 'エコ / フォース',
+
+  /* --- 相性判定 --- */
+  'analyst.title': 'MATCHUP ANALYSIS',
+  'analyst.sub': '相手構成との相性',
+  'analyst.run': '相性を判定',
+  'analyst.needComp': '相性判定には味方・敵それぞれ 5 体の設定が必要です。',
+  'analyst.strong': '刺さる',
+  'analyst.even': '五分',
+  'analyst.weak': '刺さらない',
+  'analyst.strengths': '通る根拠',
+  'analyst.weaknesses': '弱点・リスク',
+  'analyst.noFindings': '特筆すべき相性差はありません。',
+  'analyst.cat.ally': '自陣',
+  'analyst.cat.enemy': '相手',
+  'analyst.cat.map': 'マップ',
+  'analyst.ai': 'AI 寸評を生成',
+  'analyst.aiRunning': 'AI が分析中…',
+  'analyst.aiTitle': 'AI 寸評',
+  'analyst.aiUnavailable': 'AI 寸評は未設定です。',
+
+  'f.smokeEnough': 'スモーク {n} 枚でサイトを閉じられる',
+  'f.smokeShort': 'スモークが {n} 枚しかなくエグゼキュートを完遂できない',
+  'f.noFlash': 'フラッシュ・スタンが無く、詰めるきっかけが作れない',
+  'f.flashReady': '妨害系 {n} 枚でエントリーを通せる',
+  'f.noEntry': 'エントリー役がおらず、開けた先を取り切れない',
+  'f.noFlashRush': 'フラッシュ無しの速攻は待ち構えられると崩せない',
+  'f.flashRush': 'フラッシュ {n} 枚で一気に距離を詰められる',
+  'f.noEntryRush': '速攻に必要なエントリー役がいない',
+  'f.mobilityRush': '機動力 {n} 枚で相手のローテーションより速く入れる',
+  'f.smokeShortSplit': 'スモーク {n} 枚では分断した進行を支えきれない',
+  'f.splitMobility': '機動力・転移で挟み込みが成立する',
+  'f.splitNoRecon': '索敵が無く、合流のタイミングを合わせにくい',
+  'f.fakeNoTool': 'フェイクを本物に見せる手段が無い',
+  'f.fakeTool': '欺瞞アビリティでフェイクの精度が高い',
+  'f.fakeRotate': '機動力が高くローテーションが間に合う',
+  'f.defaultRecon': '索敵 {n} 枚で相手の配置を割り出せる',
+  'f.defaultNoRecon': '索敵が無く、デフォルトで情報を取れない',
+  'f.stackTrap': '設置物で手薄なサイトの時間を稼げる',
+  'f.stackNoTrap': '設置物が無く、寄せた反対サイトが即崩壊する',
+  'f.retakeMolly': '地点排除 {n} 枚でリテイクを組み立てられる',
+  'f.retakeNoMolly': '地点排除が無く、設置済みのサイトを取り返せない',
+  'f.retakeSmoke': 'スモークでリテイクの侵入経路を作れる',
+  'f.retakeHeal': '回復役がおり撃ち合い後の継戦力がある',
+  'f.aggroReady': '妨害・索敵があり前に出る根拠がある',
+  'f.aggroBlind': '情報も妨害も無く、前に出ると各個撃破される',
+  'f.aggroOp': 'オペレーター運用と前目の位置取りが噛み合う',
+  'f.ecoFlash': 'フラッシュ {n} 枚で装備差を詰められる',
+  'f.ecoMobility': '機動力で距離を潰せる',
+
+  'f.enemyAntiUtil': '{agents} にアビリティを封じられるとこの戦術は機能しない',
+  'f.enemyRecon': '相手の索敵 {n} 枚にフェイクを見破られる',
+  'f.enemyTraps': '相手の設置物 {n} 個で速攻が止まる',
+  'f.trapButClear': '相手の設置物 {n} 個。破壊手段はあるが時間を使う',
+  'f.enemyWall': '{agents} の壁で進行を止められる',
+  'f.enemyPostplant': '相手は設置後の維持が強く、解除を通されやすい',
+  'f.enemyMolly': '相手の地点排除 {n} 枚でサイト内に留まれない',
+  'f.enemyNoSentinel': '相手にセンチネル不在。設置物が無く速い展開が通る',
+  'f.enemyAggroPunish': '相手デュエリスト {n} 枚。前がかりな相手に受けが刺さる',
+  'f.enemyAggroRisk': '相手デュエリスト {n} 枚。攻めの圧が強く受け切れない可能性',
+  'f.enemyNoSmoke': '相手にスモークが無く、視界を保ったまま守れる',
+  'f.enemyOp': '{agents} のオペレーターに開けた進行を狙われる',
+  'f.enemyHeal': '{agents} の回復で削り切れない',
+  'f.mapThreeSiteStack': '{map} は 3 サイトあり、寄せるリスクが大きい',
+  'f.mapThreeSiteRotate': '{map} は 3 サイトあり、揺さぶりが効く',
+  'f.mapOpenOp': '{map} の長距離でオペレーターが活きる',
+  'f.mapOpenNoOp': '{map} は開けており、長距離を制する手段が欲しい',
+  'f.mapTightSmoke': '{map} の狭い進行にはスモークが足りない',
+
+  /* --- 共有 --- */
+  'share.title': 'SHARE',
+  'share.x': 'X にポスト',
+  'share.copy': 'テキストをコピー',
+  'share.copied': 'コピーしました。',
+  'share.text': '【{name}】\n{map} / {side} / {site}\n相性判定: {verdict} ({score}/100)\n{note}',
+
+  /* --- コミュニティ --- */
+  'community.title': 'COMMUNITY TACTICS',
+  'community.sub': '世界中の戦術を見る・投稿する',
+  'community.post': '戦術を投稿',
+  'community.postTitle': '僕の考えた最強の戦術',
+  'community.browse': '投稿を見る',
+  'community.author': '投稿者名',
+  'community.author.ph': 'ハンドルネーム',
+  'community.import': 'デッキに取り込む',
+  'community.empty': 'まだ投稿がありません。最初の 1 つを投稿してみてください。',
+  'community.disabled': 'コミュニティ機能は未設定です。config.js に Supabase の接続情報を設定してください。',
+  'community.offline': 'コミュニティ機能はオンライン版でのみ利用できます。',
+  'community.login': 'ログイン',
+  'community.logout': 'ログアウト',
+  'community.loginDiscord': 'Discord でログイン',
+  'community.loginEmail': 'メールでログイン',
+  'community.loginNeeded': 'セットアップの保存にはログインが必要です。投稿はログイン無しでも行えます。',
+  'community.posted': '投稿しました。',
+  'community.postFailed': '投稿に失敗しました: {msg}',
+  'community.imported': 'デッキに取り込みました。',
+  'community.likes': '{n} いいね',
+  'community.sortNew': '新着',
+  'community.sortTop': '人気',
+  'community.filterMap': 'マップ',
+  'community.filterAll': 'すべて',
+  'community.saveSetup': 'セットアップを保存',
+  'community.savedSetups': '保存したセットアップ',
+  'community.saved': '保存しました。',
+
+  /* --- トースト --- */
+  'toast.sampleAdded': 'サンプル戦術を追加しました。',
+  'toast.tacticAdded': '戦術を追加しました。',
+  'toast.tacticUpdated': '戦術を更新しました。',
+  'toast.tacticDeleted': '戦術を削除しました。',
+  'toast.roundRecorded': 'ROUND {n} — {result} を記録しました。',
+  'toast.undone': 'ROUND {n} の記録を取り消しました。',
+  'toast.noUndo': '取り消せるラウンドがありません。',
+  'toast.matchReset': 'マッチをリセットしました。',
+  'toast.exported': 'JSON を書き出しました。',
+  'toast.exportCancelled': '書き出しをキャンセルしました。',
+  'toast.exportFailed': '書き出しに失敗しました: {msg}',
+  'toast.imported': 'データを読み込みました。',
+  'toast.importFailed': '読み込みに失敗しました: {msg}',
+  'toast.resetAll': '初期化しました。',
+  'toast.needSetup': '味方・敵のエージェント 5 体ずつと、戦術を 1 つ以上登録してください。',
+  'toast.nameRequired': '戦術名を入力してください。',
+
+  /* --- 確認ダイアログ --- */
+  'confirm.resetMatch': 'スコアとラウンド履歴をリセットします。戦術デッキとエージェント編成は残ります。よろしいですか？',
+  'confirm.resetAll': 'すべてのデータ（編成・戦術デッキ・戦績）を初期化します。よろしいですか？',
+  'confirm.deleteTactic': '「{name}」を削除します。よろしいですか？',
+
+  /* --- サンプル戦術 --- */
+  'sample.s1.name': 'A ダブルスモーク エグゼ',
+  'sample.s1.note': 'ユーティリティ全出し。ファーストブラッド取れなければ即リグループ。',
+  'sample.s2.name': 'B ファストラッシュ',
+  'sample.s2.note': '開幕30秒で入る。フラッシュ2枚先行、デュエリストがエントリー。',
+  'sample.s3.name': 'ミッドコントロール',
+  'sample.s3.note': 'ミッド取り切ってから両サイトへスプリット。残り40秒でコール。',
+  'sample.s4.name': 'A フェイク → B',
+  'sample.s4.note': 'A に3枚見せてユーティリティを吐かせ、B へローテート。',
+  'sample.s5.name': 'A スタック',
+  'sample.s5.note': '3枚 A 寄せ。B はリテイク前提で最低限のディレイ。',
+  'sample.s6.name': 'デフォルト 2-1-2',
+  'sample.s6.note': '基本配置。情報取ってからローテーション。',
+  'sample.s7.name': 'アグレッシブ ミッド取り',
+  'sample.s7.note': 'ミッドを先に取って相手の展開を潰す。失敗したら即引く。',
+
+  'f.rushNoInfo': '索敵せずに速く入るため、待ち構えられていると対応できない',
+  'f.enemyMollyRush': '相手の地点排除 {n} 枚で、入り口で足を止められる',
+  'f.enemyLineup': '相手の定点ユーティリティ {n} 枚が設置後に効いてくる'
+});
+</script>
+<script>
+/* ---- assets/js/locales/en.js ---- */
+/* English */
+window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
+  'app.title': 'TACTICAL SETUP CARD',
+  'app.subtitle': 'VALORANT / ROUND CALL SYSTEM',
+  'nav.setup': 'SETUP',
+  'nav.live': 'LIVE BOARD',
+  'nav.community': 'COMMUNITY',
+  'btn.export': 'EXPORT',
+  'btn.import': 'IMPORT',
+  'btn.reset': 'RESET',
+  'btn.export.title': 'Export your setup and record as JSON',
+  'btn.import.title': 'Load a JSON file',
+  'btn.reset.title': 'Erase all data',
+  'btn.cancel': 'Cancel',
+  'btn.save': 'Save',
+  'btn.delete': 'Delete',
+  'btn.close': 'Close',
+  'common.optional': 'optional',
+  'common.required': 'required',
+  'common.loading': 'Loading…',
+  'common.unused': 'Unused',
+
+  'setup.match.title': 'MATCH SETUP',
+  'setup.match.sub': 'Pick your map and side',
+  'field.map': 'MAP',
+  'field.ourTeam': 'OUR TEAM',
+  'field.opponent': 'OPPONENT',
+  'field.ourTeam.ph': 'Team name',
+  'field.opponent.ph': 'Opponent name',
+  'field.startSide': 'STARTING SIDE',
+  'field.startSide.hint': 'First half — flips automatically at round 13',
+  'field.matchNote': 'MATCH NOTE',
+  'field.matchNote.ph': 'Scouting notes, opponent tendencies…',
+  'side.attack': 'ATTACK',
+  'side.defense': 'DEFENSE',
+  'team.ally.default': 'OUR TEAM',
+  'team.enemy.default': 'OPPONENT',
+
+  'setup.roster.title': 'AGENT COMPOSITION',
+  'setup.roster.sub': 'Set 5 allies and 5 opponents',
+  'tag.ally': 'ALLY',
+  'tag.enemy': 'ENEMY',
+  'roster.empty': 'EMPTY SLOT',
+  'roster.clickToSelect': 'Click to choose',
+
+  'setup.deck.title': 'TACTIC DECK',
+  'setup.deck.sub': 'Register the tactics you will call',
+  'deck.sample': 'ADD SAMPLES',
+  'deck.add': '+ Add tactic',
+  'deck.empty': 'No tactics yet. Create one with "+ Add tactic", or load starters with ADD SAMPLES.',
+  'deck.edit': 'Edit →',
+  'filter.all': 'ALL',
+  'filter.atk': 'ATTACK',
+  'filter.def': 'DEFENSE',
+
+  'ready.ally': 'ALLY AGENTS {n}/5',
+  'ready.enemy': 'ENEMY AGENTS {n}/5',
+  'ready.tactics': 'TACTICS {n}',
+  'btn.start': 'START MATCH',
+  'btn.start.ready': 'Go to round {n}',
+  'btn.start.notReady': 'Needs 5 agents per side and at least one tactic',
+
+  'live.round': 'ROUND {n}',
+  'live.ot': '(OT)',
+  'live.executing': 'ROUND {n} — LIVE',
+  'live.selecting': 'ROUND {n} — PICK A TACTIC',
+  'live.hint': 'Share the call, then hit WIN or LOSS when the round ends.',
+  'stage.change': 'Pick a different tactic',
+  'stage.flipSide': 'Flip side',
+  'stage.showOffside': 'Show off-side tactics',
+  'stage.newTactic': '+ Tactic',
+  'stage.prevWin': 'PREV WIN',
+  'stage.prevLoss': 'PREV LOSS',
+  'stage.start': 'START',
+  'eco.label': 'ECONOMY',
+  'eco.full': 'FULL BUY',
+  'eco.force': 'FORCE',
+  'eco.eco': 'ECO',
+  'eco.bonus': 'BONUS',
+  'res.win': 'WIN',
+  'res.loss': 'LOSS',
+  'res.win.sub': 'Round won',
+  'res.loss.sub': 'Round lost',
+  'meta.firstUse': 'First use',
+  'meta.streak': '{n} in a row',
+  'pick.score': 'SCORE',
+  'pick.noTactics': 'No tactics available for this side. Turn on "Show off-side tactics" or add one.',
+
+  'headline.first.title': 'FIRST ROUND',
+  'headline.first.text': 'Set your opening tactic to start the round.',
+  'headline.win.title': 'ROUND {n} — WIN',
+  'headline.win.text': '"{name}" worked. Run it again until they adapt, or stack a second winning pattern on top.',
+  'headline.loss.title': 'ROUND {n} — LOSS',
+  'headline.loss.text': '"{name}" got shut down. Change the target or the tempo.',
+
+  'banner.won': '★ MATCH WON — {a} - {b}',
+  'banner.lost': 'MATCH LOST — {a} - {b}',
+  'banner.pointAlly': 'MATCH POINT — your team',
+  'banner.pointEnemy': 'MATCH POINT — opponent',
+  'banner.overtime': 'OVERTIME / win by two',
+
+  'timeline.title': 'ROUND TIMELINE',
+  'timeline.undo': '← Undo last round',
+  'timeline.resetMatch': 'Reset score',
+  'timeline.empty': 'No rounds recorded yet.',
+  'timeline.deleted': '(deleted tactic)',
+  'perf.title': 'TACTIC PERFORMANCE',
+  'perf.sub': 'Win rate per tactic',
+
+  'reason.winrateGood': 'Working at {n}% overall',
+  'reason.winrateBad': '{n}% overall — they have adapted',
+  'reason.unused': 'Unused — they have no read on it',
+  'reason.lastWin': 'Won last round — worth repeating',
+  'reason.lastLoss': 'Lost last round — repeating is risky',
+  'reason.streak': 'Used {n} rounds in a row — they will read it',
+  'reason.longUnused': 'Unused for {n} rounds — good time to bring it back',
+  'reason.targetChange': 'Target change ({from} → {to})',
+  'reason.sideMismatch': 'Wrong side (built for {side})',
+  'reason.firstRound': 'Opening round — ordered by deck',
+
+  'modal.agent.title': '{team} SLOT {n} — SELECT AGENT',
+  'agent.search.ph': 'Search agents…',
+  'agent.player': 'Player name',
+  'agent.player.ph': 'IGN',
+  'agent.clearSlot': 'Clear this slot',
+  'agent.none': 'No agents match that search.',
+  'role.all': 'ALL',
+  'role.duelist': 'DUELIST',
+  'role.initiator': 'INITIATOR',
+  'role.controller': 'CONTROLLER',
+  'role.sentinel': 'SENTINEL',
+
+  'modal.tactic.new': 'NEW TACTIC',
+  'modal.tactic.edit': 'EDIT TACTIC',
+  't.name': 'Tactic name',
+  't.name.ph': 'e.g. A double smoke execute',
+  't.side': 'Side',
+  't.site': 'Target',
+  't.kind': 'Tactic type',
+  't.note': 'Call / details',
+  't.note.ph': 'Utility usage, timings, what to do if it fails…',
+  'side.both': 'BOTH',
+
+  'kind.execute': 'Standard execute',
+  'kind.default': 'Default setup',
+  'kind.fast': 'Fast push',
+  'kind.split': 'Split push',
+  'kind.fake': 'Fake',
+  'kind.stack': 'Stack',
+  'kind.retake': 'Retake',
+  'kind.aggro': 'Aggressive',
+  'kind.passive': 'Passive / retake-oriented',
+  'kind.eco': 'Eco / force',
+
+  'analyst.title': 'MATCHUP ANALYSIS',
+  'analyst.sub': 'How it reads against their comp',
+  'analyst.run': 'Analyze matchup',
+  'analyst.needComp': 'Matchup analysis needs all 5 agents set on both sides.',
+  'analyst.strong': 'STRONG',
+  'analyst.even': 'EVEN',
+  'analyst.weak': 'WEAK',
+  'analyst.strengths': 'Why it works',
+  'analyst.weaknesses': 'Weaknesses & risks',
+  'analyst.noFindings': 'No significant matchup edge either way.',
+  'analyst.cat.ally': 'Your comp',
+  'analyst.cat.enemy': 'Their comp',
+  'analyst.cat.map': 'Map',
+  'analyst.ai': 'Generate AI review',
+  'analyst.aiRunning': 'AI is analyzing…',
+  'analyst.aiTitle': 'AI REVIEW',
+  'analyst.aiUnavailable': 'AI review is not configured.',
+
+  'f.smokeEnough': '{n} smokes can close the site off',
+  'f.smokeShort': 'Only {n} smoke — cannot complete the execute',
+  'f.noFlash': 'No flash or stun — nothing to open the angle with',
+  'f.flashReady': '{n} disruption abilities to force the entry',
+  'f.noEntry': 'No entry fragger to take the opened space',
+  'f.noFlashRush': 'A rush without flashes breaks against a set defense',
+  'f.flashRush': '{n} flashes to close the distance at once',
+  'f.noEntryRush': 'No entry fragger for a fast push',
+  'f.mobilityRush': '{n} mobility abilities beat their rotation',
+  'f.smokeShortSplit': '{n} smoke cannot cover a divided push',
+  'f.splitMobility': 'Mobility and teleports make the pinch work',
+  'f.splitNoRecon': 'No recon — hard to time the two sides together',
+  'f.fakeNoTool': 'Nothing to sell the fake with',
+  'f.fakeTool': 'Deception abilities make the fake convincing',
+  'f.fakeRotate': 'High mobility — the rotate arrives in time',
+  'f.defaultRecon': '{n} recon abilities to map their setup',
+  'f.defaultNoRecon': 'No recon — a default gathers no information',
+  'f.stackTrap': 'Utility buys time on the thin site',
+  'f.stackNoTrap': 'No setup utility — the stacked-off site folds instantly',
+  'f.retakeMolly': '{n} area-denial abilities to build the retake',
+  'f.retakeNoMolly': 'No area denial — cannot clear a planted site',
+  'f.retakeSmoke': 'Smokes create an entry path for the retake',
+  'f.retakeHeal': 'A healer keeps the team alive through trades',
+  'f.aggroReady': 'Flashes and recon justify pushing up',
+  'f.aggroBlind': 'No info and no disruption — pushing gets you picked apart',
+  'f.aggroOp': 'Operator play fits the forward positioning',
+  'f.ecoFlash': '{n} flashes close the equipment gap',
+  'f.ecoMobility': 'Mobility closes the distance',
+
+  'f.enemyAntiUtil': '{agents} can suppress your abilities and this tactic stops working',
+  'f.enemyRecon': 'Their {n} recon abilities will see through the fake',
+  'f.enemyTraps': 'Their {n} setup devices stop a fast push',
+  'f.trapButClear': '{n} setup devices — you can clear them, but it costs time',
+  'f.enemyWall': '{agents} can wall off your push',
+  'f.enemyPostplant': 'They hold post-plant well — expect the defuse to go through',
+  'f.enemyMolly': 'Their {n} area-denial abilities push you off the site',
+  'f.enemyNoSentinel': 'No sentinel on their side — nothing slows a fast execute',
+  'f.enemyAggroPunish': '{n} duelists — a patient setup punishes an aggressive team',
+  'f.enemyAggroRisk': '{n} duelists — their pressure may break the hold',
+  'f.enemyNoSmoke': 'They have no smokes — you keep vision while defending',
+  'f.enemyOp': '{agents} can hold the long angles with an Operator',
+  'f.enemyHeal': '{agents} heal through your chip damage',
+  'f.mapThreeSiteStack': '{map} has three sites — stacking is high risk',
+  'f.mapThreeSiteRotate': '{map} has three sites — misdirection pays off',
+  'f.mapOpenOp': 'The long sightlines on {map} favour your Operator',
+  'f.mapOpenNoOp': '{map} is open — you want a way to win long range',
+  'f.mapTightSmoke': 'The tight paths on {map} need more smoke than you have',
+
+  'share.title': 'SHARE',
+  'share.x': 'Post to X',
+  'share.copy': 'Copy text',
+  'share.copied': 'Copied.',
+  'share.text': '[{name}]\n{map} / {side} / {site}\nMatchup: {verdict} ({score}/100)\n{note}',
+
+  'community.title': 'COMMUNITY TACTICS',
+  'community.sub': 'Browse and share tactics worldwide',
+  'community.post': 'Post a tactic',
+  'community.postTitle': 'My Ultimate Tactic',
+  'community.browse': 'Browse posts',
+  'community.author': 'Display name',
+  'community.author.ph': 'Handle',
+  'community.import': 'Add to my deck',
+  'community.empty': 'No posts yet. Be the first to share one.',
+  'community.disabled': 'Community features are not configured. Add your Supabase credentials to config.js.',
+  'community.offline': 'Community features are only available in the online build.',
+  'community.login': 'Sign in',
+  'community.logout': 'Sign out',
+  'community.loginDiscord': 'Sign in with Discord',
+  'community.loginEmail': 'Sign in with email',
+  'community.loginNeeded': 'Saving setups requires signing in. Posting works without an account.',
+  'community.posted': 'Posted.',
+  'community.postFailed': 'Post failed: {msg}',
+  'community.imported': 'Added to your deck.',
+  'community.likes': '{n} likes',
+  'community.sortNew': 'Newest',
+  'community.sortTop': 'Top',
+  'community.filterMap': 'Map',
+  'community.filterAll': 'All',
+  'community.saveSetup': 'Save setup',
+  'community.savedSetups': 'Saved setups',
+  'community.saved': 'Saved.',
+
+  'toast.sampleAdded': 'Sample tactics added.',
+  'toast.tacticAdded': 'Tactic added.',
+  'toast.tacticUpdated': 'Tactic updated.',
+  'toast.tacticDeleted': 'Tactic deleted.',
+  'toast.roundRecorded': 'ROUND {n} — {result} recorded.',
+  'toast.undone': 'ROUND {n} undone.',
+  'toast.noUndo': 'Nothing to undo.',
+  'toast.matchReset': 'Match reset.',
+  'toast.exported': 'JSON exported.',
+  'toast.exportCancelled': 'Export cancelled.',
+  'toast.exportFailed': 'Export failed: {msg}',
+  'toast.imported': 'Data loaded.',
+  'toast.importFailed': 'Load failed: {msg}',
+  'toast.resetAll': 'Everything reset.',
+  'toast.needSetup': 'Set 5 agents on each side and register at least one tactic.',
+  'toast.nameRequired': 'Enter a tactic name.',
+
+  'confirm.resetMatch': 'This resets the score and round history. Your deck and comps stay. Continue?',
+  'confirm.resetAll': 'This erases everything — comps, deck and record. Continue?',
+  'confirm.deleteTactic': 'Delete "{name}"?',
+
+  /* --- sample tactics --- */
+  'sample.s1.name': 'A double smoke execute',
+  'sample.s1.note': 'Full utility dump. Regroup immediately if you do not get first blood.',
+  'sample.s2.name': 'B fast rush',
+  'sample.s2.note': 'In within the first 30 seconds. Two flashes lead, duelist entries.',
+  'sample.s3.name': 'Mid control',
+  'sample.s3.note': 'Take mid outright, then split to either site. Call it at 40 seconds left.',
+  'sample.s4.name': 'A fake into B',
+  'sample.s4.note': 'Show three players at A to bait utility, then rotate to B.',
+  'sample.s5.name': 'A stack',
+  'sample.s5.note': 'Three players on A. B plays for the retake with minimal delay.',
+  'sample.s6.name': 'Default 2-1-2',
+  'sample.s6.note': 'Standard setup. Gather information first, then rotate.',
+  'sample.s7.name': 'Aggressive mid take',
+  'sample.s7.note': 'Take mid first to kill their tempo. Fall back the moment it fails.',
+
+  'f.rushNoInfo': 'Pushing fast without recon leaves you blind to a set defense',
+  'f.enemyMollyRush': 'Their {n} area-denial abilities stall you at the entry',
+  'f.enemyLineup': 'Their {n} lineup abilities come into play after the plant'
+});
+</script>
+<script>
+/* ---- assets/js/locales/ko.js ---- */
+/* 한국어 */
+window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
+  'app.title': 'TACTICAL SETUP CARD',
+  'app.subtitle': 'VALORANT / ROUND CALL SYSTEM',
+  'nav.setup': 'SETUP',
+  'nav.live': 'LIVE BOARD',
+  'nav.community': 'COMMUNITY',
+  'btn.export': 'EXPORT',
+  'btn.import': 'IMPORT',
+  'btn.reset': 'RESET',
+  'btn.export.title': '현재 설정과 전적을 JSON으로 내보내기',
+  'btn.import.title': 'JSON 불러오기',
+  'btn.reset.title': '모든 데이터 초기화',
+  'btn.cancel': '취소',
+  'btn.save': '저장',
+  'btn.delete': '삭제',
+  'btn.close': '닫기',
+  'common.optional': '선택',
+  'common.required': '필수',
+  'common.loading': '불러오는 중…',
+  'common.unused': '미사용',
+
+  'setup.match.title': 'MATCH SETUP',
+  'setup.match.sub': '맵과 진영 설정',
+  'field.map': 'MAP',
+  'field.ourTeam': 'OUR TEAM',
+  'field.opponent': 'OPPONENT',
+  'field.ourTeam.ph': '팀 이름',
+  'field.opponent.ph': '상대 팀 이름',
+  'field.startSide': 'STARTING SIDE',
+  'field.startSide.hint': '전반 진영 / 13라운드에 자동 전환',
+  'field.matchNote': 'MATCH NOTE',
+  'field.matchNote.ph': '상대 성향, 스카우팅 메모 등',
+  'side.attack': 'ATTACK',
+  'side.defense': 'DEFENSE',
+  'team.ally.default': 'OUR TEAM',
+  'team.enemy.default': 'OPPONENT',
+
+  'setup.roster.title': 'AGENT COMPOSITION',
+  'setup.roster.sub': '아군 5명 / 적군 5명 요원 설정',
+  'tag.ally': 'ALLY',
+  'tag.enemy': 'ENEMY',
+  'roster.empty': 'EMPTY SLOT',
+  'roster.clickToSelect': '클릭해서 선택',
+
+  'setup.deck.title': 'TACTIC DECK',
+  'setup.deck.sub': '라운드에서 쓸 전술을 미리 등록',
+  'deck.sample': '샘플 추가',
+  'deck.add': '+ 전술 추가',
+  'deck.empty': '등록된 전술이 없습니다. "+ 전술 추가"로 만들거나 샘플 추가로 예시를 불러오세요.',
+  'deck.edit': '편집 →',
+  'filter.all': 'ALL',
+  'filter.atk': 'ATTACK',
+  'filter.def': 'DEFENSE',
+
+  'ready.ally': 'ALLY AGENTS {n}/5',
+  'ready.enemy': 'ENEMY AGENTS {n}/5',
+  'ready.tactics': 'TACTICS {n}',
+  'btn.start': 'START MATCH',
+  'btn.start.ready': '{n} 라운드로',
+  'btn.start.notReady': '양 팀 5명씩과 전술 1개 이상이 필요합니다',
+
+  'live.round': 'ROUND {n}',
+  'live.ot': '(OT)',
+  'live.executing': 'ROUND {n} — 진행 중',
+  'live.selecting': 'ROUND {n} — 전술 선택',
+  'live.hint': '콜을 공유한 뒤, 라운드가 끝나면 WIN / LOSS를 누르세요.',
+  'stage.change': '전술 다시 고르기',
+  'stage.flipSide': '진영 전환',
+  'stage.showOffside': '다른 진영도 표시',
+  'stage.newTactic': '+ 전술',
+  'stage.prevWin': '직전 WIN',
+  'stage.prevLoss': '직전 LOSS',
+  'stage.start': 'START',
+  'eco.label': 'ECONOMY',
+  'eco.full': 'FULL BUY',
+  'eco.force': 'FORCE',
+  'eco.eco': 'ECO',
+  'eco.bonus': 'BONUS',
+  'res.win': 'WIN',
+  'res.loss': 'LOSS',
+  'res.win.sub': '라운드 획득',
+  'res.loss.sub': '라운드 상실',
+  'meta.firstUse': '첫 사용',
+  'meta.streak': '{n}연속',
+  'pick.score': 'SCORE',
+  'pick.noTactics': '이 진영에서 쓸 전술이 없습니다. "다른 진영도 표시"를 켜거나 전술을 추가하세요.',
+
+  'headline.first.title': 'FIRST ROUND',
+  'headline.first.text': '첫 전술을 세팅하고 라운드를 시작하세요.',
+  'headline.win.title': 'ROUND {n} — WIN',
+  'headline.win.text': '"{name}"이(가) 통했습니다. 상대가 대응할 때까지 이어가거나, 이기는 패턴을 하나 더 겹치세요.',
+  'headline.loss.title': 'ROUND {n} — LOSS',
+  'headline.loss.text': '"{name}"이(가) 막혔습니다. 타겟이나 템포를 바꾸는 전술을 추천합니다.',
+
+  'banner.won': '★ MATCH WON — {a} - {b}',
+  'banner.lost': 'MATCH LOST — {a} - {b}',
+  'banner.pointAlly': 'MATCH POINT — 우리 팀',
+  'banner.pointEnemy': 'MATCH POINT — 상대 팀',
+  'banner.overtime': 'OVERTIME / 2라운드 차로 결정',
+
+  'timeline.title': 'ROUND TIMELINE',
+  'timeline.undo': '← 직전 라운드 취소',
+  'timeline.resetMatch': '스코어 초기화',
+  'timeline.empty': '아직 라운드 기록이 없습니다.',
+  'timeline.deleted': '(삭제된 전술)',
+  'perf.title': 'TACTIC PERFORMANCE',
+  'perf.sub': '전술별 승률',
+
+  'reason.winrateGood': '통산 {n}%로 통하는 중',
+  'reason.winrateBad': '통산 {n}% / 상대가 대응 완료',
+  'reason.unused': '미사용 / 상대에게 정보 없음',
+  'reason.lastWin': '직전 라운드 성공 / 이어갈 가치 있음',
+  'reason.lastLoss': '직전 라운드 실패 / 연속 사용은 위험',
+  'reason.streak': '{n}라운드 연속 사용 / 읽힐 위험',
+  'reason.longUnused': '{n}라운드 미사용 / 다시 꺼내면 통함',
+  'reason.targetChange': '타겟 변경 ({from} → {to})',
+  'reason.sideMismatch': '진영 불일치 ({side}용)',
+  'reason.firstRound': '초반 라운드 / 덱 순서대로',
+
+  'modal.agent.title': '{team} SLOT {n} — SELECT AGENT',
+  'agent.search.ph': '요원 이름 검색…',
+  'agent.player': '플레이어 이름',
+  'agent.player.ph': 'IGN',
+  'agent.clearSlot': '슬롯 비우기',
+  'agent.none': '해당하는 요원이 없습니다.',
+  'role.all': 'ALL',
+  'role.duelist': 'DUELIST',
+  'role.initiator': 'INITIATOR',
+  'role.controller': 'CONTROLLER',
+  'role.sentinel': 'SENTINEL',
+
+  'modal.tactic.new': 'NEW TACTIC',
+  'modal.tactic.edit': 'EDIT TACTIC',
+  't.name': '전술 이름',
+  't.name.ph': '예: A 더블 연막 강행',
+  't.side': '사용 진영',
+  't.site': '타겟',
+  't.kind': '전술 유형',
+  't.note': '콜 / 상세',
+  't.note.ph': '스킬 사용법, 타이밍, 실패 시 판단 등',
+  'side.both': 'BOTH',
+
+  'kind.execute': '정석 강행',
+  'kind.default': '디폴트',
+  'kind.fast': '패스트 푸시',
+  'kind.split': '스플릿 푸시',
+  'kind.fake': '페이크',
+  'kind.stack': '스택',
+  'kind.retake': '리테이크',
+  'kind.aggro': '공격적',
+  'kind.passive': '수비적 / 리테이크 중심',
+  'kind.eco': '에코 / 포스',
+
+  'analyst.title': 'MATCHUP ANALYSIS',
+  'analyst.sub': '상대 조합과의 상성',
+  'analyst.run': '상성 분석',
+  'analyst.needComp': '상성 분석에는 양 팀 5명씩 설정이 필요합니다.',
+  'analyst.strong': '통한다',
+  'analyst.even': '반반',
+  'analyst.weak': '안 통한다',
+  'analyst.strengths': '통하는 근거',
+  'analyst.weaknesses': '약점 · 리스크',
+  'analyst.noFindings': '특별한 상성 차이가 없습니다.',
+  'analyst.cat.ally': '우리 조합',
+  'analyst.cat.enemy': '상대 조합',
+  'analyst.cat.map': '맵',
+  'analyst.ai': 'AI 총평 생성',
+  'analyst.aiRunning': 'AI가 분석 중…',
+  'analyst.aiTitle': 'AI 총평',
+  'analyst.aiUnavailable': 'AI 총평이 설정되지 않았습니다.',
+
+  'f.smokeEnough': '연막 {n}개로 사이트를 닫을 수 있음',
+  'f.smokeShort': '연막이 {n}개뿐이라 강행을 끝까지 못 함',
+  'f.noFlash': '섬광·기절이 없어 진입 계기를 못 만듦',
+  'f.flashReady': '방해 스킬 {n}개로 엔트리를 열 수 있음',
+  'f.noEntry': '엔트리 담당이 없어 열린 공간을 못 먹음',
+  'f.noFlashRush': '섬광 없는 속공은 대기 중인 수비에 막힘',
+  'f.flashRush': '섬광 {n}개로 단번에 거리를 좁힘',
+  'f.noEntryRush': '속공에 필요한 엔트리 담당이 없음',
+  'f.mobilityRush': '기동력 {n}개로 상대 로테이션보다 빠름',
+  'f.smokeShortSplit': '연막 {n}개로는 분산 진입을 지탱 못 함',
+  'f.splitMobility': '기동력·순간이동으로 협공이 성립',
+  'f.splitNoRecon': '정찰이 없어 합류 타이밍을 맞추기 어려움',
+  'f.fakeNoTool': '페이크를 진짜처럼 보일 수단이 없음',
+  'f.fakeTool': '기만 스킬로 페이크 정확도가 높음',
+  'f.fakeRotate': '기동력이 높아 로테이션이 늦지 않음',
+  'f.defaultRecon': '정찰 {n}개로 상대 배치를 파악 가능',
+  'f.defaultNoRecon': '정찰이 없어 디폴트로 정보를 못 얻음',
+  'f.stackTrap': '설치물로 얇은 사이트의 시간을 벌 수 있음',
+  'f.stackNoTrap': '설치물이 없어 비운 사이트가 즉시 무너짐',
+  'f.retakeMolly': '지역 차단 {n}개로 리테이크를 구성 가능',
+  'f.retakeNoMolly': '지역 차단이 없어 설치된 사이트를 못 되찾음',
+  'f.retakeSmoke': '연막으로 리테이크 진입로를 만들 수 있음',
+  'f.retakeHeal': '회복 담당이 있어 교전 후 지속력이 있음',
+  'f.aggroReady': '방해·정찰이 있어 전진할 근거가 있음',
+  'f.aggroBlind': '정보도 방해도 없어 전진하면 각개격파당함',
+  'f.aggroOp': '오퍼레이터 운용과 전진 포지션이 맞물림',
+  'f.ecoFlash': '섬광 {n}개로 장비 차이를 좁힘',
+  'f.ecoMobility': '기동력으로 거리를 좁힘',
+
+  'f.enemyAntiUtil': '{agents}에게 스킬이 봉쇄되면 이 전술은 작동하지 않음',
+  'f.enemyRecon': '상대 정찰 {n}개에 페이크가 간파됨',
+  'f.enemyTraps': '상대 설치물 {n}개로 속공이 멈춤',
+  'f.trapButClear': '상대 설치물 {n}개. 파괴 수단은 있지만 시간이 듦',
+  'f.enemyWall': '{agents}의 벽에 진입이 막힘',
+  'f.enemyPostplant': '상대는 설치 후 유지가 강해 해제를 허용하기 쉬움',
+  'f.enemyMolly': '상대 지역 차단 {n}개로 사이트에 머물 수 없음',
+  'f.enemyNoSentinel': '상대에 감시자 부재. 설치물이 없어 빠른 전개가 통함',
+  'f.enemyAggroPunish': '상대 타격대 {n}명. 전진하는 상대에게 수비가 통함',
+  'f.enemyAggroRisk': '상대 타격대 {n}명. 압박이 강해 못 버틸 가능성',
+  'f.enemyNoSmoke': '상대에 연막이 없어 시야를 유지한 채 수비 가능',
+  'f.enemyOp': '{agents}의 오퍼레이터에 열린 진입을 노림당함',
+  'f.enemyHeal': '{agents}의 회복으로 딜을 못 굳힘',
+  'f.mapThreeSiteStack': '{map}은 사이트가 3개라 몰아주는 리스크가 큼',
+  'f.mapThreeSiteRotate': '{map}은 사이트가 3개라 흔들기가 잘 통함',
+  'f.mapOpenOp': '{map}의 장거리에서 오퍼레이터가 살아남',
+  'f.mapOpenNoOp': '{map}은 개활지라 장거리를 잡을 수단이 필요',
+  'f.mapTightSmoke': '{map}의 좁은 동선에는 연막이 부족',
+
+  'share.title': 'SHARE',
+  'share.x': 'X에 포스트',
+  'share.copy': '텍스트 복사',
+  'share.copied': '복사했습니다.',
+  'share.text': '[{name}]\n{map} / {side} / {site}\n상성: {verdict} ({score}/100)\n{note}',
+
+  'community.title': 'COMMUNITY TACTICS',
+  'community.sub': '전 세계의 전술을 보고 공유하기',
+  'community.post': '전술 올리기',
+  'community.postTitle': '내가 생각한 최강의 전술',
+  'community.browse': '게시물 보기',
+  'community.author': '표시 이름',
+  'community.author.ph': '닉네임',
+  'community.import': '내 덱에 추가',
+  'community.empty': '아직 게시물이 없습니다. 첫 번째로 올려보세요.',
+  'community.disabled': '커뮤니티 기능이 설정되지 않았습니다. config.js에 Supabase 접속 정보를 입력하세요.',
+  'community.offline': '커뮤니티 기능은 온라인 버전에서만 사용할 수 있습니다.',
+  'community.login': '로그인',
+  'community.logout': '로그아웃',
+  'community.loginDiscord': 'Discord로 로그인',
+  'community.loginEmail': '이메일로 로그인',
+  'community.loginNeeded': '셋업 저장에는 로그인이 필요합니다. 게시는 로그인 없이도 가능합니다.',
+  'community.posted': '게시했습니다.',
+  'community.postFailed': '게시 실패: {msg}',
+  'community.imported': '덱에 추가했습니다.',
+  'community.likes': '좋아요 {n}',
+  'community.sortNew': '최신',
+  'community.sortTop': '인기',
+  'community.filterMap': '맵',
+  'community.filterAll': '전체',
+  'community.saveSetup': '셋업 저장',
+  'community.savedSetups': '저장한 셋업',
+  'community.saved': '저장했습니다.',
+
+  'toast.sampleAdded': '샘플 전술을 추가했습니다.',
+  'toast.tacticAdded': '전술을 추가했습니다.',
+  'toast.tacticUpdated': '전술을 수정했습니다.',
+  'toast.tacticDeleted': '전술을 삭제했습니다.',
+  'toast.roundRecorded': 'ROUND {n} — {result} 기록했습니다.',
+  'toast.undone': 'ROUND {n} 기록을 취소했습니다.',
+  'toast.noUndo': '취소할 라운드가 없습니다.',
+  'toast.matchReset': '매치를 초기화했습니다.',
+  'toast.exported': 'JSON을 내보냈습니다.',
+  'toast.exportCancelled': '내보내기를 취소했습니다.',
+  'toast.exportFailed': '내보내기 실패: {msg}',
+  'toast.imported': '데이터를 불러왔습니다.',
+  'toast.importFailed': '불러오기 실패: {msg}',
+  'toast.resetAll': '초기화했습니다.',
+  'toast.needSetup': '양 팀 요원을 5명씩 설정하고 전술을 1개 이상 등록하세요.',
+  'toast.nameRequired': '전술 이름을 입력하세요.',
+
+  'confirm.resetMatch': '스코어와 라운드 기록을 초기화합니다. 전술 덱과 요원 조합은 유지됩니다. 계속할까요?',
+  'confirm.resetAll': '모든 데이터(조합·전술 덱·전적)를 초기화합니다. 계속할까요?',
+  'confirm.deleteTactic': '"{name}"을(를) 삭제합니다. 계속할까요?',
+
+  /* --- sample tactics --- */
+  'sample.s1.name': 'A 더블 연막 강행',
+  'sample.s1.note': '스킬 전부 사용. 선취점을 못 내면 바로 리그룹.',
+  'sample.s2.name': 'B 패스트 러시',
+  'sample.s2.note': '시작 30초 안에 진입. 섬광 2개 선행, 타격대가 엔트리.',
+  'sample.s3.name': '미드 장악',
+  'sample.s3.note': '미드를 완전히 잡고 양 사이트로 스플릿. 40초 남기고 콜.',
+  'sample.s4.name': 'A 페이크 → B',
+  'sample.s4.note': 'A에 3명 보여서 스킬을 빼게 한 뒤 B로 로테이션.',
+  'sample.s5.name': 'A 스택',
+  'sample.s5.note': '3명 A 배치. B는 리테이크 전제로 최소한의 지연.',
+  'sample.s6.name': '디폴트 2-1-2',
+  'sample.s6.note': '기본 배치. 정보를 얻은 뒤 로테이션.',
+  'sample.s7.name': '공격적 미드 장악',
+  'sample.s7.note': '미드를 먼저 잡아 상대 전개를 끊음. 실패하면 즉시 빠짐.',
+
+  'f.rushNoInfo': '정찰 없이 빠르게 들어가면 대기 중인 수비에 대응할 수 없음',
+  'f.enemyMollyRush': '상대 지역 차단 {n}개에 입구에서 발이 묶임',
+  'f.enemyLineup': '상대의 정점 스킬 {n}개가 설치 후에 작용함'
+});
+</script>
+<script>
+/* ---- assets/js/data.js ---- */
 /* =========================================================
    VALORANT TACTICAL SETUP CARD  /  static data
    エージェント・マップ・戦術タグなどのマスタデータ
@@ -1565,15 +3016,16 @@ select { appearance: none; cursor: pointer; }
     { id: 'bonus', label: 'BONUS' }
   ];
 
-  /* 初期投入されるサンプル戦術（空デッキだと使い始めが分かりにくいため） */
+  /* 初期投入されるサンプル戦術（空デッキだと使い始めが分かりにくいため）
+     名前と詳細は表示言語に合わせて解決する */
   const SAMPLE_TACTICS = [
-    { name: 'A ダブルスモーク エグゼ', side: 'ATK', site: 'A',   kind: 'execute', note: 'ユーティリティ全出し。ファーストブラッド取れなければ即リグループ。' },
-    { name: 'B ファストラッシュ',      side: 'ATK', site: 'B',   kind: 'fast',    note: '開幕30秒で入る。フラッシュ2枚先行、デュエリストがエントリー。' },
-    { name: 'ミッドコントロール',      side: 'ATK', site: 'MID', kind: 'default', note: 'ミッド取り切ってから両サイトへスプリット。残り40秒でコール。' },
-    { name: 'A フェイク → B',          side: 'ATK', site: 'B',   kind: 'fake',    note: 'A に3枚見せてユーティリティを吐かせ、B へローテート。' },
-    { name: 'A スタック',              side: 'DEF', site: 'A',   kind: 'stack',   note: '3枚 A 寄せ。B はリテイク前提で最低限のディレイ。' },
-    { name: 'デフォルト 2-1-2',        side: 'DEF', site: 'MID', kind: 'default', note: '基本配置。情報取ってからローテーション。' },
-    { name: 'アグレッシブ ミッド取り', side: 'DEF', site: 'MID', kind: 'aggro',   note: 'ミッドを先に取って相手の展開を潰す。失敗したら即引く。' }
+    { key: 's1', side: 'ATK', site: 'A',   kind: 'execute' },
+    { key: 's2', side: 'ATK', site: 'B',   kind: 'fast' },
+    { key: 's3', side: 'ATK', site: 'MID', kind: 'default' },
+    { key: 's4', side: 'ATK', site: 'B',   kind: 'fake' },
+    { key: 's5', side: 'DEF', site: 'A',   kind: 'stack' },
+    { key: 's6', side: 'DEF', site: 'MID', kind: 'default' },
+    { key: 's7', side: 'DEF', site: 'MID', kind: 'aggro' }
   ];
 
   global.VCT_DATA = { ROLES, AGENTS, MAPS, KINDS, SIDES, ECONOMY, SAMPLE_TACTICS };
@@ -1595,7 +3047,107 @@ select { appearance: none; cursor: pointer; }
 })(window);
 </script>
 <script>
-/* ---- store.js ---- */
+/* ---- assets/js/agent-traits.js ---- */
+/* =========================================================
+   AGENT TACTICAL TRAITS
+   相性判定エンジンが参照する、エージェントの戦術的な性質。
+   「何ができるか(provides)」と「何に強いか(counters)」を
+   タグとして持たせ、構成単位で集計する。
+   ---------------------------------------------------------
+   provides タグ:
+     smoke      視界を切る（設置型スモーク）
+     wall       進路を物理/視界的に封鎖する壁
+     flash      閃光でピークを通す
+     stun       スタン・デシベル等の妨害
+     recon      索敵（相手位置の露出）
+     molly      範囲ダメージによる地点排除
+     entry      先陣を切って撃ち合う適性
+     mobility   高速な移動・再配置
+     trap       設置物による監視・足止め
+     info       設置型の情報収集（カメラ等）
+     heal       回復・蘇生
+     postplant  設置後の地点維持に強い
+     antitrap   相手の設置物を破壊しやすい
+     antiutil   相手のアビリティを封じる
+     teleport   瞬間移動による裏取り・撤退
+     lineup     定点ユーティリティによる遠隔妨害
+     opflex     オペレーター運用と相性が良い
+     deceive    フェイク・欺瞞に使える手段
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const TRAITS = {
+    /* --- DUELIST --- */
+    jett:      { provides: ['entry', 'mobility', 'smoke', 'opflex'], note: 'entry.jett' },
+    phoenix:   { provides: ['entry', 'flash', 'molly', 'wall', 'heal'], note: 'entry.phoenix' },
+    raze:      { provides: ['entry', 'molly', 'mobility', 'antitrap'], note: 'entry.raze' },
+    reyna:     { provides: ['entry', 'flash', 'heal'], note: 'entry.reyna' },
+    yoru:      { provides: ['entry', 'flash', 'teleport', 'deceive', 'recon'], note: 'entry.yoru' },
+    neon:      { provides: ['entry', 'mobility', 'stun', 'wall'], note: 'entry.neon' },
+    iso:       { provides: ['entry', 'mobility'], note: 'entry.iso' },
+    waylay:    { provides: ['entry', 'mobility', 'flash'], note: 'entry.waylay' },
+
+    /* --- INITIATOR --- */
+    sova:      { provides: ['recon', 'molly', 'lineup'], note: 'init.sova' },
+    breach:    { provides: ['flash', 'stun', 'molly'], note: 'init.breach' },
+    skye:      { provides: ['flash', 'recon', 'heal'], note: 'init.skye' },
+    kayo:      { provides: ['flash', 'molly', 'recon', 'antiutil'], note: 'init.kayo' },
+    fade:      { provides: ['recon', 'stun', 'molly'], note: 'init.fade' },
+    gekko:     { provides: ['flash', 'stun', 'recon', 'molly'], note: 'init.gekko' },
+    tejo:      { provides: ['recon', 'molly', 'stun', 'lineup'], note: 'init.tejo' },
+
+    /* --- CONTROLLER --- */
+    brimstone: { provides: ['smoke', 'molly', 'postplant', 'lineup'], note: 'ctrl.brimstone' },
+    omen:      { provides: ['smoke', 'flash', 'teleport', 'deceive'], note: 'ctrl.omen' },
+    viper:     { provides: ['smoke', 'wall', 'molly', 'postplant', 'lineup'], note: 'ctrl.viper' },
+    astra:     { provides: ['smoke', 'stun', 'wall', 'postplant'], note: 'ctrl.astra' },
+    harbor:    { provides: ['smoke', 'wall', 'stun', 'postplant'], note: 'ctrl.harbor' },
+    clove:     { provides: ['smoke', 'heal', 'entry'], note: 'ctrl.clove' },
+
+    /* --- SENTINEL --- */
+    killjoy:   { provides: ['trap', 'molly', 'postplant', 'info'], note: 'sent.killjoy' },
+    cypher:    { provides: ['trap', 'info', 'smoke', 'recon'], note: 'sent.cypher' },
+    sage:      { provides: ['wall', 'heal', 'stun', 'postplant'], note: 'sent.sage' },
+    chamber:   { provides: ['trap', 'teleport', 'opflex'], note: 'sent.chamber' },
+    deadlock:  { provides: ['trap', 'wall', 'stun', 'info'], note: 'sent.deadlock' },
+    vyse:      { provides: ['trap', 'wall', 'antiutil', 'info'], note: 'sent.vyse' }
+  };
+
+  /** 構成 5 体の provides タグを集計する */
+  function aggregate(slots) {
+    const counts = {};
+    const agents = [];
+    (slots || []).forEach(function (slot) {
+      const id = slot && slot.agent;
+      if (!id || !TRAITS[id]) return;
+      agents.push(id);
+      TRAITS[id].provides.forEach(function (tag) {
+        counts[tag] = (counts[tag] || 0) + 1;
+      });
+    });
+
+    const roleCounts = { duelist: 0, initiator: 0, controller: 0, sentinel: 0 };
+    agents.forEach(function (id) {
+      const agent = global.VCT_DATA.agentById(id);
+      if (agent) roleCounts[agent.role]++;
+    });
+
+    return {
+      agents: agents,
+      has: function (tag) { return (counts[tag] || 0) > 0; },
+      count: function (tag) { return counts[tag] || 0; },
+      hasAgent: function (id) { return agents.indexOf(id) >= 0; },
+      roles: roleCounts,
+      size: agents.length
+    };
+  }
+
+  global.VCT_TRAITS = { TRAITS: TRAITS, aggregate: aggregate };
+})(window);
+</script>
+<script>
+/* ---- assets/js/store.js ---- */
 /* =========================================================
    STATE STORE
    状態管理・localStorage 永続化・派生値の計算
@@ -1870,13 +3422,22 @@ select { appearance: none; cursor: pointer; }
     exportJSON: exportJSON,
     importJSON: importJSON,
     seedSamples: function () {
-      D.SAMPLE_TACTICS.forEach(function (t) { addTactic(t); });
+      const I = global.VCT_I18N;
+      D.SAMPLE_TACTICS.forEach(function (t) {
+        addTactic({
+          name: I.t('sample.' + t.key + '.name'),
+          note: I.t('sample.' + t.key + '.note'),
+          side: t.side,
+          site: t.site,
+          kind: t.kind
+        });
+      });
     }
   };
 })(window);
 </script>
 <script>
-/* ---- advisor.js ---- */
+/* ---- assets/js/advisor.js ---- */
 /* =========================================================
    TACTIC ADVISOR
    直前のラウンド結果から「次のラウンドに置く戦術」を採点する
@@ -1920,16 +3481,16 @@ select { appearance: none; cursor: pointer; }
         const delta = Math.round((st.winRate - 50) * 0.7);
         score += delta;
         if (st.used >= 2 && st.winRate >= 60) {
-          reasons.push({ text: '通算 ' + st.winRate + '% で機能中', tone: 'good' });
+          reasons.push({ key: 'reason.winrateGood', params: { n: st.winRate }, tone: 'good' });
         } else if (st.used >= 2 && st.winRate <= 40) {
-          reasons.push({ text: '通算 ' + st.winRate + '% / 相手に対応されている', tone: 'bad' });
+          reasons.push({ key: 'reason.winrateBad', params: { n: st.winRate }, tone: 'bad' });
         }
       }
 
       /* 未使用ボーナス（相手に情報を与えていない） */
       if (st.used === 0) {
         score += 14;
-        reasons.push({ text: '未使用 / 相手に情報なし', tone: 'good' });
+        reasons.push({ key: 'reason.unused', tone: 'good' });
       }
 
       /* 直前ラウンドとの関係 */
@@ -1937,17 +3498,17 @@ select { appearance: none; cursor: pointer; }
         const isSame = last.tacticId === t.id;
         if (isSame && last.result === 'WIN') {
           score += 10;
-          reasons.push({ text: '直前ラウンドで成功 / 継続の価値あり', tone: 'good' });
+          reasons.push({ key: 'reason.lastWin', tone: 'good' });
         }
         if (isSame && last.result === 'LOSS') {
           score -= 22;
-          reasons.push({ text: '直前ラウンドで失敗 / 連投は危険', tone: 'bad' });
+          reasons.push({ key: 'reason.lastLoss', tone: 'bad' });
         }
         /* 連投による「読まれ」ペナルティ */
         if (st.streak >= 2) {
           const pen = 8 * st.streak;
           score -= pen;
-          reasons.push({ text: st.streak + 'ラウンド連続で使用 / 読まれるリスク', tone: 'warn' });
+          reasons.push({ key: 'reason.streak', params: { n: st.streak }, tone: 'warn' });
         }
         /* 直近3ラウンド以内に使用 */
         if (!isSame && st.roundsSinceUse !== null && st.roundsSinceUse <= 3) {
@@ -1956,7 +3517,7 @@ select { appearance: none; cursor: pointer; }
         /* 久しぶりの戦術は刺さりやすい */
         if (st.roundsSinceUse !== null && st.roundsSinceUse >= 6) {
           score += 8;
-          reasons.push({ text: st.roundsSinceUse + 'ラウンド使っていない / 再投入が刺さる', tone: 'good' });
+          reasons.push({ key: 'reason.longUnused', params: { n: st.roundsSinceUse }, tone: 'good' });
         }
       }
 
@@ -1965,7 +3526,7 @@ select { appearance: none; cursor: pointer; }
         const lastT = S.tacticById(last.tacticId);
         if (lastT && lastT.site && t.site && lastT.site !== t.site && t.site !== '-') {
           score += 7;
-          reasons.push({ text: 'ターゲット変更 (' + lastT.site + ' → ' + t.site + ')', tone: 'good' });
+          reasons.push({ key: 'reason.targetChange', params: { from: lastT.site, to: t.site }, tone: 'good' });
         }
         if (t.kind === 'fake' || t.kind === 'split') {
           score += 4;
@@ -1975,14 +3536,14 @@ select { appearance: none; cursor: pointer; }
       /* サイド不一致（表示だけ許可した場合）は大きく減点 */
       if (side && t.side !== 'BOTH' && t.side !== side) {
         score -= 30;
-        reasons.push({ text: 'サイド不一致 (' + t.side + ' 用)', tone: 'bad' });
+        reasons.push({ key: 'reason.sideMismatch', params: { side: t.side }, tone: 'bad' });
       }
 
       /* ピストル / 序盤は勝率データが無いので素の並びを尊重 */
       if (rounds.length === 0) {
         score = 50 + (t.kind === 'execute' || t.kind === 'default' ? 6 : 0);
         reasons.length = 0;
-        reasons.push({ text: '初動ラウンド / デッキ順で選択', tone: 'neutral' });
+        reasons.push({ key: 'reason.firstRound', tone: 'neutral' });
       }
 
       score = Math.max(0, Math.min(100, Math.round(score)));
@@ -2002,32 +3563,654 @@ select { appearance: none; cursor: pointer; }
     return scored;
   }
 
-  /** 選択画面ヘッダーに出す一言 */
+  /** 選択画面ヘッダーに出す一言。表示側で翻訳できるようキーで返す */
   function headline() {
     const last = S.lastRound();
-    if (!last) return { title: 'FIRST ROUND', text: '最初の戦術をセットしてラウンドを開始してください。' };
-    const t = S.tacticById(last.tacticId);
-    const name = t ? t.name : '(削除済みの戦術)';
-    if (last.result === 'WIN') {
-      return {
-        title: 'ROUND ' + last.n + ' — WIN',
-        text: '「' + name + '」が通りました。相手が対応してくるまで継続するか、勝ちパターンを二枚重ねにするか選択してください。'
-      };
+    if (!last) {
+      return { titleKey: 'headline.first.title', textKey: 'headline.first.text', params: {} };
     }
-    return {
-      title: 'ROUND ' + last.n + ' — LOSS',
-      text: '「' + name + '」が止められました。ターゲットかテンポを変える戦術を推奨します。'
-    };
+    const t = S.tacticById(last.tacticId);
+    const params = { n: last.n, name: t ? t.name : '-' };
+    if (last.result === 'WIN') {
+      return { titleKey: 'headline.win.title', textKey: 'headline.win.text', params: params };
+    }
+    return { titleKey: 'headline.loss.title', textKey: 'headline.loss.text', params: params };
   }
 
   global.VCT_ADVISOR = { rank: rank, headline: headline };
 })(window);
 </script>
 <script>
-/* ---- ui.js ---- */
+/* ---- assets/js/analyst.js ---- */
+/* =========================================================
+   MATCHUP ANALYST
+   戦術 × 味方構成 × 敵構成 から相性を判定する。
+   出力は言語非依存のキー + パラメータで返し、表示側で翻訳する。
+   ---------------------------------------------------------
+   finding: { key, params, tone: 'good'|'bad'|'warn', weight, cat }
+     cat = 'ally'(自陣の実行力) | 'enemy'(相手の対抗策) | 'map'
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const T = global.VCT_TRAITS;
+
+  /* ユーティリティ依存度が高い戦術タイプ */
+  const UTIL_HEAVY = ['execute', 'split', 'fast'];
+
+  function analyze(opts) {
+    const tactic = opts.tactic;
+    const ally = T.aggregate(opts.allies);
+    const enemy = T.aggregate(opts.enemies);
+    const mapId = opts.map;
+    const side = tactic.side === 'BOTH' ? (opts.side || 'ATK') : tactic.side;
+    const kind = tactic.kind;
+    const findings = [];
+
+    function add(key, tone, weight, params, cat) {
+      findings.push({ key: key, tone: tone, weight: weight, params: params || {}, cat: cat || 'ally' });
+    }
+
+    /* ============ 1. 自陣の実行力 ============ */
+
+    if (kind === 'execute') {
+      const smoke = ally.count('smoke');
+      if (smoke >= 2) add('f.smokeEnough', 'good', 8, { n: smoke });
+      else add('f.smokeShort', 'bad', -14, { n: smoke });
+
+      if (ally.count('flash') + ally.count('stun') === 0) add('f.noFlash', 'bad', -12);
+      else add('f.flashReady', 'good', 5, { n: ally.count('flash') + ally.count('stun') });
+
+      if (!ally.has('entry')) add('f.noEntry', 'bad', -10);
+    }
+
+    if (kind === 'fast') {
+      if (ally.count('flash') === 0) add('f.noFlashRush', 'bad', -13);
+      else add('f.flashRush', 'good', 7, { n: ally.count('flash') });
+
+      if (!ally.has('entry')) add('f.noEntryRush', 'bad', -12);
+      if (ally.count('mobility') >= 2) add('f.mobilityRush', 'good', 7, { n: ally.count('mobility') });
+    }
+
+    if (kind === 'split') {
+      if (ally.count('smoke') < 2) add('f.smokeShortSplit', 'bad', -11, { n: ally.count('smoke') });
+      if (ally.has('mobility') || ally.has('teleport')) add('f.splitMobility', 'good', 6);
+      if (!ally.has('recon')) add('f.splitNoRecon', 'warn', -7);
+    }
+
+    if (kind === 'fake') {
+      if (!ally.has('recon') && !ally.has('deceive')) add('f.fakeNoTool', 'bad', -12);
+      if (ally.has('deceive')) add('f.fakeTool', 'good', 8);
+      if (ally.count('mobility') >= 2) add('f.fakeRotate', 'good', 6);
+    }
+
+    if (kind === 'default') {
+      if (ally.count('recon') >= 2) add('f.defaultRecon', 'good', 8, { n: ally.count('recon') });
+      else if (!ally.has('recon')) add('f.defaultNoRecon', 'bad', -10);
+    }
+
+    if (kind === 'stack') {
+      if (ally.has('trap')) add('f.stackTrap', 'good', 7);
+      else add('f.stackNoTrap', 'bad', -9);
+    }
+
+    if (kind === 'retake' || kind === 'passive') {
+      if (ally.has('molly')) add('f.retakeMolly', 'good', 8, { n: ally.count('molly') });
+      else add('f.retakeNoMolly', 'bad', -11);
+      if (ally.has('smoke')) add('f.retakeSmoke', 'good', 5);
+      if (ally.has('heal')) add('f.retakeHeal', 'good', 4);
+    }
+
+    if (kind === 'aggro') {
+      if (ally.has('flash') || ally.has('recon')) add('f.aggroReady', 'good', 7);
+      else add('f.aggroBlind', 'bad', -10);
+      if (ally.has('opflex')) add('f.aggroOp', 'good', 5);
+    }
+
+    if (kind === 'eco') {
+      if (ally.count('flash') >= 2) add('f.ecoFlash', 'good', 7, { n: ally.count('flash') });
+      if (ally.has('mobility')) add('f.ecoMobility', 'good', 5);
+    }
+
+    /* ============ 2. 相手の対抗策 ============ */
+
+    /* アビリティ封じ */
+    if (enemy.has('antiutil') && UTIL_HEAVY.indexOf(kind) >= 0) {
+      const names = enemyNames(enemy, ['kayo', 'vyse']);
+      add('f.enemyAntiUtil', 'bad', -11, { agents: names }, 'enemy');
+    }
+
+    /* 索敵が厚い → フェイクが通らない */
+    if (kind === 'fake' && enemy.count('recon') >= 2) {
+      add('f.enemyRecon', 'bad', -14, { n: enemy.count('recon') }, 'enemy');
+    }
+
+    /* 設置物 → 速攻が止まる。1 枚でもラッシュのテンポは崩れる */
+    const enemyTraps = enemy.count('trap');
+    if (enemyTraps >= 1 && (kind === 'fast' || kind === 'split')) {
+      const magnitude = Math.min(enemyTraps, 3) * 6;
+      if (ally.has('antitrap')) add('f.trapButClear', 'warn', -Math.round(magnitude / 2), { n: enemyTraps }, 'enemy');
+      else add('f.enemyTraps', 'bad', -magnitude, { n: enemyTraps }, 'enemy');
+    }
+
+    /* 情報を取らずに速く入ると、待ち構えられたときに何もできない */
+    if ((kind === 'fast' || kind === 'execute') && !ally.has('recon') && enemyTraps >= 1) {
+      add('f.rushNoInfo', 'bad', -8, {}, 'ally');
+    }
+
+    /* 地点排除が厚いと速攻でも押し込まれる */
+    if (kind === 'fast' && enemy.count('molly') >= 2) {
+      add('f.enemyMollyRush', 'warn', -6, { n: enemy.count('molly') }, 'enemy');
+    }
+
+    /* 遠隔ユーティリティ（定点）は設置後に効いてくる */
+    if (side === 'ATK' && enemy.count('lineup') >= 2) {
+      add('f.enemyLineup', 'warn', -6, { n: enemy.count('lineup') }, 'enemy');
+    }
+
+    /* 壁でラッシュが止まる */
+    if (enemy.has('wall') && (kind === 'fast' || kind === 'execute')) {
+      add('f.enemyWall', 'warn', -7, { agents: enemyNames(enemy, ['sage', 'viper', 'harbor', 'deadlock', 'vyse', 'astra']) }, 'enemy');
+    }
+
+    /* 設置後の解除・維持が強い（アタック側視点） */
+    if (side === 'ATK' && enemy.count('postplant') >= 2) {
+      add('f.enemyPostplant', 'bad', -10, { n: enemy.count('postplant') }, 'enemy');
+    }
+
+    /* 地点排除が厚い → エグゼキュートが刺さりにくい */
+    if (kind === 'execute' && enemy.count('molly') >= 3) {
+      add('f.enemyMolly', 'bad', -9, { n: enemy.count('molly') }, 'enemy');
+    }
+
+    /* センチネル不在 → 速攻が通る */
+    if (side === 'ATK' && enemy.roles.sentinel === 0) {
+      add('f.enemyNoSentinel', 'good', 12, {}, 'enemy');
+    }
+
+    /* 相手デュエリスト過多 → 受けが刺さる */
+    if (enemy.roles.duelist >= 3) {
+      if (kind === 'retake' || kind === 'passive' || kind === 'stack') {
+        add('f.enemyAggroPunish', 'good', 11, { n: enemy.roles.duelist }, 'enemy');
+      } else if (side === 'DEF') {
+        add('f.enemyAggroRisk', 'warn', -6, { n: enemy.roles.duelist }, 'enemy');
+      }
+    }
+
+    /* 相手コントローラー不在 → ディフェンス側の視界が通る */
+    if (side === 'DEF' && enemy.count('smoke') === 0) {
+      add('f.enemyNoSmoke', 'good', 10, {}, 'enemy');
+    }
+
+    /* 相手にオペレーター運用 → 開けた進行が危険 */
+    if (side === 'ATK' && enemy.has('opflex') && (kind === 'fast' || kind === 'default')) {
+      add('f.enemyOp', 'warn', -7, { agents: enemyNames(enemy, ['jett', 'chamber']) }, 'enemy');
+    }
+
+    /* 相手の回復・蘇生 */
+    if (enemy.has('heal') && (kind === 'execute' || kind === 'fast')) {
+      add('f.enemyHeal', 'warn', -5, { agents: enemyNames(enemy, ['sage', 'skye', 'phoenix', 'reyna', 'clove']) }, 'enemy');
+    }
+
+    /* ============ 3. マップ ============ */
+    const map = global.VCT_DATA.mapById(mapId);
+    if (map) {
+      if (map.sites.length >= 3 && kind === 'stack') {
+        add('f.mapThreeSiteStack', 'bad', -9, { map: map.name }, 'map');
+      }
+      if (map.sites.length >= 3 && (kind === 'fake' || kind === 'default')) {
+        add('f.mapThreeSiteRotate', 'good', 7, { map: map.name }, 'map');
+      }
+      if (['breeze', 'icebox', 'abyss'].indexOf(map.id) >= 0) {
+        if (ally.has('opflex')) add('f.mapOpenOp', 'good', 6, { map: map.name }, 'map');
+        else add('f.mapOpenNoOp', 'warn', -6, { map: map.name }, 'map');
+      }
+      if (['split', 'fracture', 'lotus'].indexOf(map.id) >= 0 && ally.count('smoke') < 2) {
+        add('f.mapTightSmoke', 'bad', -8, { map: map.name }, 'map');
+      }
+    }
+
+    /* ============ 集計 ============ */
+    let score = 50;
+    findings.forEach(function (f) { score += f.weight; });
+    score = Math.max(0, Math.min(100, Math.round(score)));
+
+    const verdict = score >= 66 ? 'strong' : (score <= 38 ? 'weak' : 'even');
+
+    findings.sort(function (a, b) { return Math.abs(b.weight) - Math.abs(a.weight); });
+
+    return {
+      score: score,
+      verdict: verdict,
+      side: side,
+      findings: findings,
+      strengths: findings.filter(function (f) { return f.weight > 0; }),
+      weaknesses: findings.filter(function (f) { return f.weight < 0; }),
+      ready: ally.size === 5 && enemy.size === 5
+    };
+  }
+
+  /** 相手構成に含まれる該当エージェント名を並べる */
+  function enemyNames(comp, candidates) {
+    const hit = candidates.filter(function (id) { return comp.hasAgent(id); });
+    return hit.map(function (id) {
+      const a = global.VCT_DATA.agentById(id);
+      return a ? a.name : id;
+    }).join(' / ');
+  }
+
+  global.VCT_ANALYST = { analyze: analyze };
+})(window);
+</script>
+<script>
+/* ---- assets/js/share.js ---- */
+/* =========================================================
+   SHARE
+   戦術カードを X (Twitter) に投稿する / テキストをコピーする。
+   API キーは不要で、Web Intent を新規タブで開くだけ。
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const D = global.VCT_DATA;
+  const I = global.VCT_I18N;
+
+  const HASHTAGS = ['VALORANT', 'TacticalSetupCard'];
+  const MAX_LEN = 260;   // 280 からハッシュタグと余白を引いた実用上限
+
+  /**
+   * 投稿本文を組み立てる。
+   * @param {Object} opts { tactic, map, side, analysis }
+   */
+  function buildText(opts) {
+    const t = opts.tactic;
+    const map = D.mapById(opts.map);
+    const side = opts.side === 'DEF' ? I.t('side.defense') : I.t('side.attack');
+    const analysis = opts.analysis;
+
+    let verdict = '-';
+    let score = '-';
+    if (analysis) {
+      verdict = I.t('analyst.' + analysis.verdict);
+      score = analysis.score;
+    }
+
+    let note = (t.note || '').replace(/\s+/g, ' ').trim();
+
+    let text = I.t('share.text', {
+      name: t.name,
+      map: map ? map.name : '-',
+      side: side,
+      site: t.site || '-',
+      verdict: verdict,
+      score: score,
+      note: note
+    });
+
+    /* 長すぎる場合は詳細から削っていく */
+    if (text.length > MAX_LEN && note) {
+      const overflow = text.length - MAX_LEN;
+      note = note.slice(0, Math.max(0, note.length - overflow - 1)) + '…';
+      text = I.t('share.text', {
+        name: t.name,
+        map: map ? map.name : '-',
+        side: side,
+        site: t.site || '-',
+        verdict: verdict,
+        score: score,
+        note: note
+      });
+    }
+    return text.trim();
+  }
+
+  /** X の Web Intent を開く */
+  function postToX(opts) {
+    const text = buildText(opts);
+    const url = 'https://x.com/intent/tweet'
+      + '?text=' + encodeURIComponent(text)
+      + '&hashtags=' + encodeURIComponent(HASHTAGS.join(','));
+    global.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  /** クリップボードにコピー。失敗時は false を返す */
+  function copyText(opts) {
+    const text = buildText(opts) + '\n#' + HASHTAGS.join(' #');
+    if (global.navigator && global.navigator.clipboard && global.navigator.clipboard.writeText) {
+      return global.navigator.clipboard.writeText(text).then(function () { return true; },
+                                                            function () { return fallbackCopy(text); });
+    }
+    return Promise.resolve(fallbackCopy(text));
+  }
+
+  /* clipboard API が使えない環境向け */
+  function fallbackCopy(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  global.VCT_SHARE = { buildText: buildText, postToX: postToX, copyText: copyText };
+})(window);
+</script>
+<script>
+/* ---- assets/js/community.js ---- */
+/* =========================================================
+   COMMUNITY (Supabase)
+   supabase-js を使わず REST / GoTrue を直接叩く。
+   外部スクリプトを読まないので、単一 HTML へのバンドルを維持できる。
+   ---------------------------------------------------------
+   認証方針:
+     - 戦術の投稿・閲覧・いいね … ログイン不要（匿名可）
+     - セットアップの保存・投稿の編集削除 … ログイン必須
+   ログインは競技シーンでの導線を優先して Discord を既定にし、
+   メールのマジックリンクを代替として用意している。
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const CFG = global.VCT_CONFIG;
+  const SESSION_KEY = 'vct.session';
+  const ANON_KEY = 'vct.anonId';
+
+  let session = null;      // { access_token, refresh_token, expires_at, user }
+
+  function enabled() { return CFG.isCommunityEnabled(); }
+
+  function base() { return String(CFG.SUPABASE_URL).replace(/\/+$/, ''); }
+
+  /** 匿名ユーザーを識別するローカル ID（いいねの重複防止に使う） */
+  function anonId() {
+    let id = null;
+    try { id = localStorage.getItem(ANON_KEY); } catch (e) { /* noop */ }
+    if (!id) {
+      id = 'anon_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      try { localStorage.setItem(ANON_KEY, id); } catch (e) { /* noop */ }
+    }
+    return id;
+  }
+
+  /* ---------------- HTTP ---------------- */
+  function headers(extra) {
+    const h = Object.assign({
+      'apikey': CFG.SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    }, extra || {});
+    h.Authorization = 'Bearer ' + (session ? session.access_token : CFG.SUPABASE_ANON_KEY);
+    return h;
+  }
+
+  function request(path, options) {
+    options = options || {};
+    return fetch(base() + path, {
+      method: options.method || 'GET',
+      headers: headers(options.headers),
+      body: options.body ? JSON.stringify(options.body) : undefined
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        let data = null;
+        if (text) { try { data = JSON.parse(text); } catch (e) { data = text; } }
+        if (!res.ok) {
+          const msg = (data && (data.message || data.error_description || data.error || data.msg)) || ('HTTP ' + res.status);
+          const err = new Error(msg);
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      });
+    });
+  }
+
+  /* ---------------- セッション ---------------- */
+  function loadSession() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.access_token) return null;
+      session = parsed;
+      return session;
+    } catch (e) { return null; }
+  }
+
+  function storeSession(s) {
+    session = s;
+    try {
+      if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch (e) { /* noop */ }
+  }
+
+  function currentUser() {
+    return session && session.user ? session.user : null;
+  }
+
+  function displayName() {
+    const u = currentUser();
+    if (!u) return null;
+    const m = u.user_metadata || {};
+    return m.full_name || m.name || m.user_name || m.preferred_username || u.email || 'PLAYER';
+  }
+
+  /** アクセストークンの期限が近ければ更新する */
+  function ensureFresh() {
+    if (!session) return Promise.resolve(null);
+    const now = Math.floor(Date.now() / 1000);
+    if (session.expires_at && session.expires_at - now > 60) return Promise.resolve(session);
+    if (!session.refresh_token) { storeSession(null); return Promise.resolve(null); }
+
+    const saved = session;
+    session = null;   // 更新リクエストは anon key で送る
+    return request('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      body: { refresh_token: saved.refresh_token }
+    }).then(function (data) {
+      storeSession(normalizeSession(data));
+      return session;
+    }, function () {
+      storeSession(null);
+      return null;
+    });
+  }
+
+  function normalizeSession(data) {
+    if (!data || !data.access_token) return null;
+    return {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: data.expires_at || (Math.floor(Date.now() / 1000) + (data.expires_in || 3600)),
+      user: data.user || null
+    };
+  }
+
+  /* ---------------- ログイン ---------------- */
+  function signInWithProvider(provider) {
+    const redirect = location.origin + location.pathname;
+    location.href = base() + '/auth/v1/authorize'
+      + '?provider=' + encodeURIComponent(provider)
+      + '&redirect_to=' + encodeURIComponent(redirect);
+  }
+
+  function signInWithEmail(email) {
+    return request('/auth/v1/otp', {
+      method: 'POST',
+      body: { email: email, create_user: true, options: { email_redirect_to: location.origin + location.pathname } }
+    });
+  }
+
+  function signOut() {
+    const had = !!session;
+    const p = had ? request('/auth/v1/logout', { method: 'POST' }).catch(function () { /* 失敗しても破棄する */ })
+                  : Promise.resolve();
+    return p.then(function () { storeSession(null); });
+  }
+
+  /** OAuth / マジックリンクのリダイレクト後、URL ハッシュからトークンを取り出す */
+  function consumeRedirect() {
+    if (!location.hash || location.hash.indexOf('access_token') < 0) return Promise.resolve(null);
+    const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const token = params.get('access_token');
+    if (!token) return Promise.resolve(null);
+
+    const s = {
+      access_token: token,
+      refresh_token: params.get('refresh_token') || '',
+      expires_at: Math.floor(Date.now() / 1000) + Number(params.get('expires_in') || 3600),
+      user: null
+    };
+    storeSession(s);
+    history.replaceState(null, '', location.pathname + location.search);
+
+    return request('/auth/v1/user').then(function (user) {
+      s.user = user;
+      storeSession(s);
+      return s;
+    }, function () { return s; });
+  }
+
+  /* ---------------- 投稿 ---------------- */
+  /**
+   * 投稿一覧。
+   * @param {Object} opts { sort: 'new'|'top', map: string|'', limit: number }
+   */
+  function listPosts(opts) {
+    opts = opts || {};
+    const params = [
+      'select=*',
+      'limit=' + (opts.limit || 40),
+      'order=' + (opts.sort === 'top' ? 'likes.desc,created_at.desc' : 'created_at.desc')
+    ];
+    if (opts.map) params.push('map=eq.' + encodeURIComponent(opts.map));
+    if (opts.side) params.push('side=eq.' + encodeURIComponent(opts.side));
+    return request('/rest/v1/tactic_posts?' + params.join('&'));
+  }
+
+  /** 投稿する。ログインしていればユーザーに紐づき、していなければ匿名投稿になる */
+  function createPost(payload) {
+    const body = {
+      name: payload.name,
+      map: payload.map,
+      side: payload.side,
+      site: payload.site,
+      kind: payload.kind,
+      note: payload.note || '',
+      author_name: payload.authorName || 'ANONYMOUS',
+      lang: payload.lang || 'ja',
+      ally_comp: payload.allyComp || [],
+      enemy_comp: payload.enemyComp || [],
+      analysis_score: payload.analysisScore === undefined ? null : payload.analysisScore
+    };
+    return ensureFresh().then(function () {
+      return request('/rest/v1/tactic_posts', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: body
+      });
+    }).then(function (rows) { return Array.isArray(rows) ? rows[0] : rows; });
+  }
+
+  /** いいね。同一ブラウザからの重複は DB 側の一意制約で弾かれる */
+  function likePost(postId) {
+    return ensureFresh().then(function () {
+      return request('/rest/v1/rpc/like_post', {
+        method: 'POST',
+        body: { p_post_id: postId, p_voter: currentUser() ? currentUser().id : anonId() }
+      });
+    });
+  }
+
+  /* ---------------- 保存したセットアップ（要ログイン） ---------------- */
+  function listSetups() {
+    return ensureFresh().then(function (s) {
+      if (!s) return [];
+      return request('/rest/v1/saved_setups?select=*&order=updated_at.desc');
+    });
+  }
+
+  function saveSetup(name, payload) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/saved_setups', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: { name: name, payload: payload }
+      });
+    }).then(function (rows) { return Array.isArray(rows) ? rows[0] : rows; });
+  }
+
+  function deleteSetup(id) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/saved_setups?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+    });
+  }
+
+  /* ---------------- AI 寸評（Edge Function） ---------------- */
+  function aiReview(payload) {
+    if (!enabled() || !CFG.AI_REVIEW_ENABLED) return Promise.reject(new Error('DISABLED'));
+    return ensureFresh().then(function () {
+      return request('/functions/v1/' + CFG.AI_REVIEW_FUNCTION, {
+        method: 'POST',
+        body: payload
+      });
+    });
+  }
+
+  /* ---------------- 起動 ---------------- */
+  function init() {
+    if (!enabled()) return Promise.resolve(null);
+    loadSession();
+    return consumeRedirect().then(function () {
+      return ensureFresh();
+    }).then(function () {
+      /* user 情報が欠けている場合は取り直す */
+      if (session && !session.user) {
+        return request('/auth/v1/user').then(function (user) {
+          session.user = user;
+          storeSession(session);
+          return session;
+        }, function () { return session; });
+      }
+      return session;
+    });
+  }
+
+  global.VCT_COMMUNITY = {
+    enabled: enabled,
+    init: init,
+    currentUser: currentUser,
+    displayName: displayName,
+    signInWithProvider: signInWithProvider,
+    signInWithEmail: signInWithEmail,
+    signOut: signOut,
+    listPosts: listPosts,
+    createPost: createPost,
+    likePost: likePost,
+    listSetups: listSetups,
+    saveSetup: saveSetup,
+    deleteSetup: deleteSetup,
+    aiReview: aiReview,
+    anonId: anonId
+  };
+})(window);
+</script>
+<script>
+/* ---- assets/js/ui.js ---- */
 /* =========================================================
    UI RENDERING
    状態 → DOM の描画のみを担当（イベント登録は app.js 側）
+   表示文字列はすべて i18n 経由で解決する。
    ========================================================= */
 (function (global) {
   'use strict';
@@ -2035,8 +4218,11 @@ select { appearance: none; cursor: pointer; }
   const D = global.VCT_DATA;
   const S = global.VCT_STORE;
   const A = global.VCT_ADVISOR;
+  const I = global.VCT_I18N;
+  const CFG = global.VCT_CONFIG;
 
   const $ = function (id) { return document.getElementById(id); };
+  const t = function (key, params) { return I.t(key, params); };
 
   function esc(str) {
     return String(str == null ? '' : str)
@@ -2044,12 +4230,10 @@ select { appearance: none; cursor: pointer; }
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /* エージェントの六角アバター */
+  /* ================= 共通パーツ ================= */
   function avatarHTML(agentId, extraClass) {
     const agent = D.agentById(agentId);
-    if (!agent) {
-      return '<span class="avatar is-empty ' + (extraClass || '') + '">?</span>';
-    }
+    if (!agent) return '<span class="avatar is-empty ' + (extraClass || '') + '">?</span>';
     const role = D.ROLES[agent.role];
     const style = 'background:linear-gradient(150deg,' + role.color + ',' + shade(role.color, -34) + ');' +
                   'box-shadow:0 0 16px ' + hexA(role.color, .35) + ';';
@@ -2058,17 +4242,16 @@ select { appearance: none; cursor: pointer; }
 
   function hexA(hex, alpha) {
     const c = hex.replace('#', '');
-    const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
-    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+    return 'rgba(' + parseInt(c.slice(0, 2), 16) + ',' + parseInt(c.slice(2, 4), 16) + ',' +
+           parseInt(c.slice(4, 6), 16) + ',' + alpha + ')';
   }
 
   function shade(hex, amount) {
     const c = hex.replace('#', '');
-    let r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16);
-    r = Math.max(0, Math.min(255, r + amount));
-    g = Math.max(0, Math.min(255, g + amount));
-    b = Math.max(0, Math.min(255, b + amount));
-    return '#' + [r, g, b].map(function (v) { return v.toString(16).padStart(2, '0'); }).join('');
+    const parts = [c.slice(0, 2), c.slice(2, 4), c.slice(4, 6)].map(function (h) {
+      return Math.max(0, Math.min(255, parseInt(h, 16) + amount)).toString(16).padStart(2, '0');
+    });
+    return '#' + parts.join('');
   }
 
   function sideBadge(side) {
@@ -2077,18 +4260,30 @@ select { appearance: none; cursor: pointer; }
     return '<span class="badge badge-both">BOTH</span>';
   }
 
-  /* ================= SETUP: マップ / サイド ================= */
+  function reasonText(r) {
+    return r.key ? t(r.key, r.params) : (r.text || '');
+  }
+
+  /* ================= 言語切り替え ================= */
+  function renderLangPicker() {
+    const sel = $('lang-select');
+    const current = I.get();
+    sel.innerHTML = I.languages().map(function (l) {
+      return '<option value="' + l.code + '"' + (l.code === current ? ' selected' : '') + '>' +
+             l.flag + '  ' + esc(l.name) + '</option>';
+    }).join('');
+  }
+
+  /* ================= SETUP ================= */
   function renderMapSelect() {
-    const wrap = $('map-select');
-    wrap.innerHTML = D.MAPS.map(function (m) {
+    $('map-select').innerHTML = D.MAPS.map(function (m) {
       return '<button type="button" class="map-opt' + (m.id === S.state.match.map ? ' is-active' : '') +
              '" data-map="' + m.id + '">' + esc(m.name) + '</button>';
     }).join('');
   }
 
   function renderSideToggle() {
-    const btns = $('side-toggle').querySelectorAll('.side-btn');
-    btns.forEach(function (b) {
+    $('side-toggle').querySelectorAll('.side-btn').forEach(function (b) {
       b.classList.toggle('is-active', b.dataset.side === S.state.match.startSide);
     });
   }
@@ -2097,25 +4292,23 @@ select { appearance: none; cursor: pointer; }
     $('inp-ally-team').value = S.state.match.allyTeam;
     $('inp-enemy-team').value = S.state.match.enemyTeam;
     $('inp-match-note').value = S.state.match.note || '';
-    $('roster-ally-name').textContent = S.state.match.allyTeam || 'OUR TEAM';
-    $('roster-enemy-name').textContent = S.state.match.enemyTeam || 'OPPONENT';
+    $('roster-ally-name').textContent = S.state.match.allyTeam || t('team.ally.default');
+    $('roster-enemy-name').textContent = S.state.match.enemyTeam || t('team.enemy.default');
   }
 
-  /* ================= SETUP: ロスター ================= */
   function renderRoster() {
     [['ally', 'slots-ally'], ['enemy', 'slots-enemy']].forEach(function (pair) {
       const team = pair[0];
       const list = S.state[team === 'ally' ? 'allies' : 'enemies'];
       $(pair[1]).innerHTML = list.map(function (slot, i) {
         const agent = D.agentById(slot.agent);
-        const role = agent ? D.ROLES[agent.role] : null;
         return '' +
           '<li>' +
             '<button type="button" class="slot' + (agent ? '' : ' is-empty') + '" data-team="' + team + '" data-index="' + i + '">' +
               avatarHTML(slot.agent) +
               '<span class="slot-meta">' +
-                '<span class="slot-agent">' + (agent ? esc(agent.name) : 'EMPTY SLOT') + '</span>' +
-                '<span class="slot-role">' + (role ? esc(role.label) : 'クリックして選択') + '</span>' +
+                '<span class="slot-agent">' + (agent ? esc(agent.name) : t('roster.empty')) + '</span>' +
+                '<span class="slot-role">' + (agent ? t('role.' + agent.role) : t('roster.clickToSelect')) + '</span>' +
               '</span>' +
               (slot.player ? '<span class="slot-player">' + esc(slot.player) + '</span>' : '') +
             '</button>' +
@@ -2124,49 +4317,46 @@ select { appearance: none; cursor: pointer; }
     });
   }
 
-  /* ================= SETUP: 戦術デッキ ================= */
   function renderDeck(filter) {
-    const grid = $('deck-grid');
     const all = S.state.tactics;
-    const list = all.filter(function (t) {
-      if (filter === 'ATK') return t.side === 'ATK' || t.side === 'BOTH';
-      if (filter === 'DEF') return t.side === 'DEF' || t.side === 'BOTH';
+    const list = all.filter(function (tac) {
+      if (filter === 'ATK') return tac.side === 'ATK' || tac.side === 'BOTH';
+      if (filter === 'DEF') return tac.side === 'DEF' || tac.side === 'BOTH';
       return true;
     });
 
     $('deck-empty').hidden = all.length > 0;
-    grid.innerHTML = list.map(function (t) {
-      const st = S.statsFor(t.id);
-      const kind = D.kindById(t.kind);
+    $('deck-grid').innerHTML = list.map(function (tac) {
+      const st = S.statsFor(tac.id);
+      const kind = D.kindById(tac.kind);
       return '' +
-        '<article class="tcard" data-side="' + t.side + '" data-id="' + t.id + '" tabindex="0">' +
+        '<article class="tcard" data-side="' + tac.side + '" data-id="' + tac.id + '" tabindex="0">' +
           '<div class="tcard-top">' +
-            '<span class="tcard-site">' + esc(t.site || '-') + '</span>' +
+            '<span class="tcard-site">' + esc(tac.site || '-') + '</span>' +
             '<span class="tcard-kind">' + esc(kind.label) + '</span>' +
-            '<span class="tcard-sidetag">' + esc(t.side) + '</span>' +
+            '<span class="tcard-sidetag">' + esc(tac.side) + '</span>' +
           '</div>' +
-          '<h3 class="tcard-name">' + esc(t.name) + '</h3>' +
-          (t.note ? '<p class="tcard-note">' + esc(t.note) + '</p>' : '') +
+          '<h3 class="tcard-name">' + esc(tac.name) + '</h3>' +
+          (tac.note ? '<p class="tcard-note">' + esc(tac.note) + '</p>' : '') +
           '<div class="tcard-stat">' +
             (st.used
               ? '<span>' + st.win + 'W ' + st.loss + 'L</span><span>/</span><span>' + st.winRate + '%</span>'
-              : '<span>未使用</span>') +
-            '<span style="margin-left:auto">編集 →</span>' +
+              : '<span>' + t('common.unused') + '</span>') +
+            '<span style="margin-left:auto">' + t('deck.edit') + '</span>' +
           '</div>' +
         '</article>';
     }).join('');
   }
 
-  /* ================= SETUP: 開始条件 ================= */
   function renderReady() {
     const allyCount = S.state.allies.filter(function (s) { return s.agent; }).length;
     const enemyCount = S.state.enemies.filter(function (s) { return s.agent; }).length;
     const tacticCount = S.state.tactics.length;
 
     const items = [
-      { label: 'ALLY AGENTS ' + allyCount + '/5', ok: allyCount === 5 },
-      { label: 'ENEMY AGENTS ' + enemyCount + '/5', ok: enemyCount === 5 },
-      { label: 'TACTICS ' + tacticCount, ok: tacticCount > 0 }
+      { label: t('ready.ally', { n: allyCount }), ok: allyCount === 5 },
+      { label: t('ready.enemy', { n: enemyCount }), ok: enemyCount === 5 },
+      { label: t('ready.tactics', { n: tacticCount }), ok: tacticCount > 0 }
     ];
 
     $('ready-list').innerHTML = items.map(function (it) {
@@ -2178,195 +4368,279 @@ select { appearance: none; cursor: pointer; }
     const ready = items.every(function (it) { return it.ok; });
     $('btn-start').disabled = !ready;
     $('btn-start').querySelector('em').textContent = ready
-      ? 'ラウンド ' + S.currentRoundNumber() + ' へ'
-      : '5体ずつのエージェントと戦術が必要です';
+      ? t('btn.start.ready', { n: S.currentRoundNumber() })
+      : t('btn.start.notReady');
     return ready;
   }
 
-  /* ================= LIVE: スコアボード ================= */
+  /* ================= LIVE ================= */
   function renderScorebar() {
     const n = S.currentRoundNumber();
     const side = S.sideForRound(n);
     const sc = S.score();
     const map = D.mapById(S.state.match.map);
 
-    $('score-ally-name').textContent = S.state.match.allyTeam || 'OUR TEAM';
-    $('score-enemy-name').textContent = S.state.match.enemyTeam || 'OPPONENT';
+    $('score-ally-name').textContent = S.state.match.allyTeam || t('team.ally.default');
+    $('score-enemy-name').textContent = S.state.match.enemyTeam || t('team.enemy.default');
     $('score-ally').textContent = sc.ally;
     $('score-enemy').textContent = sc.enemy;
-    $('score-round').textContent = 'ROUND ' + n + (n > 24 ? ' (OT)' : '');
+    $('score-round').textContent = t('live.round', { n: n }) + (n > 24 ? ' ' + t('live.ot') : '');
     $('score-map').textContent = map ? map.name : '-';
 
+    const opp = side === 'ATK' ? 'DEF' : 'ATK';
     const allySideEl = $('score-ally-side');
     const enemySideEl = $('score-enemy-side');
-    allySideEl.textContent = D.SIDES[side].label;
+    allySideEl.textContent = t(side === 'ATK' ? 'side.attack' : 'side.defense');
     allySideEl.dataset.side = side;
-    const opp = side === 'ATK' ? 'DEF' : 'ATK';
-    enemySideEl.textContent = D.SIDES[opp].label;
+    enemySideEl.textContent = t(opp === 'ATK' ? 'side.attack' : 'side.defense');
     enemySideEl.dataset.side = opp;
 
-    /* マッチ決着 / マッチポイントのバナー */
     const banner = $('match-banner');
     const result = S.matchResult();
     if (result) {
       banner.hidden = false;
       banner.className = 'match-banner ' + (result === 'WIN' ? 'win' : 'loss');
-      banner.textContent = result === 'WIN'
-        ? '★ MATCH WON — ' + sc.ally + ' - ' + sc.enemy
-        : 'MATCH LOST — ' + sc.ally + ' - ' + sc.enemy;
+      banner.textContent = t(result === 'WIN' ? 'banner.won' : 'banner.lost', { a: sc.ally, b: sc.enemy });
     } else if (sc.ally >= 12 || sc.enemy >= 12) {
       banner.hidden = false;
       banner.className = 'match-banner point';
-      banner.textContent = sc.ally >= 12 && sc.enemy >= 12
-        ? 'OVERTIME / 2ラウンド差で決着'
-        : (sc.ally >= 12 ? 'MATCH POINT — 自チーム' : 'MATCH POINT — 相手チーム');
+      banner.textContent = (sc.ally >= 12 && sc.enemy >= 12)
+        ? t('banner.overtime')
+        : t(sc.ally >= 12 ? 'banner.pointAlly' : 'banner.pointEnemy');
     } else {
       banner.hidden = true;
     }
   }
 
-  /* ================= LIVE: 両チームロスター ================= */
   function renderBoardRosters() {
     [['board-ally', S.state.allies], ['board-enemy', S.state.enemies]].forEach(function (pair) {
       $(pair[0]).innerHTML = pair[1].map(function (slot) {
         const agent = D.agentById(slot.agent);
-        const role = agent ? D.ROLES[agent.role] : null;
         return '' +
           '<li class="broster-item">' +
             avatarHTML(slot.agent) +
             '<span class="slot-meta">' +
               '<span class="slot-agent">' + (agent ? esc(agent.name) : '—') + '</span>' +
-              '<span class="slot-role">' + (slot.player ? esc(slot.player) : (role ? esc(role.label) : '')) + '</span>' +
+              '<span class="slot-role">' + (slot.player ? esc(slot.player) : (agent ? t('role.' + agent.role) : '')) + '</span>' +
             '</span>' +
           '</li>';
       }).join('');
     });
   }
 
-  /* ================= LIVE: ステージ ================= */
   function renderStage(uiState) {
-    const stage = $('stage');
     const n = S.currentRoundNumber();
     const side = S.sideForRound(n);
-
-    if (S.state.pending) {
-      stage.innerHTML = liveCardHTML(n, side);
-    } else {
-      stage.innerHTML = pickHTML(n, side, uiState);
-    }
+    $('stage').innerHTML = S.state.pending ? liveCardHTML(n, side, uiState) : pickHTML(n, side, uiState);
   }
 
-  function liveCardHTML(n, side) {
-    const t = S.tacticById(S.state.pending.tacticId);
-    if (!t) { S.clearPending(); return ''; }
-    const st = S.statsFor(t.id);
-    const kind = D.kindById(t.kind);
+  function liveCardHTML(n, side, uiState) {
+    const tac = S.tacticById(S.state.pending.tacticId);
+    if (!tac) { S.clearPending(); return ''; }
+    const st = S.statsFor(tac.id);
+    const kind = D.kindById(tac.kind);
     const eco = D.ECONOMY.find(function (e) { return e.id === S.state.pending.economy; });
 
     return '' +
       '<div class="stage-head">' +
-        '<h3>ROUND ' + n + ' — 実行中</h3>' +
+        '<h3>' + t('live.executing', { n: n }) + '</h3>' +
         '<div class="stage-actions">' +
-          '<button class="btn btn-ghost btn-sm" data-act="change">戦術を選び直す</button>' +
-          '<button class="btn btn-ghost btn-sm" data-act="flip-side">サイド反転</button>' +
+          '<button class="btn btn-ghost btn-sm" data-act="change">' + t('stage.change') + '</button>' +
+          '<button class="btn btn-ghost btn-sm" data-act="flip-side">' + t('stage.flipSide') + '</button>' +
         '</div>' +
-        '<p>コールを共有したら、ラウンド終了後に下の WIN / LOSS を押してください。</p>' +
+        '<p>' + t('live.hint') + '</p>' +
       '</div>' +
       '<div class="live-card" data-side="' + side + '">' +
         '<span class="lc-bar"></span>' +
         '<div class="lc-top">' +
-          '<span class="lc-site">' + esc(t.site || '-') + '</span>' +
-          '<span class="lc-label">' + D.SIDES[side].label + ' / ' + esc(kind.label) + '</span>' +
+          '<span class="lc-site">' + esc(tac.site || '-') + '</span>' +
+          '<span class="lc-label">' + t(side === 'ATK' ? 'side.attack' : 'side.defense') + ' / ' + esc(kind.label) + '</span>' +
         '</div>' +
-        '<h2 class="lc-name">' + esc(t.name) + '</h2>' +
-        (t.note ? '<p class="lc-note">' + esc(t.note) + '</p>' : '') +
+        '<h2 class="lc-name">' + esc(tac.name) + '</h2>' +
+        (tac.note ? '<p class="lc-note">' + esc(tac.note) + '</p>' : '') +
         '<div class="lc-meta">' +
-          '<span class="meta-pill">' + esc(kind.jp) + '</span>' +
-          '<span class="meta-pill">' + (eco ? esc(eco.label) : 'FULL BUY') + '</span>' +
-          '<span class="meta-pill">' + (st.used ? st.win + 'W ' + st.loss + 'L / ' + st.winRate + '%' : '初使用') + '</span>' +
-          (st.streak >= 2 ? '<span class="meta-pill" style="color:#F5A623;border-color:rgba(245,166,35,.4)">' + st.streak + '連投</span>' : '') +
+          '<span class="meta-pill">' + t('kind.' + tac.kind) + '</span>' +
+          '<span class="meta-pill">' + t('eco.' + (eco ? eco.id : 'full')) + '</span>' +
+          '<span class="meta-pill">' + (st.used ? st.win + 'W ' + st.loss + 'L / ' + st.winRate + '%' : t('meta.firstUse')) + '</span>' +
+          (st.streak >= 2 ? '<span class="meta-pill is-warn">' + t('meta.streak', { n: st.streak }) + '</span>' : '') +
         '</div>' +
         '<div class="lc-actions">' +
-          '<button class="res-btn res-win" data-act="result" data-result="WIN">WIN<small>ラウンド取得</small></button>' +
-          '<button class="res-btn res-loss" data-act="result" data-result="LOSS">LOSS<small>ラウンド失陥</small></button>' +
+          '<button class="res-btn res-win" data-act="result" data-result="WIN">' + t('res.win') +
+            '<small>' + t('res.win.sub') + '</small></button>' +
+          '<button class="res-btn res-loss" data-act="result" data-result="LOSS">' + t('res.loss') +
+            '<small>' + t('res.loss.sub') + '</small></button>' +
         '</div>' +
+        shareBarHTML() +
+      '</div>' +
+      analysisHTML(uiState);
+  }
+
+  function shareBarHTML() {
+    return '' +
+      '<div class="share-bar">' +
+        '<span class="lc-label">' + t('share.title') + '</span>' +
+        '<button class="btn btn-ghost btn-sm btn-x" data-act="share-x">' + t('share.x') + '</button>' +
+        '<button class="btn btn-ghost btn-sm" data-act="share-copy">' + t('share.copy') + '</button>' +
+        (global.VCT_COMMUNITY.enabled()
+          ? '<button class="btn btn-ghost btn-sm" data-act="share-post">' + t('community.post') + '</button>'
+          : '') +
       '</div>';
   }
 
+  /* --- 相性判定パネル --- */
+  function analysisHTML(uiState) {
+    const result = uiState && uiState.analysis;
+    const running = uiState && uiState.aiRunning;
+    const ai = uiState && uiState.aiReview;
+
+    let body;
+    if (!result) {
+      body = '<div class="panel-body">' +
+               '<button class="btn btn-primary btn-sm" data-act="analyze">' + t('analyst.run') + '</button>' +
+             '</div>';
+    } else if (!result.ready) {
+      body = '<div class="panel-body"><p class="deck-empty">' + t('analyst.needComp') + '</p></div>';
+    } else {
+      body = '<div class="panel-body">' +
+               '<div class="verdict-row">' +
+                 '<span class="verdict verdict-' + result.verdict + '">' + t('analyst.' + result.verdict) + '</span>' +
+                 '<span class="verdict-score">' + result.score + '<small>/100</small></span>' +
+                 '<div class="verdict-bar"><span style="width:' + result.score + '%"></span></div>' +
+               '</div>' +
+               findingListHTML(result.strengths, 'analyst.strengths', 'good') +
+               findingListHTML(result.weaknesses, 'analyst.weaknesses', 'bad') +
+               (result.findings.length === 0
+                 ? '<p class="deck-empty">' + t('analyst.noFindings') + '</p>' : '') +
+               aiBlockHTML(running, ai) +
+             '</div>';
+    }
+
+    return '<article class="panel panel-clip analysis-panel">' +
+             '<header class="panel-head">' +
+               '<h2><span class="idx">AI</span>' + t('analyst.title') + '</h2>' +
+               '<p class="panel-sub">' + t('analyst.sub') + '</p>' +
+               (result ? '<div class="panel-head-actions">' +
+                 '<button class="btn btn-ghost btn-sm" data-act="analyze">' + t('analyst.run') + '</button>' +
+               '</div>' : '') +
+             '</header>' + body +
+           '</article>';
+  }
+
+  function findingListHTML(list, titleKey, tone) {
+    if (!list.length) return '';
+    return '<div class="finding-block">' +
+             '<h4 class="finding-title finding-' + tone + '">' + t(titleKey) + '</h4>' +
+             '<ul class="finding-list">' + list.map(function (f) {
+               return '<li class="finding finding-' + f.tone + '">' +
+                        '<span class="finding-cat">' + t('analyst.cat.' + f.cat) + '</span>' +
+                        '<span>' + esc(t(f.key, f.params)) + '</span>' +
+                      '</li>';
+             }).join('') + '</ul>' +
+           '</div>';
+  }
+
+  function aiBlockHTML(running, ai) {
+    if (!CFG.AI_REVIEW_ENABLED || !global.VCT_COMMUNITY.enabled()) return '';
+    if (running) {
+      return '<div class="ai-block is-running"><span class="spinner"></span>' + t('analyst.aiRunning') + '</div>';
+    }
+    if (!ai) {
+      return '<button class="btn btn-ghost btn-sm ai-trigger" data-act="ai-review">✦ ' + t('analyst.ai') + '</button>';
+    }
+    return '' +
+      '<div class="ai-block">' +
+        '<h4 class="finding-title">✦ ' + t('analyst.aiTitle') + '</h4>' +
+        '<p class="ai-summary">' + esc(ai.summary || '') + '</p>' +
+        aiListHTML(ai.strengths, 'good') +
+        aiListHTML(ai.weaknesses, 'bad') +
+        aiListHTML(ai.counterplay, 'warn') +
+      '</div>';
+  }
+
+  function aiListHTML(list, tone) {
+    if (!Array.isArray(list) || !list.length) return '';
+    return '<ul class="finding-list">' + list.map(function (item) {
+      return '<li class="finding finding-' + tone + '"><span>' + esc(String(item)) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+
+  /* --- 戦術選択 --- */
   function pickHTML(n, side, uiState) {
     const head = A.headline();
     const includeOffSide = !!(uiState && uiState.includeOffSide);
     const ranked = A.rank({ side: side, includeOffSide: includeOffSide });
     const eco = (uiState && uiState.economy) || 'full';
+    const last = S.lastRound();
 
     const ecoSeg = D.ECONOMY.map(function (e) {
       return '<button type="button" data-act="eco" data-eco="' + e.id + '"' +
-             (e.id === eco ? ' class="is-active"' : '') + '>' + esc(e.label) + '</button>';
+             (e.id === eco ? ' class="is-active"' : '') + '>' + t('eco.' + e.id) + '</button>';
     }).join('');
+
+    const pill = last
+      ? '<span class="result-pill ' + (last.result === 'WIN' ? 'win">' + t('stage.prevWin') : 'loss">' + t('stage.prevLoss')) + '</span>'
+      : '<span class="result-pill">' + t('stage.start') + '</span>';
 
     const body = ranked.length
       ? '<div class="pick-list">' + ranked.map(function (r, i) {
           const st = r.stats;
           return '' +
             '<button type="button" class="pick' + (i === 0 ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '">' +
-              '<span class="pick-score ' + r.tone + '"><b>' + r.score + '</b><small>SCORE</small></span>' +
+              '<span class="pick-score ' + r.tone + '"><b>' + r.score + '</b><small>' + t('pick.score') + '</small></span>' +
               '<span class="pick-main">' +
-                '<span class="pick-name">' + esc(r.tactic.name) +
-                  sideBadge(r.tactic.side) +
+                '<span class="pick-name">' + esc(r.tactic.name) + sideBadge(r.tactic.side) +
                   '<span class="badge badge-site">' + esc(r.tactic.site || '-') + '</span>' +
                 '</span>' +
                 (r.reasons.length
                   ? '<span class="pick-reasons">' + r.reasons.map(function (rs) {
-                      return '<span class="reason ' + rs.tone + '">' + esc(rs.text) + '</span>';
+                      return '<span class="reason ' + rs.tone + '">' + esc(reasonText(rs)) + '</span>';
                     }).join('') + '</span>'
                   : '') +
               '</span>' +
               '<span class="pick-record">' +
-                (st.used ? '<b>' + st.winRate + '%</b><br>' + st.win + 'W ' + st.loss + 'L' : '<b>—</b><br>未使用') +
+                (st.used ? '<b>' + st.winRate + '%</b><br>' + st.win + 'W ' + st.loss + 'L'
+                         : '<b>—</b><br>' + t('common.unused')) +
               '</span>' +
             '</button>';
         }).join('') + '</div>'
-      : '<p class="deck-empty">このサイドで使える戦術がありません。<b>「他サイドも表示」</b>を有効にするか、戦術を追加してください。</p>';
+      : '<p class="deck-empty">' + t('pick.noTactics') + '</p>';
 
     return '' +
       '<div class="stage-head">' +
-        '<h3>ROUND ' + n + ' — 戦術を選択 <span class="result-pill ' +
-          (S.lastRound() ? (S.lastRound().result === 'WIN' ? 'win">前R WIN' : 'loss">前R LOSS') : '">START') +
-        '</span></h3>' +
+        '<h3>' + t('live.selecting', { n: n }) + ' ' + pill + '</h3>' +
         '<div class="stage-actions">' +
-          '<button class="btn btn-ghost btn-sm" data-act="toggle-offside">' + (includeOffSide ? '✓ ' : '') + '他サイドも表示</button>' +
-          '<button class="btn btn-ghost btn-sm" data-act="flip-side">サイド反転</button>' +
-          '<button class="btn btn-primary btn-sm" data-act="new-tactic">+ 戦術</button>' +
+          '<button class="btn btn-ghost btn-sm" data-act="toggle-offside">' + (includeOffSide ? '✓ ' : '') + t('stage.showOffside') + '</button>' +
+          '<button class="btn btn-ghost btn-sm" data-act="flip-side">' + t('stage.flipSide') + '</button>' +
+          '<button class="btn btn-primary btn-sm" data-act="new-tactic">' + t('stage.newTactic') + '</button>' +
         '</div>' +
-        '<p><b>' + esc(head.title) + '</b> — ' + esc(head.text) + '</p>' +
+        '<p><b>' + esc(t(head.titleKey, head.params)) + '</b> — ' + esc(t(head.textKey, head.params)) + '</p>' +
       '</div>' +
       '<div class="stage-head pick-tools">' +
-        '<span class="lc-label">ECONOMY</span>' +
+        '<span class="lc-label">' + t('eco.label') + '</span>' +
         '<span class="eco-seg">' + ecoSeg + '</span>' +
       '</div>' +
       body;
   }
 
-  /* ================= LIVE: タイムライン ================= */
+  /* --- タイムライン / 成績 --- */
   function renderTimeline() {
     const rounds = S.state.rounds;
     $('timeline-empty').hidden = rounds.length > 0;
     $('timeline').innerHTML = rounds.slice().reverse().map(function (r) {
-      const t = S.tacticById(r.tacticId);
+      const tac = S.tacticById(r.tacticId);
       return '' +
         '<li class="tl-row ' + r.result.toLowerCase() + '">' +
           '<span class="tl-round">R' + r.n + '</span>' +
           '<span class="tl-side" data-side="' + r.side + '">' + r.side + '</span>' +
-          '<span class="tl-name">' + esc(t ? t.name : '(削除された戦術)') + '</span>' +
-          '<span class="tl-res">' + r.result + '</span>' +
+          '<span class="tl-name">' + esc(tac ? tac.name : t('timeline.deleted')) + '</span>' +
+          '<span class="tl-res">' + t('res.' + r.result.toLowerCase()) + '</span>' +
         '</li>';
     }).join('');
   }
 
-  /* ================= LIVE: 戦術成績 ================= */
   function renderPerf() {
     const list = S.state.tactics
-      .map(function (t) { return { t: t, st: S.statsFor(t.id) }; })
+      .map(function (tac) { return { t: tac, st: S.statsFor(tac.id) }; })
       .sort(function (a, b) {
         if (b.st.used !== a.st.used) return b.st.used - a.st.used;
         return (b.st.winRate || 0) - (a.st.winRate || 0);
@@ -2388,25 +4662,119 @@ select { appearance: none; cursor: pointer; }
     }).join('');
   }
 
-  /* ================= MODAL: エージェント ================= */
+  /* ================= COMMUNITY ================= */
+  function renderAccount() {
+    const C = global.VCT_COMMUNITY;
+    const wrap = $('community-account');
+    if (!wrap) return;
+    const name = C.displayName();
+    wrap.innerHTML = name
+      ? '<span class="account-name">' + esc(name) + '</span>' +
+        '<button class="btn btn-ghost btn-sm" data-act="logout">' + t('community.logout') + '</button>'
+      : '<button class="btn btn-ghost btn-sm" data-act="login">' + t('community.login') + '</button>';
+  }
+
+  function renderCommunityMapFilter(value) {
+    $('community-map').innerHTML =
+      '<option value="">' + t('community.filterAll') + '</option>' +
+      D.MAPS.map(function (m) {
+        return '<option value="' + m.id + '"' + (m.id === value ? ' selected' : '') + '>' + esc(m.name) + '</option>';
+      }).join('');
+  }
+
+  function renderPosts(posts, status) {
+    const grid = $('post-grid');
+    const empty = $('post-empty');
+
+    if (status) {
+      grid.innerHTML = '';
+      empty.hidden = false;
+      empty.textContent = status;
+      return;
+    }
+    if (!posts.length) {
+      grid.innerHTML = '';
+      empty.hidden = false;
+      empty.textContent = t('community.empty');
+      return;
+    }
+    empty.hidden = true;
+
+    grid.innerHTML = posts.map(function (p) {
+      const map = D.mapById(p.map);
+      return '' +
+        '<article class="post-card" data-side="' + esc(p.side) + '" data-id="' + esc(p.id) + '">' +
+          '<div class="tcard-top">' +
+            '<span class="tcard-site">' + esc(p.site || '-') + '</span>' +
+            '<span class="tcard-kind">' + esc(String(p.kind || '').toUpperCase()) + '</span>' +
+            '<span class="tcard-sidetag">' + esc(map ? map.name : p.map) + '</span>' +
+          '</div>' +
+          '<h3 class="tcard-name">' + esc(p.name) + '</h3>' +
+          (p.note ? '<p class="tcard-note">' + esc(p.note) + '</p>' : '') +
+          compStripHTML(p.enemy_comp) +
+          '<div class="post-foot">' +
+            '<span class="post-author">@' + esc(p.author_name || 'ANONYMOUS') + '</span>' +
+            (p.analysis_score !== null && p.analysis_score !== undefined
+              ? '<span class="post-score">' + p.analysis_score + '/100</span>' : '') +
+            '<button class="btn-like" data-act="like" data-id="' + esc(p.id) + '">♥ ' + (p.likes || 0) + '</button>' +
+            '<button class="btn btn-ghost btn-sm" data-act="import-post" data-id="' + esc(p.id) + '">' + t('community.import') + '</button>' +
+          '</div>' +
+        '</article>';
+    }).join('');
+  }
+
+  /** 想定されている相手構成をアイコンで並べる */
+  function compStripHTML(comp) {
+    if (!Array.isArray(comp) || !comp.length) return '';
+    return '<div class="comp-strip">' +
+             '<span class="comp-label">' + t('tag.enemy') + '</span>' +
+             comp.map(function (id) { return avatarHTML(id, 'avatar-sm'); }).join('') +
+           '</div>';
+  }
+
+  function renderPostForm(selectedId) {
+    const sel = $('post-tactic');
+    sel.innerHTML = S.state.tactics.map(function (tac) {
+      return '<option value="' + tac.id + '"' + (tac.id === selectedId ? ' selected' : '') + '>' +
+             esc(tac.name) + ' (' + esc(tac.side) + ' / ' + esc(tac.site) + ')</option>';
+    }).join('');
+  }
+
+  function renderPostPreview(tactic, analysis) {
+    const box = $('post-preview');
+    if (!tactic) { box.innerHTML = ''; return; }
+    const map = D.mapById(S.state.match.map);
+    box.innerHTML = '' +
+      '<div class="preview-card">' +
+        '<span class="lc-label">' + esc(map ? map.name : '-') + ' / ' + esc(tactic.side) + ' / ' + esc(tactic.site) + '</span>' +
+        '<h4>' + esc(tactic.name) + '</h4>' +
+        (tactic.note ? '<p>' + esc(tactic.note) + '</p>' : '') +
+        (analysis && analysis.ready
+          ? '<span class="verdict verdict-' + analysis.verdict + '">' + t('analyst.' + analysis.verdict) + ' ' + analysis.score + '/100</span>'
+          : '') +
+      '</div>';
+  }
+
+  /* ================= モーダル ================= */
   function renderRoleFilter(active) {
     $('role-filter').innerHTML =
-      '<button type="button" class="role-chip' + (active === 'all' ? ' is-active' : '') + '" data-role="all">ALL</button>' +
+      '<button type="button" class="role-chip' + (active === 'all' ? ' is-active' : '') + '" data-role="all">' + t('role.all') + '</button>' +
       Object.keys(D.ROLES).map(function (k) {
         const r = D.ROLES[k];
         return '<button type="button" class="role-chip' + (active === k ? ' is-active' : '') +
-               '" data-role="' + k + '" style="color:' + (active === k ? r.color : '') + '">' + esc(r.label) + '</button>';
+               '" data-role="' + k + '" style="color:' + (active === k ? r.color : '') + '">' + t('role.' + k) + '</button>';
       }).join('');
   }
 
   function renderAgentGrid(opts) {
-    const query = (opts.query || '').trim().toLowerCase();
+    const raw = (opts.query || '').trim();
+    const query = raw.toLowerCase();
     const role = opts.role || 'all';
     const current = opts.current || '';
     const list = D.AGENTS.filter(function (a) {
       if (role !== 'all' && a.role !== role) return false;
       if (!query) return true;
-      return a.name.toLowerCase().indexOf(query) >= 0 || a.jp.indexOf(opts.query.trim()) >= 0;
+      return a.name.toLowerCase().indexOf(query) >= 0 || a.jp.indexOf(raw) >= 0;
     });
 
     $('agent-grid').innerHTML = list.length
@@ -2416,17 +4784,16 @@ select { appearance: none; cursor: pointer; }
             '<button type="button" class="agent-opt' + (a.id === current ? ' is-active' : '') + '" data-agent="' + a.id + '">' +
               avatarHTML(a.id) +
               '<b>' + esc(a.name) + '</b>' +
-              '<small style="color:' + r.color + '">' + esc(r.label) + '</small>' +
+              '<small style="color:' + r.color + '">' + t('role.' + a.role) + '</small>' +
             '</button>';
         }).join('')
-      : '<p class="deck-empty" style="grid-column:1/-1">該当するエージェントがいません。</p>';
+      : '<p class="deck-empty" style="grid-column:1/-1">' + t('agent.none') + '</p>';
   }
 
-  /* ================= MODAL: 戦術フォーム ================= */
   function renderKindSelect(value) {
     $('t-kind').innerHTML = D.KINDS.map(function (k) {
       return '<option value="' + k.id + '"' + (k.id === value ? ' selected' : '') + '>' +
-             esc(k.label) + ' — ' + esc(k.jp) + '</option>';
+             esc(k.label) + ' — ' + t('kind.' + k.id) + '</option>';
     }).join('');
   }
 
@@ -2450,7 +4817,7 @@ select { appearance: none; cursor: pointer; }
     return active ? active.dataset.val : null;
   }
 
-  /* ================= TOAST ================= */
+  /* ================= トースト ================= */
   let toastTimer = null;
   function toast(message, kind) {
     const el = $('toast');
@@ -2458,11 +4825,12 @@ select { appearance: none; cursor: pointer; }
     el.className = 'toast' + (kind ? ' ' + kind : '');
     el.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.hidden = true; }, 2600);
+    toastTimer = setTimeout(function () { el.hidden = true; }, 2800);
   }
 
   global.VCT_UI = {
     $: $, esc: esc, avatarHTML: avatarHTML,
+    renderLangPicker: renderLangPicker,
     renderMapSelect: renderMapSelect,
     renderSideToggle: renderSideToggle,
     renderMatchFields: renderMatchFields,
@@ -2474,6 +4842,11 @@ select { appearance: none; cursor: pointer; }
     renderStage: renderStage,
     renderTimeline: renderTimeline,
     renderPerf: renderPerf,
+    renderAccount: renderAccount,
+    renderCommunityMapFilter: renderCommunityMapFilter,
+    renderPosts: renderPosts,
+    renderPostForm: renderPostForm,
+    renderPostPreview: renderPostPreview,
     renderRoleFilter: renderRoleFilter,
     renderAgentGrid: renderAgentGrid,
     renderKindSelect: renderKindSelect,
@@ -2485,7 +4858,7 @@ select { appearance: none; cursor: pointer; }
 })(window);
 </script>
 <script>
-/* ---- app.js ---- */
+/* ---- assets/js/app.js ---- */
 /* =========================================================
    APP / CONTROLLER
    イベント登録と描画のオーケストレーション
@@ -2496,7 +4869,13 @@ select { appearance: none; cursor: pointer; }
   const D = global.VCT_DATA;
   const S = global.VCT_STORE;
   const U = global.VCT_UI;
+  const I = global.VCT_I18N;
+  const C = global.VCT_COMMUNITY;
+  const ANALYST = global.VCT_ANALYST;
+  const SHARE = global.VCT_SHARE;
+  const CFG = global.VCT_CONFIG;
   const $ = U.$;
+  const t = function (key, params) { return I.t(key, params); };
 
   /* 公開ページ上でのみ使えるファイル保存 API（通常のブラウザでは null のまま） */
   let downloadsApi = null;
@@ -2508,13 +4887,21 @@ select { appearance: none; cursor: pointer; }
 
   /* 画面側だけが持つ一時状態 */
   const ui = {
+    view: 'setup',            // 'setup' | 'live' | 'community'
     deckFilter: 'ALL',
     includeOffSide: false,
     economy: 'full',
-    agentTarget: null,      // { team: 'ally'|'enemy', index: number }
+    agentTarget: null,
     agentRole: 'all',
     agentQuery: '',
-    editingTacticId: null
+    editingTacticId: null,
+    analysis: null,           // 直近の相性判定結果
+    aiReview: null,           // Claude が返した寸評
+    aiRunning: false,
+    posts: [],
+    postSort: 'new',
+    postMap: '',
+    postTacticId: null
   };
 
   /* ================= 描画 ================= */
@@ -2535,36 +4922,52 @@ select { appearance: none; cursor: pointer; }
     U.renderPerf();
   }
 
+  function renderCommunity() {
+    U.renderAccount();
+    U.renderCommunityMapFilter(ui.postMap);
+    U.renderPosts(ui.posts);
+  }
+
   function renderAll() {
-    const live = S.state.phase === 'live';
-    $('view-setup').hidden = live;
-    $('view-live').hidden = !live;
-    document.querySelectorAll('.phase-tab').forEach(function (t) {
-      const active = (t.dataset.phase === 'live') === live;
-      t.classList.toggle('is-active', active);
-      t.setAttribute('aria-selected', String(active));
+    $('view-setup').hidden = ui.view !== 'setup';
+    $('view-live').hidden = ui.view !== 'live';
+    $('view-community').hidden = ui.view !== 'community';
+    $('tab-community').hidden = !C.enabled();
+
+    document.querySelectorAll('.phase-tab').forEach(function (tab) {
+      const active = tab.dataset.phase === ui.view;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
     });
-    if (live) renderLive(); else renderSetup();
+
+    if (ui.view === 'live') renderLive();
+    else if (ui.view === 'community') renderCommunity();
+    else renderSetup();
   }
 
   function goPhase(phase) {
     if (phase === 'live' && !U.renderReady()) {
-      U.toast('味方・敵のエージェント 5 体ずつと、戦術を 1 つ以上登録してください。', 'err');
+      U.toast(t('toast.needSetup'), 'err');
       return;
     }
-    S.state.phase = phase;
-    S.save();
+    ui.view = phase;
+    if (phase === 'setup' || phase === 'live') {
+      S.state.phase = phase;
+      S.save();
+    }
     renderAll();
+    if (phase === 'community') loadPosts();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  /* ================= モーダル制御 ================= */
+  /* ================= モーダル ================= */
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    closeModal('modal-agent');
-    closeModal('modal-tactic');
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login'].forEach(closeModal);
   }
+
+  function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
 
   function openAgentModal(team, index) {
     ui.agentTarget = { team: team, index: index };
@@ -2573,33 +4976,101 @@ select { appearance: none; cursor: pointer; }
     const slot = rosterOf(team)[index];
     $('agent-search').value = '';
     $('agent-player').value = slot.player || '';
-    $('agent-modal-title').textContent =
-      (team === 'ally' ? 'ALLY' : 'ENEMY') + ' SLOT ' + (index + 1) + ' — SELECT AGENT';
+    $('agent-modal-title').textContent = t('modal.agent.title', {
+      team: t(team === 'ally' ? 'tag.ally' : 'tag.enemy'),
+      n: index + 1
+    });
     U.renderRoleFilter(ui.agentRole);
     U.renderAgentGrid({ query: '', role: 'all', current: slot.agent });
     openModal('modal-agent');
     $('agent-search').focus();
   }
 
-  function rosterOf(team) {
-    return team === 'ally' ? S.state.allies : S.state.enemies;
-  }
-
   function openTacticModal(tacticId) {
     ui.editingTacticId = tacticId || null;
-    const t = tacticId ? S.tacticById(tacticId) : null;
-    $('tactic-modal-title').textContent = t ? 'EDIT TACTIC' : 'NEW TACTIC';
-    $('t-name').value = t ? t.name : '';
-    $('t-note').value = t ? t.note : '';
-    U.renderKindSelect(t ? t.kind : 'execute');
-    U.renderSiteSeg(t ? t.site : 'A');
-    U.setSegActive($('t-side'), t ? t.side : 'BOTH');
-    $('btn-delete-tactic').hidden = !t;
+    const tac = tacticId ? S.tacticById(tacticId) : null;
+    $('tactic-modal-title').textContent = t(tac ? 'modal.tactic.edit' : 'modal.tactic.new');
+    $('t-name').value = tac ? tac.name : '';
+    $('t-note').value = tac ? tac.note : '';
+    U.renderKindSelect(tac ? tac.kind : 'execute');
+    U.renderSiteSeg(tac ? tac.site : 'A');
+    U.setSegActive($('t-side'), tac ? tac.side : 'BOTH');
+    $('btn-delete-tactic').hidden = !tac;
     openModal('modal-tactic');
     setTimeout(function () { $('t-name').focus(); }, 30);
   }
 
-  /* ================= セットアップ画面のイベント ================= */
+  /* ================= 相性判定 ================= */
+  function currentTactic() {
+    if (S.state.pending) return S.tacticById(S.state.pending.tacticId);
+    return null;
+  }
+
+  function runAnalysis(tactic) {
+    const tac = tactic || currentTactic();
+    if (!tac) return null;
+    ui.analysis = ANALYST.analyze({
+      tactic: tac,
+      allies: S.state.allies,
+      enemies: S.state.enemies,
+      map: S.state.match.map,
+      side: S.sideForRound(S.currentRoundNumber())
+    });
+    ui.aiReview = null;
+    return ui.analysis;
+  }
+
+  function runAiReview() {
+    const tac = currentTactic();
+    if (!tac || !C.enabled()) return;
+    if (!ui.analysis) runAnalysis(tac);
+
+    ui.aiRunning = true;
+    renderLive();
+
+    C.aiReview({
+      tactic: { name: tac.name, side: tac.side, site: tac.site, kind: tac.kind, note: tac.note },
+      map: (D.mapById(S.state.match.map) || {}).name || S.state.match.map,
+      side: S.sideForRound(S.currentRoundNumber()),
+      allyComp: compNames(S.state.allies),
+      enemyComp: compNames(S.state.enemies),
+      lang: I.get(),
+      analysis: ui.analysis ? {
+        score: ui.analysis.score,
+        verdict: ui.analysis.verdict,
+        findings: ui.analysis.findings.map(function (f) { return t(f.key, f.params); })
+      } : null
+    }).then(function (data) {
+      ui.aiRunning = false;
+      ui.aiReview = data && data.review ? data.review : null;
+      renderLive();
+    }, function (err) {
+      ui.aiRunning = false;
+      renderLive();
+      U.toast(err && err.status === 429 ? t('analyst.aiUnavailable') : String(err.message || err), 'err');
+    });
+  }
+
+  function compNames(slots) {
+    return slots.map(function (s) {
+      const a = D.agentById(s.agent);
+      return a ? a.name : null;
+    }).filter(Boolean);
+  }
+
+  /* ================= 共有 ================= */
+  function shareOpts() {
+    const tac = currentTactic();
+    if (!tac) return null;
+    return {
+      tactic: tac,
+      map: S.state.match.map,
+      side: S.sideForRound(S.currentRoundNumber()),
+      analysis: ui.analysis
+    };
+  }
+
+  /* ================= セットアップ画面 ================= */
   function bindSetup() {
     $('map-select').addEventListener('click', function (e) {
       const btn = e.target.closest('.map-opt');
@@ -2620,12 +5091,12 @@ select { appearance: none; cursor: pointer; }
     $('inp-ally-team').addEventListener('input', function (e) {
       S.state.match.allyTeam = e.target.value;
       S.save();
-      $('roster-ally-name').textContent = e.target.value || 'OUR TEAM';
+      $('roster-ally-name').textContent = e.target.value || t('team.ally.default');
     });
     $('inp-enemy-team').addEventListener('input', function (e) {
       S.state.match.enemyTeam = e.target.value;
       S.save();
-      $('roster-enemy-name').textContent = e.target.value || 'OPPONENT';
+      $('roster-enemy-name').textContent = e.target.value || t('team.enemy.default');
     });
     $('inp-match-note').addEventListener('input', function (e) {
       S.state.match.note = e.target.value;
@@ -2652,8 +5123,7 @@ select { appearance: none; cursor: pointer; }
 
     $('deck-grid').addEventListener('click', function (e) {
       const card = e.target.closest('.tcard');
-      if (!card) return;
-      openTacticModal(card.dataset.id);
+      if (card) openTacticModal(card.dataset.id);
     });
     $('deck-grid').addEventListener('keydown', function (e) {
       if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -2669,13 +5139,13 @@ select { appearance: none; cursor: pointer; }
       S.seedSamples();
       U.renderDeck(ui.deckFilter);
       U.renderReady();
-      U.toast('サンプル戦術を追加しました。', 'ok');
+      U.toast(t('toast.sampleAdded'), 'ok');
     });
 
     $('btn-start').addEventListener('click', function () { goPhase('live'); });
   }
 
-  /* ================= ライブ画面のイベント ================= */
+  /* ================= ライブ画面 ================= */
   function bindLive() {
     $('stage').addEventListener('click', function (e) {
       const el = e.target.closest('[data-act]');
@@ -2684,64 +5154,220 @@ select { appearance: none; cursor: pointer; }
 
       if (act === 'pick') {
         S.setPending(el.dataset.id, ui.economy);
+        ui.analysis = null;
+        ui.aiReview = null;
+        runAnalysis();
         renderLive();
-        return;
-      }
-      if (act === 'result') {
+      } else if (act === 'result') {
         const rec = S.commitRound(el.dataset.result);
         if (rec) {
-          U.toast('ROUND ' + rec.n + ' — ' + rec.result + ' を記録しました。', rec.result === 'WIN' ? 'ok' : 'err');
+          U.toast(t('toast.roundRecorded', { n: rec.n, result: t('res.' + rec.result.toLowerCase()) }),
+                  rec.result === 'WIN' ? 'ok' : 'err');
         }
+        ui.analysis = null;
+        ui.aiReview = null;
         renderLive();
-        return;
-      }
-      if (act === 'change') {
+      } else if (act === 'change') {
         S.clearPending();
+        ui.analysis = null;
+        ui.aiReview = null;
         renderLive();
-        return;
-      }
-      if (act === 'flip-side') {
+      } else if (act === 'flip-side') {
         S.flipSideForRound(S.currentRoundNumber());
+        if (ui.analysis) runAnalysis();
         renderLive();
-        return;
-      }
-      if (act === 'toggle-offside') {
+      } else if (act === 'toggle-offside') {
         ui.includeOffSide = !ui.includeOffSide;
         renderLive();
-        return;
-      }
-      if (act === 'new-tactic') {
+      } else if (act === 'new-tactic') {
         openTacticModal(null);
-        return;
-      }
-      if (act === 'eco') {
+      } else if (act === 'eco') {
         ui.economy = el.dataset.eco;
         renderLive();
-        return;
+      } else if (act === 'analyze') {
+        runAnalysis();
+        renderLive();
+      } else if (act === 'ai-review') {
+        runAiReview();
+      } else if (act === 'share-x') {
+        const opts = shareOpts();
+        if (opts) SHARE.postToX(opts);
+      } else if (act === 'share-copy') {
+        const opts = shareOpts();
+        if (opts) {
+          SHARE.copyText(opts).then(function (ok) {
+            U.toast(ok ? t('share.copied') : t('toast.exportFailed', { msg: 'clipboard' }), ok ? 'ok' : 'err');
+          });
+        }
+      } else if (act === 'share-post') {
+        openPostModal(S.state.pending ? S.state.pending.tacticId : null);
       }
     });
 
     $('btn-undo').addEventListener('click', function () {
       const last = S.undoLastRound();
-      if (!last) { U.toast('取り消せるラウンドがありません。', 'err'); return; }
-      U.toast('ROUND ' + last.n + ' の記録を取り消しました。');
+      if (!last) { U.toast(t('toast.noUndo'), 'err'); return; }
+      ui.analysis = null;
+      ui.aiReview = null;
+      U.toast(t('toast.undone', { n: last.n }));
       renderLive();
     });
 
     $('btn-reset-match').addEventListener('click', function () {
-      if (!confirm('スコアとラウンド履歴をリセットします。戦術デッキとエージェント編成は残ります。よろしいですか？')) return;
+      if (!confirm(t('confirm.resetMatch'))) return;
       S.resetMatch();
+      ui.analysis = null;
+      ui.aiReview = null;
       renderLive();
-      U.toast('マッチをリセットしました。');
+      U.toast(t('toast.matchReset'));
     });
   }
 
-  /* ================= モーダルのイベント ================= */
+  /* ================= コミュニティ ================= */
+  function loadPosts() {
+    if (!C.enabled()) {
+      U.renderPosts([], t('community.disabled'));
+      return;
+    }
+    U.renderPosts([], t('common.loading'));
+    C.listPosts({ sort: ui.postSort, map: ui.postMap }).then(function (rows) {
+      ui.posts = Array.isArray(rows) ? rows : [];
+      U.renderPosts(ui.posts);
+    }, function (err) {
+      U.renderPosts([], t('community.postFailed', { msg: err.message }));
+    });
+  }
+
+  function openPostModal(tacticId) {
+    if (!C.enabled()) { U.toast(t('community.disabled'), 'err'); return; }
+    if (!S.state.tactics.length) { U.toast(t('toast.nameRequired'), 'err'); return; }
+    ui.postTacticId = tacticId || S.state.tactics[0].id;
+    U.renderPostForm(ui.postTacticId);
+    $('post-author').value = C.displayName() || '';
+    updatePostPreview();
+    openModal('modal-post');
+  }
+
+  function updatePostPreview() {
+    const tac = S.tacticById(ui.postTacticId);
+    if (!tac) { U.renderPostPreview(null); return; }
+    const analysis = ANALYST.analyze({
+      tactic: tac,
+      allies: S.state.allies,
+      enemies: S.state.enemies,
+      map: S.state.match.map,
+      side: S.sideForRound(S.currentRoundNumber())
+    });
+    U.renderPostPreview(tac, analysis);
+    return analysis;
+  }
+
+  function bindCommunity() {
+    $('community-sort').addEventListener('click', function (e) {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      ui.postSort = chip.dataset.sort;
+      $('community-sort').querySelectorAll('.chip').forEach(function (c) {
+        c.classList.toggle('is-active', c === chip);
+      });
+      loadPosts();
+    });
+
+    $('community-map').addEventListener('change', function (e) {
+      ui.postMap = e.target.value;
+      loadPosts();
+    });
+
+    $('btn-open-post').addEventListener('click', function () { openPostModal(null); });
+
+    $('community-account').addEventListener('click', function (e) {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      if (el.dataset.act === 'login') openModal('modal-login');
+      else if (el.dataset.act === 'logout') {
+        C.signOut().then(function () { renderCommunity(); });
+      }
+    });
+
+    $('post-grid').addEventListener('click', function (e) {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      const post = ui.posts.filter(function (p) { return String(p.id) === el.dataset.id; })[0];
+      if (!post) return;
+
+      if (el.dataset.act === 'like') {
+        C.likePost(post.id).then(function (likes) {
+          post.likes = typeof likes === 'number' ? likes : (post.likes || 0) + 1;
+          U.renderPosts(ui.posts);
+        }, function (err) { U.toast(err.message, 'err'); });
+      } else if (el.dataset.act === 'import-post') {
+        S.addTactic({
+          name: post.name,
+          side: post.side,
+          site: post.site,
+          kind: post.kind,
+          note: post.note
+        });
+        U.toast(t('community.imported'), 'ok');
+      }
+    });
+
+    $('post-tactic').addEventListener('change', function (e) {
+      ui.postTacticId = e.target.value;
+      updatePostPreview();
+    });
+
+    $('post-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const tac = S.tacticById(ui.postTacticId);
+      if (!tac) return;
+      const analysis = updatePostPreview();
+
+      C.createPost({
+        name: tac.name,
+        map: S.state.match.map,
+        side: tac.side,
+        site: tac.site,
+        kind: tac.kind,
+        note: tac.note,
+        authorName: ($('post-author').value || '').trim() || 'ANONYMOUS',
+        lang: I.get(),
+        allyComp: S.state.allies.map(function (s) { return s.agent; }).filter(Boolean),
+        enemyComp: S.state.enemies.map(function (s) { return s.agent; }).filter(Boolean),
+        analysisScore: analysis && analysis.ready ? analysis.score : null
+      }).then(function () {
+        closeModal('modal-post');
+        U.toast(t('community.posted'), 'ok');
+        if (ui.view === 'community') loadPosts();
+      }, function (err) {
+        U.toast(t('community.postFailed', { msg: err.message }), 'err');
+      });
+    });
+
+    $('btn-login-discord').addEventListener('click', function () {
+      C.signInWithProvider('discord');
+    });
+
+    $('btn-login-email').addEventListener('click', function () {
+      const email = ($('login-email').value || '').trim();
+      if (!email) return;
+      C.signInWithEmail(email).then(function () {
+        closeModal('modal-login');
+        U.toast(t('community.loginEmail') + ' ✓', 'ok');
+      }, function (err) { U.toast(err.message, 'err'); });
+    });
+  }
+
+  /* ================= エージェント / 戦術モーダル ================= */
   function bindAgentModal() {
-    $('agent-search').addEventListener('input', function (e) {
-      ui.agentQuery = e.target.value;
+    function refreshGrid() {
       const slot = ui.agentTarget ? rosterOf(ui.agentTarget.team)[ui.agentTarget.index] : { agent: '' };
       U.renderAgentGrid({ query: ui.agentQuery, role: ui.agentRole, current: slot.agent });
+    }
+
+    $('agent-search').addEventListener('input', function (e) {
+      ui.agentQuery = e.target.value;
+      refreshGrid();
     });
 
     $('role-filter').addEventListener('click', function (e) {
@@ -2749,8 +5375,7 @@ select { appearance: none; cursor: pointer; }
       if (!chip) return;
       ui.agentRole = chip.dataset.role;
       U.renderRoleFilter(ui.agentRole);
-      const slot = ui.agentTarget ? rosterOf(ui.agentTarget.team)[ui.agentTarget.index] : { agent: '' };
-      U.renderAgentGrid({ query: ui.agentQuery, role: ui.agentRole, current: slot.agent });
+      refreshGrid();
     });
 
     $('agent-grid').addEventListener('click', function (e) {
@@ -2760,6 +5385,8 @@ select { appearance: none; cursor: pointer; }
       slot.agent = opt.dataset.agent;
       slot.player = $('agent-player').value.trim();
       S.save();
+      ui.analysis = null;
+      ui.aiReview = null;
       closeModal('modal-agent');
       renderAll();
     });
@@ -2776,27 +5403,24 @@ select { appearance: none; cursor: pointer; }
       slot.agent = '';
       slot.player = '';
       S.save();
+      ui.analysis = null;
       closeModal('modal-agent');
       renderAll();
     });
   }
 
   function bindTacticModal() {
-    $('t-side').addEventListener('click', function (e) {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      U.setSegActive($('t-side'), btn.dataset.val);
-    });
-    $('t-site').addEventListener('click', function (e) {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      U.setSegActive($('t-site'), btn.dataset.val);
+    ['t-side', 't-site'].forEach(function (id) {
+      $(id).addEventListener('click', function (e) {
+        const btn = e.target.closest('button');
+        if (btn) U.setSegActive($(id), btn.dataset.val);
+      });
     });
 
     $('tactic-form').addEventListener('submit', function (e) {
       e.preventDefault();
       const name = $('t-name').value.trim();
-      if (!name) { U.toast('戦術名を入力してください。', 'err'); return; }
+      if (!name) { U.toast(t('toast.nameRequired'), 'err'); return; }
       const payload = {
         name: name,
         side: U.segValue($('t-side')) || 'BOTH',
@@ -2806,25 +5430,26 @@ select { appearance: none; cursor: pointer; }
       };
       if (ui.editingTacticId) {
         S.updateTactic(ui.editingTacticId, payload);
-        U.toast('戦術を更新しました。', 'ok');
+        U.toast(t('toast.tacticUpdated'), 'ok');
       } else {
         S.addTactic(payload);
-        U.toast('戦術を追加しました。', 'ok');
+        U.toast(t('toast.tacticAdded'), 'ok');
       }
       ui.editingTacticId = null;
+      ui.analysis = null;
       closeModal('modal-tactic');
       renderAll();
     });
 
     $('btn-delete-tactic').addEventListener('click', function () {
       if (!ui.editingTacticId) return;
-      const t = S.tacticById(ui.editingTacticId);
-      if (!confirm('「' + (t ? t.name : '') + '」を削除します。よろしいですか？')) return;
+      const tac = S.tacticById(ui.editingTacticId);
+      if (!confirm(t('confirm.deleteTactic', { name: tac ? tac.name : '' }))) return;
       S.removeTactic(ui.editingTacticId);
       ui.editingTacticId = null;
       closeModal('modal-tactic');
       renderAll();
-      U.toast('戦術を削除しました。');
+      U.toast(t('toast.tacticDeleted'));
     });
   }
 
@@ -2841,18 +5466,14 @@ select { appearance: none; cursor: pointer; }
     /* 公開ページ上ではビューアーに確認を出してから保存する */
     if (downloadsApi) {
       downloadsApi.save({ filename: filename, data: json }).then(function () {
-        U.toast('JSON を書き出しました。', 'ok');
+        U.toast(t('toast.exported'), 'ok');
       }, function (err) {
-        if (err && err.code === 'declined') {
-          U.toast('書き出しをキャンセルしました。');
-        } else {
-          U.toast('書き出しに失敗しました: ' + ((err && err.message) || '不明なエラー'), 'err');
-        }
+        if (err && err.code === 'declined') U.toast(t('toast.exportCancelled'));
+        else U.toast(t('toast.exportFailed', { msg: (err && err.message) || '' }), 'err');
       });
       return;
     }
 
-    /* 通常のブラウザ / 配布ファイル */
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2862,13 +5483,23 @@ select { appearance: none; cursor: pointer; }
     a.click();
     document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-    U.toast('JSON を書き出しました。', 'ok');
+    U.toast(t('toast.exported'), 'ok');
   }
 
   /* ================= 共通イベント ================= */
   function bindGlobal() {
     document.querySelectorAll('.phase-tab').forEach(function (tab) {
       tab.addEventListener('click', function () { goPhase(tab.dataset.phase); });
+    });
+
+    $('lang-select').addEventListener('change', function (e) {
+      I.set(e.target.value);
+    });
+
+    I.onChange(function () {
+      I.applyDom();
+      U.renderLangPicker();
+      renderAll();
     });
 
     document.addEventListener('click', function (e) {
@@ -2878,16 +5509,22 @@ select { appearance: none; cursor: pointer; }
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') { closeAllModals(); return; }
 
-      const modalOpen = !$('modal-agent').hidden || !$('modal-tactic').hidden;
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login']
+        .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
-      if (modalOpen || typing || S.state.phase !== 'live') return;
+      if (modalOpen || typing || ui.view !== 'live') return;
 
-      /* ライブ中のショートカット */
       if (S.state.pending) {
         if (e.key === 'w' || e.key === 'W') {
-          S.commitRound('WIN'); renderLive(); U.toast('WIN を記録しました。', 'ok');
+          const rec = S.commitRound('WIN');
+          ui.analysis = null; ui.aiReview = null;
+          renderLive();
+          if (rec) U.toast(t('toast.roundRecorded', { n: rec.n, result: t('res.win') }), 'ok');
         } else if (e.key === 'l' || e.key === 'L') {
-          S.commitRound('LOSS'); renderLive(); U.toast('LOSS を記録しました。', 'err');
+          const rec = S.commitRound('LOSS');
+          ui.analysis = null; ui.aiReview = null;
+          renderLive();
+          if (rec) U.toast(t('toast.roundRecorded', { n: rec.n, result: t('res.loss') }), 'err');
         }
       } else if (/^[1-9]$/.test(e.key)) {
         const picks = $('stage').querySelectorAll('.pick');
@@ -2896,10 +5533,8 @@ select { appearance: none; cursor: pointer; }
       }
     });
 
-    /* 書き出し */
     $('btn-export').addEventListener('click', exportData);
 
-    /* 読み込み */
     $('btn-import').addEventListener('click', function () { $('file-import').click(); });
     $('file-import').addEventListener('change', function (e) {
       const file = e.target.files && e.target.files[0];
@@ -2908,10 +5543,12 @@ select { appearance: none; cursor: pointer; }
       reader.onload = function () {
         try {
           S.importJSON(String(reader.result));
+          ui.view = S.state.phase;
+          ui.analysis = null;
           renderAll();
-          U.toast('データを読み込みました。', 'ok');
+          U.toast(t('toast.imported'), 'ok');
         } catch (err) {
-          U.toast('読み込みに失敗しました: ' + err.message, 'err');
+          U.toast(t('toast.importFailed', { msg: err.message }), 'err');
         }
       };
       reader.readAsText(file);
@@ -2919,26 +5556,40 @@ select { appearance: none; cursor: pointer; }
     });
 
     $('btn-reset-all').addEventListener('click', function () {
-      if (!confirm('すべてのデータ（編成・戦術デッキ・戦績）を初期化します。よろしいですか？')) return;
+      if (!confirm(t('confirm.resetAll'))) return;
       S.resetAll();
       ui.deckFilter = 'ALL';
+      ui.view = 'setup';
+      ui.analysis = null;
       renderAll();
-      U.toast('初期化しました。');
+      U.toast(t('toast.resetAll'));
     });
   }
 
   /* ================= 起動 ================= */
   function init() {
+    I.set(I.detect());
+    I.applyDom();
+    U.renderLangPicker();
+
     const restored = S.load();
     if (!restored && S.state.tactics.length === 0) {
       S.seedSamples();   // 初回起動時は雛形を入れて操作感を掴めるようにする
     }
+    ui.view = S.state.phase === 'live' ? 'live' : 'setup';
+
     bindSetup();
     bindLive();
+    bindCommunity();
     bindAgentModal();
     bindTacticModal();
     bindGlobal();
     renderAll();
+
+    /* コミュニティが設定されていればセッションを復元する */
+    if (C.enabled()) {
+      C.init().then(function () { renderAll(); });
+    }
   }
 
   if (document.readyState === 'loading') {

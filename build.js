@@ -19,8 +19,17 @@ const read = function (p) { return fs.readFileSync(path.join(ROOT, p), 'utf8'); 
 
 const html = read('index.html');
 const css = read('assets/css/style.css');
-const scripts = ['data', 'store', 'advisor', 'ui', 'app'].map(function (name) {
-  return { name: name, code: read('assets/js/' + name + '.js') };
+
+/* index.html に書かれている順どおりに JS を拾う。
+   ここを固定リストにすると、ファイルを増やしたときに取りこぼす。 */
+const scriptTag = /<script src="([^"]+)"><\/script>/g;
+const scriptPaths = [];
+let m;
+while ((m = scriptTag.exec(html)) !== null) scriptPaths.push(m[1]);
+if (scriptPaths.length === 0) throw new Error('index.html に <script src> が見つかりません');
+
+const scripts = scriptPaths.map(function (rel) {
+  return { name: rel, code: read(rel) };
 });
 
 /* インライン化した中身がタグを閉じてしまわないか確認する */
@@ -30,7 +39,7 @@ function assertSafe(label, code, needle) {
   }
 }
 assertSafe('style.css', css, '</style');
-scripts.forEach(function (s) { assertSafe(s.name + '.js', s.code, '</script'); });
+scripts.forEach(function (s) { assertSafe(s.name, s.code, '</script'); });
 
 const styleBlock =
   '<style>\n' +
@@ -39,13 +48,13 @@ const styleBlock =
   '</style>';
 
 const scriptBlock = scripts.map(function (s) {
-  return '<script>\n/* ---- ' + s.name + '.js ---- */\n' + s.code + '<\/script>';
+  return '<script>\n/* ---- ' + s.name + ' ---- */\n' + s.code + '<\/script>';
 }).join('\n');
 
 /* --- body の中身を組み立てる --- */
 const bodyInner = html
   .slice(html.indexOf('<body>') + '<body>'.length, html.lastIndexOf('</body>'))
-  .replace(/\s*<script src="assets\/js\/[a-z]+\.js"><\/script>/g, '')
+  .replace(/\s*<script src="[^"]+"><\/script>/g, '')
   .trim();
 
 const title = (html.match(/<title>([\s\S]*?)<\/title>/) || [, 'VALORANT TACTICAL SETUP CARD'])[1];
