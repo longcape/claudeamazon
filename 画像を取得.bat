@@ -1,51 +1,53 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
-title VALORANT TACTICAL SETUP CARD - å…¬å¼ç”»åƒã®å–å¾—
+title VALORANT TACTICAL SETUP CARD
 
 echo ============================================================
-echo   å…¬å¼ç”»åƒã®å–å¾—
+echo   ŒöŽ®‰æ‘œ‚ÌŽæ“¾
 echo ============================================================
 echo.
 
 where node >nul 2>nul
-if errorlevel 1 (
-  echo [ã‚¨ãƒ©ãƒ¼] Node.js ãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã€‚
-  echo.
-  echo   https://nodejs.org/ja ã‹ã‚‰ã€ŒæŽ¨å¥¨ç‰ˆ ^(LTS^)ã€ã‚’ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ã¦ã‹ã‚‰
-  echo   ã‚‚ã†ä¸€åº¦ã“ã®ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã—ã¦ãã ã•ã„ã€‚
-  echo.
-  pause
-  exit /b 1
-)
+if errorlevel 1 goto NONODE
 
 if not exist "node_modules\sharp" (
-  echo ç”»åƒã‚’ç¸®å°ã™ã‚‹ãŸã‚ã® sharp ã‚’å°Žå…¥ã—ã¾ã™ ^(åˆå›žã®ã¿ãƒ»1åˆ†ã»ã©ã‹ã‹ã‚Šã¾ã™^)...
+  echo ‰æ‘œ‚ðk¬‚·‚é sharp ‚ð“±“ü‚µ‚Ü‚·B‰‰ñ‚Ì‚ÝA1•ª‚Ù‚Ç‚©‚©‚è‚Ü‚·B
   echo.
   call npm install sharp --no-audit --no-fund
   echo.
 )
 
-echo å…¬å¼ç”»åƒã‚’å–å¾—ã—ã¦ã„ã¾ã™...
+echo ŒöŽ®‰æ‘œ‚ðŽæ“¾‚µ‚Ä‚¢‚Ü‚·...
 echo.
 call node tools\fetch-assets.mjs
-if errorlevel 1 (
-  echo.
-  echo å–å¾—ã«å¤±æ•—ã—ã¾ã—ãŸã€‚ä¸Šã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’ç¢ºèªã—ã¦ãã ã•ã„ã€‚
-  echo.
-  pause
-  exit /b 1
-)
+if errorlevel 1 goto FAILED
 
 echo.
-echo é…å¸ƒãƒ•ã‚¡ã‚¤ãƒ«ã‚’ä½œã‚Šç›´ã—ã¦ã„ã¾ã™...
+echo ”z•zƒtƒ@ƒCƒ‹‚ðì‚è’¼‚µ‚Ä‚¢‚Ü‚·...
 echo.
 call node build.js
 
 echo.
 echo ============================================================
-echo   å®Œäº†ã—ã¾ã—ãŸ
-echo   index.html ã‚’ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã¨ç¢ºèªã§ãã¾ã™
+echo   Š®—¹‚µ‚Ü‚µ‚½
+echo.
+echo   index.html ‚ðƒ_ƒuƒ‹ƒNƒŠƒbƒN‚·‚é‚ÆŠm”F‚Å‚«‚Ü‚·
+echo   assets\img\maps\summit.png ‚ª‘‚¦‚Ä‚¢‚ê‚Î¬Œ÷‚Å‚·
 echo ============================================================
+goto END
+
+:NONODE
+echo [ƒGƒ‰[] Node.js ‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñB
+echo.
+echo   https://nodejs.org/ja ‚©‚ç„§”Å‚ðƒCƒ“ƒXƒg[ƒ‹‚µ‚Ä‚©‚ç
+echo   ‚à‚¤ˆê“x‚±‚Ìƒtƒ@ƒCƒ‹‚ðƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚Ä‚­‚¾‚³‚¢B
+goto END
+
+:FAILED
+echo.
+echo Žæ“¾‚ÉŽ¸”s‚µ‚Ü‚µ‚½Bã‚Éo‚Ä‚¢‚éƒƒbƒZ[ƒW‚ðŠm”F‚µ‚Ä‚­‚¾‚³‚¢B
+goto END
+
+:END
 echo.
 pause

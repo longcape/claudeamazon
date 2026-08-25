@@ -1,0 +1,9 @@
+# Windows のバッチは CP932 / CRLF のまま保つ。
+# 改行や文字コードを変換されると cmd が読めなくなる。
+*.bat -text
+
+# Mac のシェルスクリプトは LF のまま
+*.command text eol=lf
+
+# 画像はバイナリとして扱う
+*.png binary
