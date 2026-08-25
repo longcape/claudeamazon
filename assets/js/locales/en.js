@@ -293,5 +293,9 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'f.enemyMollyRush': 'Their {n} area-denial abilities stall you at the entry',
   'f.enemyLineup': 'Their {n} lineup abilities come into play after the plant',
 
-  'map.schematic': 'Schematic'
+  'map.schematic': 'Schematic',
+
+  'f.mapMidCentric': '{map} is decided in mid, which suits this tactic',
+  'f.mapMidNoRecon': 'Fighting for mid on {map} needs recon, and you have none',
+  'f.mapMovingWalls': 'The deployable walls on {map} change sightlines mid-round, so a scripted push can fall apart'
 });

@@ -293,5 +293,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'f.enemyMollyRush': '상대 지역 차단 {n}개에 입구에서 발이 묶임',
   'f.enemyLineup': '상대의 정점 스킬 {n}개가 설치 후에 작용함',
 
-  'map.schematic': '약도'
+  'map.schematic': '약도',
+
+  'f.mapMidCentric': '{map}은 미드 싸움이 승부를 가르는 구조라 이 전술과 맞물림',
+  'f.mapMidNoRecon': '{map}의 미드 싸움에는 정찰이 필요한데 정찰 수단이 없음',
+  'f.mapMovingWalls': '{map}은 전개 가능한 벽으로 사선과 동선이 바뀌어, 정해둔 진입이 무너질 수 있음'
 });

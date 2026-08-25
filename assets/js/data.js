@@ -62,7 +62,8 @@
     { id: 'lotus',   name: 'LOTUS',   sites: ['A', 'B', 'C'] },
     { id: 'sunset',  name: 'SUNSET',  sites: ['A', 'B'] },
     { id: 'abyss',   name: 'ABYSS',   sites: ['A', 'B'] },
-    { id: 'corrode', name: 'CORRODE', sites: ['A', 'B'] }
+    { id: 'corrode', name: 'CORRODE', sites: ['A', 'B'] },
+    { id: 'summit',  name: 'SUMMIT',  sites: ['A', 'B'] }
   ];
 
   /* 戦術タイプ */

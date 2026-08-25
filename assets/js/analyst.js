@@ -184,6 +184,20 @@
       if (['split', 'fracture', 'lotus'].indexOf(map.id) >= 0 && ally.count('smoke') < 2) {
         add('f.mapTightSmoke', 'bad', -8, { map: map.name }, 'map');
       }
+
+      /* サミット: 横に広い 3 レーン構成でミッドの攻防が勝敗を分ける */
+      if (map.id === 'summit') {
+        if (kind === 'default' || kind === 'split' || kind === 'fake') {
+          add('f.mapMidCentric', 'good', 8, { map: map.name }, 'map');
+        }
+        if (!ally.has('recon') && (kind === 'default' || kind === 'split')) {
+          add('f.mapMidNoRecon', 'bad', -8, { map: map.name }, 'map');
+        }
+        /* 展開可能な壁でラウンド中に射線と経路が変わる */
+        if (kind === 'execute' || kind === 'fake') {
+          add('f.mapMovingWalls', 'warn', -5, { map: map.name }, 'map');
+        }
+      }
     }
 
     /* ============ 集計 ============ */

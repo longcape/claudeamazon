@@ -303,5 +303,9 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'f.enemyMollyRush': '相手の地点排除 {n} 枚で、入り口で足を止められる',
   'f.enemyLineup': '相手の定点ユーティリティ {n} 枚が設置後に効いてくる',
 
-  'map.schematic': '簡易図'
+  'map.schematic': '簡易図',
+
+  'f.mapMidCentric': '{map} はミッドの攻防が勝敗を分ける構成で、この戦術と噛み合う',
+  'f.mapMidNoRecon': '{map} のミッド戦は索敵が要るが、索敵手段が無い',
+  'f.mapMovingWalls': '{map} は展開可能な壁で射線と経路が変わるため、決め打ちの進行が崩れうる'
 });

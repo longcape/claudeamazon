@@ -1639,6 +1639,15 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 @media (max-width: 1180px) {
   .live-card .map-fig-wrap { position: static; margin-bottom: 14px; }
 }
+
+/* 展開可能な壁（サミットなど、ラウンド中に射線が変わる箇所） */
+.ml-gate {
+  stroke: var(--gold);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 2 2.4;
+  opacity: .85;
+}
 </style>
 </head>
 <body>
@@ -2447,7 +2456,11 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'f.enemyMollyRush': '相手の地点排除 {n} 枚で、入り口で足を止められる',
   'f.enemyLineup': '相手の定点ユーティリティ {n} 枚が設置後に効いてくる',
 
-  'map.schematic': '簡易図'
+  'map.schematic': '簡易図',
+
+  'f.mapMidCentric': '{map} はミッドの攻防が勝敗を分ける構成で、この戦術と噛み合う',
+  'f.mapMidNoRecon': '{map} のミッド戦は索敵が要るが、索敵手段が無い',
+  'f.mapMovingWalls': '{map} は展開可能な壁で射線と経路が変わるため、決め打ちの進行が崩れうる'
 });
 </script>
 <script>
@@ -2747,7 +2760,11 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'f.enemyMollyRush': 'Their {n} area-denial abilities stall you at the entry',
   'f.enemyLineup': 'Their {n} lineup abilities come into play after the plant',
 
-  'map.schematic': 'Schematic'
+  'map.schematic': 'Schematic',
+
+  'f.mapMidCentric': '{map} is decided in mid, which suits this tactic',
+  'f.mapMidNoRecon': 'Fighting for mid on {map} needs recon, and you have none',
+  'f.mapMovingWalls': 'The deployable walls on {map} change sightlines mid-round, so a scripted push can fall apart'
 });
 </script>
 <script>
@@ -3047,7 +3064,11 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'f.enemyMollyRush': '상대 지역 차단 {n}개에 입구에서 발이 묶임',
   'f.enemyLineup': '상대의 정점 스킬 {n}개가 설치 후에 작용함',
 
-  'map.schematic': '약도'
+  'map.schematic': '약도',
+
+  'f.mapMidCentric': '{map}은 미드 싸움이 승부를 가르는 구조라 이 전술과 맞물림',
+  'f.mapMidNoRecon': '{map}의 미드 싸움에는 정찰이 필요한데 정찰 수단이 없음',
+  'f.mapMovingWalls': '{map}은 전개 가능한 벽으로 사선과 동선이 바뀌어, 정해둔 진입이 무너질 수 있음'
 });
 </script>
 <script>
@@ -3116,7 +3137,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     { id: 'lotus',   name: 'LOTUS',   sites: ['A', 'B', 'C'] },
     { id: 'sunset',  name: 'SUNSET',  sites: ['A', 'B'] },
     { id: 'abyss',   name: 'ABYSS',   sites: ['A', 'B'] },
-    { id: 'corrode', name: 'CORRODE', sites: ['A', 'B'] }
+    { id: 'corrode', name: 'CORRODE', sites: ['A', 'B'] },
+    { id: 'summit',  name: 'SUMMIT',  sites: ['A', 'B'] }
   ];
 
   /* 戦術タイプ */
@@ -3442,6 +3464,14 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       atk: N(50, 90), def: N(50, 12),
       sites: { A: N(26, 32), B: N(74, 32) }, mid: N(50, 56),
       lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    summit: {
+      /* 横に広い 3 レーン構成。サイトが狭くミッドの攻防が中心になる。
+         A / ミッド / B に「展開可能な壁」があり、ラウンド中に射線と経路が変わる。 */
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(84, 36), B: N(16, 36) }, mid: N(50, 52),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B'], ['def', 'mid']],
+      gates: [N(70, 44), N(50, 34), N(30, 44)]
     }
   };
 
@@ -3486,6 +3516,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       const b = nodeOf(layout, link[1]);
       if (!a || !b) return;
       parts.push('<path d="M' + a.x + ' ' + a.y + ' Q 50 8 ' + b.x + ' ' + b.y + '" class="ml-link" />');
+    });
+
+    /* 展開可能な壁（ラウンド中に射線が変わる箇所） */
+    (layout.gates || []).forEach(function (g) {
+      parts.push('<line x1="' + (g.x - 5) + '" y1="' + g.y + '" x2="' + (g.x + 5) + '" y2="' + g.y +
+                 '" class="ml-gate" />');
     });
 
     /* ミッド */
@@ -4170,6 +4206,20 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       }
       if (['split', 'fracture', 'lotus'].indexOf(map.id) >= 0 && ally.count('smoke') < 2) {
         add('f.mapTightSmoke', 'bad', -8, { map: map.name }, 'map');
+      }
+
+      /* サミット: 横に広い 3 レーン構成でミッドの攻防が勝敗を分ける */
+      if (map.id === 'summit') {
+        if (kind === 'default' || kind === 'split' || kind === 'fake') {
+          add('f.mapMidCentric', 'good', 8, { map: map.name }, 'map');
+        }
+        if (!ally.has('recon') && (kind === 'default' || kind === 'split')) {
+          add('f.mapMidNoRecon', 'bad', -8, { map: map.name }, 'map');
+        }
+        /* 展開可能な壁でラウンド中に射線と経路が変わる */
+        if (kind === 'execute' || kind === 'fake') {
+          add('f.mapMovingWalls', 'warn', -5, { map: map.name }, 'map');
+        }
       }
     }
 

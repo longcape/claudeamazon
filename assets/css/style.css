@@ -1629,3 +1629,12 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 @media (max-width: 1180px) {
   .live-card .map-fig-wrap { position: static; margin-bottom: 14px; }
 }
+
+/* 展開可能な壁（サミットなど、ラウンド中に射線が変わる箇所） */
+.ml-gate {
+  stroke: var(--gold);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 2 2.4;
+  opacity: .85;
+}

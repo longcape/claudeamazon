@@ -93,7 +93,7 @@ node C:\Users\あなた\Desktop\claudeamazon-...\tools\fetch-assets.mjs
 数十秒かかります。次のように表示されれば成功です。
 
 ```
-data.js のエージェント 29 体 / マップ 12 種を対象にします
+data.js のエージェント 29 体 / マップ 13 種を対象にします
   agent  jett       28 KB
   agent  phoenix    31 KB
   ...

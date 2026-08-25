@@ -129,6 +129,17 @@ async function main() {
   const mapsRes = await getJSON(`${API}/maps`);
   const mapByName = new Map(mapsRes.data.map((m) => [normalize(m.displayName), m]));
 
+  /* API 側にあってアプリに無いマップを知らせる（新マップ検出）。
+     対戦で使わないもの（射撃場など）は tacticalDescription を持たないので除く。 */
+  const knownMapIds = new Set(wantedMaps.map((w) => normalize(w.name)));
+  const extraMaps = mapsRes.data.filter(
+    (m) => m.tacticalDescription && !knownMapIds.has(normalize(m.displayName))
+  );
+  if (extraMaps.length) {
+    console.log('\n⚠ data.js に未登録のマップが API 側にあります:');
+    extraMaps.forEach((m) => console.log(`   ${m.displayName}`));
+  }
+
   for (const want of wantedMaps) {
     const found = mapByName.get(normalize(want.name));
     if (!found || !found.displayIcon) { missing.push(`map:${want.id}`); continue; }
@@ -160,6 +171,9 @@ async function main() {
   console.log(`\n✓ ${Object.keys(agentEntries).length} 体のアイコンと ${Object.keys(mapEntries).length} 枚のミニマップを取り込みました`);
   console.log(`  → ${path.relative(ROOT, OUT_FILE)}`);
   if (missing.length) console.log('  取得できなかったもの:', missing.join(', '));
+  if (extra.length || extraMaps.length) {
+    console.log('\n⚠ 未登録のものがあります。上の一覧を Claude に伝えると追加できます。');
+  }
   if (!INLINE) {
     console.log('\n  単一 HTML 配布版にも公式アイコンを載せたい場合は --inline を付けて再実行してください。');
   }

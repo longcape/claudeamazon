@@ -78,6 +78,14 @@
       atk: N(50, 90), def: N(50, 12),
       sites: { A: N(26, 32), B: N(74, 32) }, mid: N(50, 56),
       lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B']]
+    },
+    summit: {
+      /* 横に広い 3 レーン構成。サイトが狭くミッドの攻防が中心になる。
+         A / ミッド / B に「展開可能な壁」があり、ラウンド中に射線と経路が変わる。 */
+      atk: N(50, 90), def: N(50, 12),
+      sites: { A: N(84, 36), B: N(16, 36) }, mid: N(50, 52),
+      lanes: [['atk', 'A'], ['atk', 'mid'], ['atk', 'B'], ['mid', 'A'], ['mid', 'B'], ['def', 'A'], ['def', 'B'], ['def', 'mid']],
+      gates: [N(70, 44), N(50, 34), N(30, 44)]
     }
   };
 
@@ -122,6 +130,12 @@
       const b = nodeOf(layout, link[1]);
       if (!a || !b) return;
       parts.push('<path d="M' + a.x + ' ' + a.y + ' Q 50 8 ' + b.x + ' ' + b.y + '" class="ml-link" />');
+    });
+
+    /* 展開可能な壁（ラウンド中に射線が変わる箇所） */
+    (layout.gates || []).forEach(function (g) {
+      parts.push('<line x1="' + (g.x - 5) + '" y1="' + g.y + '" x2="' + (g.x + 5) + '" y2="' + g.y +
+                 '" class="ml-gate" />');
     });
 
     /* ミッド */
