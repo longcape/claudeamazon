@@ -160,6 +160,8 @@ node tools/fetch-assets.mjs --inline   # 単一 HTML 配布版にも埋め込む
 node build.js                          # 配布ファイルに反映
 ```
 
+ターミナルの使い方から順を追った手順は **[docs/FETCH-ASSETS.md](docs/FETCH-ASSETS.md)** にまとめてあります。
+
 `assets/js/official-assets.js` が生成され、以降はエージェントアイコンと
 マップのミニマップが公式画像に差し替わります。
 このツールは **API 側に存在してアプリに未登録のエージェントも報告する**ので、

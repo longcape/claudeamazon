@@ -26,6 +26,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/* 古い Node では fetch が無く、原因の分かりにくいエラーになるので先に案内する */
+const NODE_MAJOR = Number(process.versions.node.split('.')[0]);
+if (NODE_MAJOR < 18 || typeof fetch !== 'function') {
+  console.error(
+    `このツールには Node.js 18 以上が必要です（今お使いのバージョン: ${process.versions.node}）。\n` +
+    'https://nodejs.org/ja から最新版をインストールしてから、もう一度実行してください。'
+  );
+  process.exit(1);
+}
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const API = 'https://valorant-api.com/v1';
@@ -157,6 +167,15 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('取得に失敗しました:', err.message);
+  console.error('\n取得に失敗しました:', err.message);
+  if (/fetch failed|ENOTFOUND|ECONNREFUSED|403|EAI_AGAIN/.test(err.message)) {
+    console.error(
+      'valorant-api.com に接続できませんでした。次のいずれかが原因のことが多いです:\n' +
+      '  - インターネットに繋がっていない\n' +
+      '  - 会社や学校のネットワークが外部への通信を制限している\n' +
+      '  - VPN やセキュリティソフトが通信を遮断している\n' +
+      'ブラウザで https://valorant-api.com/v1/agents を開けるか確認してみてください。'
+    );
+  }
   process.exit(1);
 });
