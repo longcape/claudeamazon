@@ -790,7 +790,10 @@ def command_run(args: argparse.Namespace, config: ConfigManager) -> int:
     print(f"== 常駐開始（{args.ticks or '無制限'} 周 / 間隔 {args.interval}s）==")
 
     def show(report) -> None:
-        print(f"  {report.describe()}", flush=True)
+        if args.dashboard:
+            print(render_dashboard(session, orchestrator, report), flush=True)
+        else:
+            print(f"  {report.describe()}", flush=True)
 
     try:
         orchestrator.run(
@@ -812,7 +815,102 @@ def command_run(args: argparse.Namespace, config: ConfigManager) -> int:
     if recorder is not None and args.record:
         paths = recorder.save(args.record)
         print(f"  記録: {paths['timeline'].parent}")
+        from viz.report import report_from_recorder, write_report
+
+        output = write_report(
+            Path(args.record) / "report.html",
+            report_from_recorder(recorder, "サンドボックス稼働の記録"),
+        )
+        print(f"  レポート: {output}")
     return 2 if session.safety.is_stopped else 0
+
+
+def render_dashboard(session: Any, orchestrator: Any, report: Any) -> str:
+    """常時表示用の 1 画面ぶんのテキストを組み立てる（追加指示書 §16）。"""
+    state = orchestrator.game_state
+    resources = state.resources
+    lines = [
+        "─" * 62,
+        f"状態 {orchestrator.machine.state.value:<16} 安全 {report.verdict.level.name}",
+        f"資材 燃{resources.fuel} 弾{resources.ammo} 鋼{resources.steel} "
+        f"ボ{resources.bauxite} バケツ{resources.buckets}",
+        f"艦 {len(state.ships)} 隻 / 待機タスク {len(orchestrator.queue)} / "
+        f"予約 {len(orchestrator.scheduler)}",
+    ]
+
+    damaged = state.heavily_damaged_ships()
+    if damaged:
+        lines.append(f"大破 {[ship.instance_id for ship in damaged]}")
+
+    busy = [
+        f"入渠{dock.dock_id}"
+        for dock in state.repair_docks.values()
+        if dock.is_busy
+    ] + [
+        f"建造{dock.dock_id}"
+        for dock in state.build_docks.values()
+        if dock.is_busy
+    ]
+    waiting = [f"遠征受取 第{i}艦隊" for i in state.returned_expeditions()] + [
+        f"建造受取 ドック{i}" for i in state.completed_builds()
+    ]
+    if busy:
+        lines.append("進行中 " + " ".join(busy))
+    if waiting:
+        lines.append("受け取り待ち " + " ".join(waiting))
+    if orchestrator.safety.pending_protections:
+        names = [
+            pending.name or str(pending.master_id)
+            for pending in orchestrator.safety.pending_protections
+        ]
+        lines.append(f"保護待ち {names}")
+    if orchestrator.safety.is_stopped:
+        lines.append("緊急停止中: " + " / ".join(orchestrator.safety.latched_reasons))
+
+    trace = session.interface.mouse.describe_trace(1)
+    if trace:
+        lines.append(f"カーソル {trace[0]}")
+    lines.append(f"直近 {report.describe()}")
+    return "\n".join(lines)
+
+
+def command_view(args: argparse.Namespace, config: ConfigManager) -> int:
+    """記録から HTML レポートを作る。"""
+    from recording.decision_log import Decision
+    from recording.timeline import Timeline
+    from viz.report import build_report, write_report
+
+    directory = Path(args.dir)
+    timeline_path = directory / "timeline.jsonl"
+    if not timeline_path.exists():
+        print(f"タイムラインが見つかりません: {timeline_path}", file=sys.stderr)
+        return 1
+
+    timeline = Timeline.load(timeline_path)
+    decisions: list[Decision] = []
+    decisions_path = directory / "decisions.json"
+    if decisions_path.exists():
+        for entry in json.loads(decisions_path.read_text(encoding="utf-8")):
+            decisions.append(
+                Decision(
+                    decision=entry.get("decision", ""),
+                    reason_code=entry.get("reason_code", ""),
+                    input_state_summary=entry.get("input_state_summary") or {},
+                    constraints=tuple(entry.get("constraints") or ()),
+                    selected_action=entry.get("selected_action", ""),
+                    expected_result=entry.get("expected_result", ""),
+                    actual_result=entry.get("actual_result"),
+                    task_id=entry.get("task_id"),
+                    at=datetime.fromisoformat(entry["at"]),
+                )
+            )
+
+    html = build_report(timeline, decisions, title=args.title or directory.name)
+    output = write_report(args.out or directory / "report.html", html)
+    print(f"レポートを書き出しました: {output}")
+    print(f"  イベント {len(timeline)} 件 / 判断 {len(decisions)} 件")
+    print("  スナップショットは記録に含まれないため、GameState View は空になります")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -916,6 +1014,9 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--step", action="store_true", help="1 イベントごとに止める")
     run_parser.add_argument("--notify", action="store_true", help="重要イベントを通知する")
     run_parser.add_argument(
+        "--dashboard", action="store_true", help="毎周、状態を一覧表示する"
+    )
+    run_parser.add_argument(
         "--discord",
         action="store_true",
         help="Discord から管理コマンドを受ける（bot_token / channel_id / "
@@ -938,6 +1039,11 @@ def main(argv: list[str] | None = None) -> int:
     plan_parser.add_argument(
         "--effort", default="low", help="LLM の思考の深さ（low/medium/high）"
     )
+
+    view = subparsers.add_parser("view", help="記録から HTML レポートを作る")
+    view.add_argument("--dir", required=True, help="記録の保存先ディレクトリ")
+    view.add_argument("--out", default="", help="出力先（既定は <dir>/report.html）")
+    view.add_argument("--title", default="", help="レポートの表題")
 
     review = subparsers.add_parser("review", help="記録したタイムラインを再生する")
     review.add_argument("--dir", required=True, help="記録の保存先ディレクトリ")
@@ -1000,6 +1106,8 @@ def main(argv: list[str] | None = None) -> int:
         return command_sandbox(args, config)
     if args.command == "review":
         return command_review(args, config)
+    if args.command == "view":
+        return command_view(args, config)
     if args.command == "run":
         return command_run(args, config)
     if args.command == "plan":
