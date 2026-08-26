@@ -155,6 +155,10 @@ dist/artifact-body.html                 ○○○ KB
 エージェント選択画面（味方スロットをクリック）を開いて、
 **六角形のアイコンが顔写真に変わっていれば成功です。**
 
+スパイクは `assets\img\spike.png` が増えていれば取得できています。
+配置盤（戦術カードの「▣ 配置を編集」）を開いて、ツールバー左端の
+「プラント位置」チップのアイコンが変わっていれば反映されています。
+
 ---
 
 ## [5] （任意）オンライン版にも反映する
@@ -162,13 +166,18 @@ dist/artifact-body.html                 ○○○ KB
 手順 [4] までで、**あなたの PC 上のアプリ**は公式画像になります。
 GitHub 上のコードや共有用のページにも反映したい場合は、生成されたファイルをアップロードします。
 
-アップロードするのは次の 3 つです。
+アップロードするのは次の 5 つです。
 
 ```
-assets/img/agents/     ← 29 個の PNG
-assets/img/maps/       ← 12 個の PNG
+assets/img/agents/       ← 29 個の PNG
+assets/img/abilities/    ← スキルアイコンの PNG
+assets/img/maps/         ← 13 個の PNG
+assets/img/spike.png     ← スパイク
 assets/js/official-assets.js
 ```
+
+前回から増えたぶんだけで構いません。
+同じ内容のファイルを上げ直しても問題は起きません。
 
 **GitHub の画面から入れる方法**（コマンド不要）
 
@@ -189,6 +198,7 @@ assets/js/official-assets.js
 | `valorant-api.com に接続できませんでした` | 会社や学校の回線だと遮断されていることがあります。自宅の回線かスマホのテザリングで試してください |
 | `Cannot find module` | ドラッグしたファイルが違います。`tools` フォルダの中の `fetch-assets.mjs` か確認してください |
 | 画像が変わらない | 手順 [3-3] の `build.js` を実行し忘れていないか確認してください。ブラウザの再読み込み（`Ctrl + F5`）も試してください |
+| `spike 取得できませんでした` | スパイクだけ取れなかった状態です。アプリは自前の図で動きます。URL が分かる場合は `node tools\fetch-assets.mjs --spike-url=<URL>` で指定できます |
 
 ---
 

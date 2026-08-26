@@ -32,7 +32,7 @@ echo ============================================================
 echo   完了しました
 echo.
 echo   index.html をダブルクリックすると確認できます
-echo   assets\img\maps\summit.png が増えていれば成功です
+echo   assets\img\spike.png が増えていれば成功です
 echo ============================================================
 goto END
 
