@@ -1683,6 +1683,17 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   pointer-events: none;
 }
 
+/* 見えない当たり判定。細い線でも右クリックで狙える */
+.board-route-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: stroke;
+}
+.board-svg:not(.is-interactive) .board-route-hit { pointer-events: none; }
+
 .board-route {
   fill: none;
   stroke-width: 1.1;
@@ -1777,7 +1788,10 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 /* =========================================================
    BOARD EDITOR MODAL
    ========================================================= */
-.modal-wide { width: min(1600px, 100%); }
+/* 配置盤だけは縦も広く取る。盤面に回せる高さが増えるほど作業しやすい */
+.modal-wide { width: min(1600px, 100%); max-height: 94vh; }
+.modal-wide > .modal-body { padding: 12px 14px; }
+.modal-wide > .modal-foot { margin-top: 12px; }
 .board-tactic-name {
   margin-left: 14px;
   font-size: 12px;
@@ -1900,12 +1914,17 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 .board-canvas { line-height: 0; }
 .board-hint {
+  /* 高さを固定しておく。文言で行数が変わると、
+     盤面の大きさを決める計算がそのぶん狂うため */
+  height: 1.6em;
   margin: 0;
+  overflow: hidden;
   font-size: 11.5px;
   color: var(--text-mute);
   text-align: center;
   line-height: 1.6;
-  max-width: 620px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* --- 決着バナーの「新しいマッチを始める」 --- */
@@ -2062,3 +2081,77 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 .board-plant-note b { color: #fff; letter-spacing: .04em; }
 .board-plant-note span { color: var(--muted); }
+
+/* =========================================================
+   局面（フェーズ）のタブ
+   ---------------------------------------------------------
+   A フェイク → B 本命 のように時間で分かれる動きを、
+   1 枚に混ぜず別々の盤面に描くための切り替え。
+   上部ナビの .phase-tab とは別物なので名前を分けている。
+   ========================================================= */
+/* タブ・追加・名前・削除を 1 行に収める。
+   縦は盤面に回したいので、行数を増やさない */
+.stage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.stage-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: .02em;
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.stage-tab b {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .1);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+}
+.stage-tab:hover { color: #fff; border-color: var(--cyan); }
+.stage-tab.is-active {
+  color: #fff;
+  border-color: var(--cyan);
+  background: rgba(53, 198, 232, .14);
+}
+.stage-tab.is-active b { background: var(--cyan); color: #06111a; }
+
+.stage-add {
+  padding: 6px 10px;
+  border: 1px dashed var(--line);
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.stage-add:hover { color: #fff; border-color: var(--cyan); }
+
+.stage-bar #phase-name {
+  flex: 1 1 160px;
+  min-width: 0;
+  max-width: 300px;
+  margin-left: auto;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  font-size: 12px;
+}
+.stage-bar #phase-name:focus { outline: none; border-color: var(--cyan); }
+
+/* ライブ画面側は切り替えるだけなので、名前の欄は出さない */
+.stage-bar-view { margin-bottom: 10px; }

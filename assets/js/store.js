@@ -91,9 +91,27 @@
       site: String(t.site || '-').slice(0, 8),
       kind: t.kind || 'execute',
       note: String(t.note || '').slice(0, 400),
-      board: normalizeBoard(t.board)
+      phases: normalizePhases(t)
     };
   }
+
+  /* 局面（フェーズ）。A フェイク → B 本命 のように時間で分かれる動きを
+     1 枚に混ぜず別々の盤面に描くための単位。
+     旧形式（board が 1 枚だけ）で保存されたデータもここで引き継ぐ。 */
+  const MAX_PHASES = 4;
+
+  function normalizePhases(t) {
+    let list = Array.isArray(t.phases) && t.phases.length ? t.phases : null;
+    if (!list) list = [t.board && typeof t.board === 'object' ? t.board : {}];
+    return list.slice(0, MAX_PHASES).map(function (p) {
+      const board = normalizeBoard(p);
+      board.id = String((p && p.id) || uid());
+      board.name = String((p && p.name) || '').slice(0, 24);
+      return board;
+    });
+  }
+
+  const MARK_KINDS = ['agent', 'ability', 'plant'];
 
   /** 配置盤。壊れた入力を読み込んでも落ちないよう作り直す */
   function normalizeBoard(board) {
@@ -105,7 +123,7 @@
       marks: marks.slice(0, 60).map(function (m) {
         return {
           id: String(m.id || uid()),
-          kind: m.kind === 'ability' ? 'ability' : 'agent',
+          kind: MARK_KINDS.indexOf(m.kind) >= 0 ? m.kind : 'agent',
           ref: String(m.ref || ''),
           team: m.team === 'enemy' ? 'enemy' : 'ally',
           x: numberIn(m.x),

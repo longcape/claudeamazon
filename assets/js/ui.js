@@ -196,7 +196,7 @@
             (st.used
               ? '<span>' + st.win + 'W ' + st.loss + 'L</span><span>/</span><span>' + st.winRate + '%</span>'
               : '<span>' + t('common.unused') + '</span>') +
-            (B.isEmpty(tac) ? '' : '<span class="tcard-hasboard">▣</span>') +
+            (B.tacticIsEmpty(tac) ? '' : '<span class="tcard-hasboard">▣</span>') +
             '<button type="button" class="tcard-board" data-board-for="' + tac.id + '">' +
               '▣ ' + t('board.edit') + '</button>' +
           '</div>' +
@@ -336,7 +336,7 @@
         '</div>' +
         shareBarHTML() +
       '</div>' +
-      boardPanelHTML(tac, side) +
+      boardPanelHTML(tac, side, uiState.livePhase) +
       analysisHTML(uiState);
   }
 
@@ -353,20 +353,34 @@
   }
 
   /* --- 配置盤（ライブボード上の表示） --- */
-  function boardPanelHTML(tactic, side) {
-    const empty = B.isEmpty(tactic);
-    const body = empty
-      ? '<div class="panel-body"><p class="deck-empty">' + t('board.empty') + '</p></div>'
-      : '<div class="panel-body board-view">' +
+  function boardPanelHTML(tactic, side, phaseIndex) {
+    const list = B.phases(tactic);
+    const idx = Math.max(0, Math.min(list.length - 1, phaseIndex || 0));
+    const phase = list[idx];
+
+    /* 局面が 2 つ以上あるときだけタブを出す。
+       A フェイク → B 本命 のように、1 枚に混ぜると読めない動きを分けて見る */
+    const tabs = list.length > 1
+      ? '<div class="stage-bar stage-bar-view">' + list.map(function (p, i) {
+          return '<button type="button" class="stage-tab' + (i === idx ? ' is-active' : '') + '"' +
+                   ' data-act="live-phase" data-phase-index="' + i + '">' +
+                   '<b>' + (i + 1) + '</b>' + esc(p.name || t('board.phaseN', { n: i + 1 })) +
+                 '</button>';
+        }).join('') + '</div>'
+      : '';
+
+    const body = B.isEmpty(phase)
+      ? '<div class="panel-body">' + tabs + '<p class="deck-empty">' + t('board.empty') + '</p></div>'
+      : '<div class="panel-body board-view">' + tabs +
           B.render({
-            tactic: tactic,
+            phase: phase,
             map: S.state.match.map,
             side: side,
             highlight: tactic.site,
             size: boardSize('view'),
             interactive: false
           }) +
-          boardLegendHTML(tactic) +
+          boardLegendHTML(phase) +
         '</div>';
 
     return '<article class="panel panel-clip board-panel">' +
@@ -381,13 +395,13 @@
   }
 
   /** エージェントごとにまとめたスキルの使用順。実戦ではこれを読み上げる */
-  function boardLegendHTML(tactic) {
-    const board = B.ensure(tactic);
+  function boardLegendHTML(phase) {
+    const board = B.ensure(phase);
     const abilities = board.marks.filter(function (m) {
       return m.kind === 'ability' && m.team === 'ally';
     });
     /* 設置位置は読み上げの起点になるので、スキルより先に出す */
-    const plantRow = B.plantMark(tactic)
+    const plantRow = B.plantMark(phase)
       ? '<p class="board-plant-note">' + B.spikeIconHTML() +
           '<b>' + t('board.plant') + '</b>' +
           '<span>' + t('board.plantMarked') + '</span></p>'
@@ -436,11 +450,39 @@
     if (!tactic) return;
 
     $('board-tactic-name').textContent = tactic.name;
+    renderBoardPhases(uiState);
     renderBoardPalette('ally', uiState);
     renderBoardPalette('enemy', uiState);
     renderBoardTools(uiState);
-    renderBoardCanvas(uiState);
+    /* ヒントの高さも予算に入るので、盤面より先に確定させる */
     renderBoardHint(uiState);
+    renderBoardCanvas(uiState);
+  }
+
+  /* 局面のタブ。名前は空でもよく、その場合は「局面 N」と表示する */
+  function renderBoardPhases(uiState) {
+    const list = B.phases(uiState.boardTactic);
+    const idx = uiState.phaseIndex || 0;
+
+    const tabs = list.map(function (p, i) {
+      return '<button type="button" class="stage-tab' + (i === idx ? ' is-active' : '') + '"' +
+               ' data-phase-act="go" data-phase-index="' + i + '">' +
+               '<b>' + (i + 1) + '</b>' + esc(p.name || t('board.phaseN', { n: i + 1 })) +
+             '</button>';
+    }).join('');
+
+    const add = list.length < B.MAX_PHASES
+      ? '<button type="button" class="stage-add" data-phase-act="add">＋ ' + t('board.phaseAdd') + '</button>'
+      : '';
+
+    $('board-phases').innerHTML =
+      tabs + add +
+      '<input type="text" id="phase-name" maxlength="24" value="' + esc(list[idx].name) + '" ' +
+        'placeholder="' + esc(t('board.phaseNamePh')) + '" />' +
+      (list.length > 1
+        ? '<button type="button" class="btn btn-ghost btn-sm btn-danger" data-phase-act="del">' +
+            t('board.phaseDel') + '</button>'
+        : '');
   }
 
   function renderBoardPalette(team, uiState) {
@@ -483,14 +525,14 @@
   function renderBoardTools(uiState) {
     const routing = !!uiState.routeTeam;
     const selected = uiState.selectedMarkId
-      ? B.findMark(uiState.boardTactic, uiState.selectedMarkId) : null;
+      ? B.findMark(B.phaseAt(uiState.boardTactic, uiState.phaseIndex), uiState.selectedMarkId) : null;
 
     let html = '<div class="board-tool-row">';
     if (routing) {
       html += '<button class="btn btn-primary btn-sm" data-board-act="route-done">' + t('board.routeDone') + '</button>' +
               '<button class="btn btn-ghost btn-sm" data-board-act="route-cancel">' + t('board.routeCancel') + '</button>';
     } else {
-      const planted = !!B.plantMark(uiState.boardTactic);
+      const planted = !!B.plantMark(B.phaseAt(uiState.boardTactic, uiState.phaseIndex));
       const plantArmed = uiState.armed && uiState.armed.kind === 'plant';
       /* スパイクはどちらのチームのものでもないので、
          味方／敵のパレットではなくツールバーに置いている */
@@ -561,23 +603,63 @@
   function boardSizeControlHTML(attr) {
     const idx = boardSizeIndex();
     const a = attr === 'act' ? 'data-act' : 'data-board-act';
+    /* 編集画面では画面に収まる大きさへ抑えるので、実寸を出す */
+    const shown = attr === 'act' ? SIZE_STEPS[idx] : fitBoardSize(SIZE_STEPS[idx]);
     return '<span class="board-size">' +
              '<span class="lc-label">' + t('board.size') + '</span>' +
              '<button class="btn btn-ghost btn-sm" ' + a + '="size-down"' +
                (idx <= 0 ? ' disabled' : '') + '>−</button>' +
-             '<b>' + SIZE_STEPS[idx] + '</b>' +
+             '<b>' + shown + '</b>' +
              '<button class="btn btn-ghost btn-sm" ' + a + '="size-up"' +
                (idx >= SIZE_STEPS.length - 1 ? ' disabled' : '') + '>＋</button>' +
            '</span>';
   }
 
+  /**
+   * 盤面に使える高さ。
+   * 指定サイズのまま描くと画面からはみ出し、下半分に置くたびに
+   * スクロールする羽目になるので、収まる大きさに抑える。
+   */
+  function fitBoardSize(desired) {
+    const card = document.querySelector('#modal-board .modal-card');
+    const stage = document.querySelector('#modal-board .board-stage');
+    const canvas = $('board-canvas');
+    if (!card || !stage) return desired;
+
+    /* 予算は「今のカードの高さ」ではなく「カードの最大高さ」から引く。
+       今の高さを基準にすると、盤面を縮める → カードが縮む → さらに縮める、と
+       描き直すたびに小さくなっていってしまう。 */
+    const maxH = parseFloat(getComputedStyle(card).maxHeight);
+    if (!(maxH > 0)) return desired;
+
+    let used = 0;
+    Array.prototype.forEach.call(card.children, function (el) {
+      if (el.classList.contains('modal-body')) return;
+      /* 余白ぶんも数える。数え落とすとその分だけ盤面がはみ出す */
+      const cs = getComputedStyle(el);
+      used += el.getBoundingClientRect().height +
+              (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+    });
+    Array.prototype.forEach.call(stage.children, function (el) {
+      if (el !== canvas) used += el.getBoundingClientRect().height + 8;
+    });
+
+    const body = card.querySelector('.modal-body');
+    const pad = body
+      ? parseFloat(getComputedStyle(body).paddingTop) + parseFloat(getComputedStyle(body).paddingBottom)
+      : 36;
+    const avail = Math.floor(maxH - used - pad - 18);   /* 18 は端に触れないための余裕 */
+    if (!(avail > 0)) return desired;
+    return Math.max(360, Math.min(desired, avail));
+  }
+
   function renderBoardCanvas(uiState) {
     $('board-canvas').innerHTML = B.render({
-      tactic: uiState.boardTactic,
+      phase: B.phaseAt(uiState.boardTactic, uiState.phaseIndex),
       map: S.state.match.map,
       side: uiState.boardSide,
       highlight: uiState.boardTactic.site,
-      size: boardSize('edit'),
+      size: fitBoardSize(boardSize('edit')),
       interactive: true,
       selectedId: uiState.selectedMarkId,
       draftRoute: uiState.draftRoute,
@@ -593,7 +675,7 @@
       return;
     }
     const selected = uiState.selectedMarkId
-      ? B.findMark(uiState.boardTactic, uiState.selectedMarkId) : null;
+      ? B.findMark(B.phaseAt(uiState.boardTactic, uiState.phaseIndex), uiState.selectedMarkId) : null;
     if (selected) {
       el.textContent = t('board.hintSelected', { name: markLabel(selected) });
       return;
@@ -975,6 +1057,7 @@
     renderBoardTools: renderBoardTools,
     renderBoardHint: renderBoardHint,
     renderBoardPalette: renderBoardPalette,
+    renderBoardPhases: renderBoardPhases,
     renderTimeline: renderTimeline,
     renderPerf: renderPerf,
     renderAccount: renderAccount,

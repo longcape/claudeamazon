@@ -1687,6 +1687,17 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   pointer-events: none;
 }
 
+/* 見えない当たり判定。細い線でも右クリックで狙える */
+.board-route-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: stroke;
+}
+.board-svg:not(.is-interactive) .board-route-hit { pointer-events: none; }
+
 .board-route {
   fill: none;
   stroke-width: 1.1;
@@ -1781,7 +1792,10 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 /* =========================================================
    BOARD EDITOR MODAL
    ========================================================= */
-.modal-wide { width: min(1600px, 100%); }
+/* 配置盤だけは縦も広く取る。盤面に回せる高さが増えるほど作業しやすい */
+.modal-wide { width: min(1600px, 100%); max-height: 94vh; }
+.modal-wide > .modal-body { padding: 12px 14px; }
+.modal-wide > .modal-foot { margin-top: 12px; }
 .board-tactic-name {
   margin-left: 14px;
   font-size: 12px;
@@ -1904,12 +1918,17 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 .board-canvas { line-height: 0; }
 .board-hint {
+  /* 高さを固定しておく。文言で行数が変わると、
+     盤面の大きさを決める計算がそのぶん狂うため */
+  height: 1.6em;
   margin: 0;
+  overflow: hidden;
   font-size: 11.5px;
   color: var(--text-mute);
   text-align: center;
   line-height: 1.6;
-  max-width: 620px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* --- 決着バナーの「新しいマッチを始める」 --- */
@@ -2066,6 +2085,80 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 .board-plant-note b { color: #fff; letter-spacing: .04em; }
 .board-plant-note span { color: var(--muted); }
+
+/* =========================================================
+   局面（フェーズ）のタブ
+   ---------------------------------------------------------
+   A フェイク → B 本命 のように時間で分かれる動きを、
+   1 枚に混ぜず別々の盤面に描くための切り替え。
+   上部ナビの .phase-tab とは別物なので名前を分けている。
+   ========================================================= */
+/* タブ・追加・名前・削除を 1 行に収める。
+   縦は盤面に回したいので、行数を増やさない */
+.stage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.stage-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: .02em;
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.stage-tab b {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .1);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+}
+.stage-tab:hover { color: #fff; border-color: var(--cyan); }
+.stage-tab.is-active {
+  color: #fff;
+  border-color: var(--cyan);
+  background: rgba(53, 198, 232, .14);
+}
+.stage-tab.is-active b { background: var(--cyan); color: #06111a; }
+
+.stage-add {
+  padding: 6px 10px;
+  border: 1px dashed var(--line);
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.stage-add:hover { color: #fff; border-color: var(--cyan); }
+
+.stage-bar #phase-name {
+  flex: 1 1 160px;
+  min-width: 0;
+  max-width: 300px;
+  margin-left: auto;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  font-size: 12px;
+}
+.stage-bar #phase-name:focus { outline: none; border-color: var(--cyan); }
+
+/* ライブ画面側は切り替えるだけなので、名前の欄は出さない */
+.stage-bar-view { margin-bottom: 10px; }
 </style>
 <div class="bg-grid" aria-hidden="true"></div>
 <div class="bg-glow" aria-hidden="true"></div>
@@ -2388,6 +2481,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
       <aside class="board-palette" id="board-palette-ally"></aside>
 
       <div class="board-stage">
+        <div class="stage-bar" id="board-phases"></div>
         <div class="board-tools" id="board-tools"></div>
         <div class="board-canvas" id="board-canvas"></div>
         <p class="board-hint" id="board-hint"></p>
@@ -2919,6 +3013,12 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.done': '完了',
   'board.clear': 'すべて消去',
   'board.noRoster': 'エージェントが未設定です。セットアップ画面で味方と敵を選ぶと、ここにスキルが並びます。',
+  'board.phaseN': '局面 {n}',
+  'board.phaseAdd': '局面を追加',
+  'board.phaseDel': 'この局面を削除',
+  'board.phaseNamePh': 'この局面の名前（例：Aフェイク）',
+  'board.phaseLimit': '局面は {n} つまでです。',
+  'board.confirmPhaseDel': '「{name}」の配置を削除します。よろしいですか？',
   'board.plant': 'プラント位置',
   'board.plantMarked': 'スパイクの設置場所を指定済み',
   'board.needTactic': '先に戦術を選ぶか、新しく追加してください。',
@@ -2928,7 +3028,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.route': 'ルートを描く',
   'board.routeDone': 'ルート確定',
   'board.routeCancel': '取り消し',
-  'board.hintPlace': 'パレットから盤面へドラッグして置きます。置いたものはドラッグで移動、クリックで選択、Delete キーで削除できます。',
+  'board.hintPlace': '左ドラッグで置く・動かす。右クリックで消す。',
   'board.hintRoute': 'マップを順にクリックして進行ルートを引き、「ルート確定」を押してください。',
   'board.hintSelected': '{name} を選択中。順番の入れ替えと削除ができます。',
   'board.orderUp': '順番を早く',
@@ -2937,7 +3037,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.confirmClear': 'この戦術の配置をすべて消去します。よろしいですか？',
   'board.armed': '{name} を配置します。マップをタップしてください。',
   'board.charges': '同時展開 {n}',
-  'board.orderNote': 'スキルには使用順の番号がエージェントごとに自動で付きます。',
+  'board.orderNote': 'スキルの使用順はエージェントごとに自動で付きます。',
   'banner.nextMatch': '新しいマッチを始める',
   'tactic.limitReached': '登録できる戦術の上限（{n} 件）に達しました。',
   'board.disarm': '選択を解除',
@@ -3252,6 +3352,12 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'board.done': 'Done',
   'board.clear': 'Clear all',
   'board.noRoster': 'No agents set. Pick your team and the enemy on the setup screen and their abilities appear here.',
+  'board.phaseN': 'Phase {n}',
+  'board.phaseAdd': 'Add phase',
+  'board.phaseDel': 'Delete this phase',
+  'board.phaseNamePh': 'Name this phase (e.g. A fake)',
+  'board.phaseLimit': 'Up to {n} phases.',
+  'board.confirmPhaseDel': 'Delete the placement in "{name}"?',
   'board.plant': 'Plant spot',
   'board.plantMarked': 'Spike plant location set',
   'board.needTactic': 'Pick a tactic first, or add a new one.',
@@ -3261,7 +3367,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'board.route': 'Draw route',
   'board.routeDone': 'Finish route',
   'board.routeCancel': 'Cancel',
-  'board.hintPlace': 'Drag from the palette onto the board. Drag a placed item to move it, click to select, Delete to remove.',
+  'board.hintPlace': 'Left-drag to place and move. Right-click to delete.',
   'board.hintRoute': 'Click the map in order to trace the push, then press Finish route.',
   'board.hintSelected': '{name} selected. You can reorder or delete it.',
   'board.orderUp': 'Earlier',
@@ -3585,6 +3691,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'board.done': '완료',
   'board.clear': '전체 지우기',
   'board.noRoster': '요원이 설정되지 않았습니다. 설정 화면에서 아군과 적을 고르면 스킬이 여기에 표시됩니다.',
+  'board.phaseN': '국면 {n}',
+  'board.phaseAdd': '국면 추가',
+  'board.phaseDel': '이 국면 삭제',
+  'board.phaseNamePh': '이 국면의 이름 (예: A 페이크)',
+  'board.phaseLimit': '국면은 {n}개까지입니다.',
+  'board.confirmPhaseDel': '"{name}"의 배치를 삭제할까요?',
   'board.plant': '설치 위치',
   'board.plantMarked': '스파이크 설치 지점 지정됨',
   'board.needTactic': '먼저 전술을 선택하거나 새로 추가하세요.',
@@ -3594,7 +3706,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'board.route': '경로 그리기',
   'board.routeDone': '경로 확정',
   'board.routeCancel': '취소',
-  'board.hintPlace': '팔레트에서 보드로 끌어다 놓습니다. 놓은 것은 드래그로 이동, 클릭으로 선택, Delete 키로 삭제합니다.',
+  'board.hintPlace': '왼쪽 드래그로 놓고 옮기고, 우클릭으로 삭제합니다.',
   'board.hintRoute': '맵을 순서대로 클릭해 진입 경로를 그리고 "경로 확정"을 누르세요.',
   'board.hintSelected': '{name} 선택 중. 순서 변경과 삭제가 가능합니다.',
   'board.orderUp': '순서 앞으로',
@@ -4903,9 +5015,27 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       site: String(t.site || '-').slice(0, 8),
       kind: t.kind || 'execute',
       note: String(t.note || '').slice(0, 400),
-      board: normalizeBoard(t.board)
+      phases: normalizePhases(t)
     };
   }
+
+  /* 局面（フェーズ）。A フェイク → B 本命 のように時間で分かれる動きを
+     1 枚に混ぜず別々の盤面に描くための単位。
+     旧形式（board が 1 枚だけ）で保存されたデータもここで引き継ぐ。 */
+  const MAX_PHASES = 4;
+
+  function normalizePhases(t) {
+    let list = Array.isArray(t.phases) && t.phases.length ? t.phases : null;
+    if (!list) list = [t.board && typeof t.board === 'object' ? t.board : {}];
+    return list.slice(0, MAX_PHASES).map(function (p) {
+      const board = normalizeBoard(p);
+      board.id = String((p && p.id) || uid());
+      board.name = String((p && p.name) || '').slice(0, 24);
+      return board;
+    });
+  }
+
+  const MARK_KINDS = ['agent', 'ability', 'plant'];
 
   /** 配置盤。壊れた入力を読み込んでも落ちないよう作り直す */
   function normalizeBoard(board) {
@@ -4917,7 +5047,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       marks: marks.slice(0, 60).map(function (m) {
         return {
           id: String(m.id || uid()),
-          kind: m.kind === 'ability' ? 'ability' : 'agent',
+          kind: MARK_KINDS.indexOf(m.kind) >= 0 ? m.kind : 'agent',
           ref: String(m.ref || ''),
           team: m.team === 'enemy' ? 'enemy' : 'ally',
           x: numberIn(m.x),
@@ -5542,8 +5672,11 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
    矢印で描くための盤面。配置は戦術ごとに保存される。
 
    データ構造（tactic.board）:
+     phases: [{ id, name, marks:[...], routes:[...] }]
+     フェーズは 1 つの戦術の中の局面。A フェイク → B 本命 のように
+     時間で分かれる動きを、1 枚に混ぜず別々の盤面に描くためのもの。
      marks:  [{ id, kind:'agent'|'ability'|'plant', ref, team, x, y, order }]
-     plant はスパイクの設置位置。盤面に 1 つだけ置ける。
+     plant はスパイクの設置位置。1 つの盤面に 1 つだけ置ける。
      routes: [{ id, team, points:[{x,y}] }]
    座標はマップ簡易図と同じ 0-100 の正規化空間。
    ========================================================= */
@@ -5565,28 +5698,84 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /** 戦術に board が無ければ空の board を用意する */
-  function ensure(tactic) {
-    if (!tactic) return null;
-    if (!tactic.board || typeof tactic.board !== 'object') {
-      tactic.board = { marks: [], routes: [] };
-    }
-    if (!Array.isArray(tactic.board.marks)) tactic.board.marks = [];
-    if (!Array.isArray(tactic.board.routes)) tactic.board.routes = [];
-    return tactic.board;
+  /* ---------------- 局面（フェーズ） ---------------- */
+
+  const MAX_PHASES = 4;
+
+  function newPhase() {
+    return { id: uid('ph_'), name: '', marks: [], routes: [] };
   }
 
-  function isEmpty(tactic) {
-    const b = tactic && tactic.board;
-    return !b || ((b.marks || []).length === 0 && (b.routes || []).length === 0);
+  /** 盤面 1 枚ぶんを整える。壊れた入力でも落ちないようにする */
+  function ensure(phase) {
+    if (!phase || typeof phase !== 'object') return newPhase();
+    if (!phase.id) phase.id = uid('ph_');
+    if (typeof phase.name !== 'string') phase.name = '';
+    if (!Array.isArray(phase.marks)) phase.marks = [];
+    if (!Array.isArray(phase.routes)) phase.routes = [];
+    return phase;
+  }
+
+  /** 戦術の局面一覧。旧形式（board が 1 枚だけ）はここで引き継ぐ */
+  function phases(tactic) {
+    if (!tactic) return [];
+    if (!Array.isArray(tactic.phases) || !tactic.phases.length) {
+      const first = newPhase();
+      const old = tactic.board;
+      if (old && typeof old === 'object') {
+        if (Array.isArray(old.marks)) first.marks = old.marks;
+        if (Array.isArray(old.routes)) first.routes = old.routes;
+      }
+      tactic.phases = [first];
+      delete tactic.board;
+    }
+    tactic.phases.forEach(ensure);
+    return tactic.phases;
+  }
+
+  function phaseAt(tactic, index) {
+    const list = phases(tactic);
+    if (!list.length) return null;
+    return list[Math.max(0, Math.min(list.length - 1, Number(index) || 0))];
+  }
+
+  function addPhase(tactic) {
+    const list = phases(tactic);
+    if (list.length >= MAX_PHASES) return null;
+    const p = newPhase();
+    list.push(p);
+    return p;
+  }
+
+  /** 局面を消す。最後の 1 枚は残す（盤面が無い戦術は作れない） */
+  function removePhase(tactic, index) {
+    const list = phases(tactic);
+    if (list.length <= 1) return false;
+    list.splice(Math.max(0, Math.min(list.length - 1, Number(index) || 0)), 1);
+    return true;
+  }
+
+  function renamePhase(tactic, index, name) {
+    const p = phaseAt(tactic, index);
+    if (p) p.name = String(name == null ? '' : name).slice(0, 24);
+    return p;
+  }
+
+  function isEmpty(phase) {
+    return !phase || ((phase.marks || []).length === 0 && (phase.routes || []).length === 0);
+  }
+
+  /** 戦術に配置がひとつも無いか（デッキの印やライブ画面の判定に使う） */
+  function tacticIsEmpty(tactic) {
+    return phases(tactic).every(isEmpty);
   }
 
   /* ---------------- 配置の操作 ---------------- */
 
   const KINDS = ['agent', 'ability', 'plant'];
 
-  function addMark(tactic, mark) {
-    const b = ensure(tactic);
+  function addMark(phase, mark) {
+    const b = ensure(phase);
     const kind = KINDS.indexOf(mark.kind) >= 0 ? mark.kind : 'agent';
 
     /* プラント位置は 1 ラウンドに 1 か所しかない。
@@ -5623,15 +5812,15 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     return used.length ? Math.max.apply(null, used) + 1 : 1;
   }
 
-  function moveMark(tactic, id, x, y) {
-    const m = findMark(tactic, id);
+  function moveMark(phase, id, x, y) {
+    const m = findMark(phase, id);
     if (!m) return;
     m.x = clamp(x);
     m.y = clamp(y);
   }
 
-  function removeMark(tactic, id) {
-    const b = ensure(tactic);
+  function removeMark(phase, id) {
+    const b = ensure(phase);
     b.marks = b.marks.filter(function (m) { return m.id !== id; });
     renumber(b);
   }
@@ -5651,9 +5840,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
   }
 
-  function bumpOrder(tactic, id, delta) {
-    const b = ensure(tactic);
-    const target = findMark(tactic, id);
+  function bumpOrder(phase, id, delta) {
+    const b = ensure(phase);
+    const target = findMark(phase, id);
     if (!target || target.kind !== 'ability') return;
 
     const peers = b.marks
@@ -5671,14 +5860,14 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     swapWith.order = tmp;
   }
 
-  function findMark(tactic, id) {
-    const b = ensure(tactic);
+  function findMark(phase, id) {
+    const b = ensure(phase);
     return b.marks.filter(function (m) { return m.id === id; })[0] || null;
   }
 
-  function addRoute(tactic, team, points) {
+  function addRoute(phase, team, points) {
     if (!points || points.length < 2) return null;
-    const b = ensure(tactic);
+    const b = ensure(phase);
     const route = {
       id: uid('rt_'),
       team: team === 'enemy' ? 'enemy' : 'ally',
@@ -5688,13 +5877,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     return route;
   }
 
-  function removeRoute(tactic, id) {
-    const b = ensure(tactic);
+  function removeRoute(phase, id) {
+    const b = ensure(phase);
     b.routes = b.routes.filter(function (r) { return r.id !== id; });
   }
 
-  function clearBoard(tactic) {
-    const b = ensure(tactic);
+  function clearBoard(phase) {
+    const b = ensure(phase);
     b.marks = [];
     b.routes = [];
   }
@@ -5707,11 +5896,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   /**
    * 盤面を SVG で描く。
-   * @param {Object} opts { tactic, map, side, size, interactive, selectedId, draftRoute, draftTeam }
+   * @param {Object} opts { phase, map, side, size, interactive, selectedId, draftRoute, draftTeam }
    */
   function render(opts) {
-    const tactic = opts.tactic;
-    const board = ensure(tactic);
+    const board = ensure(opts.phase);
     const size = opts.size || 420;
     const interactive = !!opts.interactive;
 
@@ -5762,10 +5950,16 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   function routeHTML(route, isDraft) {
     const pts = route.points.map(function (p) { return p.x + ',' + p.y; }).join(' ');
-    return '<polyline class="board-route board-route-' + route.team + (isDraft ? ' is-draft' : '') + '" ' +
-           'points="' + pts + '" ' +
-           'marker-end="url(#ml-arrow-' + route.team + ')" ' +
-           'data-route="' + esc(route.id) + '" />';
+    /* 線そのものは細いので、右クリックで狙えるよう
+       見えない太い線を裏に重ねて当たり判定にする */
+    const hit = isDraft ? ''
+      : '<polyline class="board-route-hit" points="' + pts + '" ' +
+          'data-route="' + esc(route.id) + '" />';
+    return hit +
+      '<polyline class="board-route board-route-' + route.team + (isDraft ? ' is-draft' : '') + '" ' +
+      'points="' + pts + '" ' +
+      'marker-end="url(#ml-arrow-' + route.team + ')" ' +
+      'data-route="' + esc(route.id) + '" />';
   }
 
   function markHTML(mark, selected) {
@@ -5891,8 +6085,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /** 設置位置のマーク。無ければ null */
-  function plantMark(tactic) {
-    const b = ensure(tactic);
+  function plantMark(phase) {
+    const b = ensure(phase);
     if (!b) return null;
     return b.marks.filter(function (m) { return m.kind === 'plant'; })[0] || null;
   }
@@ -5900,6 +6094,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   global.VCT_BOARD = {
     ensure: ensure,
     isEmpty: isEmpty,
+    tacticIsEmpty: tacticIsEmpty,
+    phases: phases,
+    phaseAt: phaseAt,
+    addPhase: addPhase,
+    removePhase: removePhase,
+    renamePhase: renamePhase,
+    MAX_PHASES: MAX_PHASES,
     plantMark: plantMark,
     spikeIconHTML: spikeIconHTML,
     addMark: addMark,
@@ -6520,7 +6721,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
             (st.used
               ? '<span>' + st.win + 'W ' + st.loss + 'L</span><span>/</span><span>' + st.winRate + '%</span>'
               : '<span>' + t('common.unused') + '</span>') +
-            (B.isEmpty(tac) ? '' : '<span class="tcard-hasboard">▣</span>') +
+            (B.tacticIsEmpty(tac) ? '' : '<span class="tcard-hasboard">▣</span>') +
             '<button type="button" class="tcard-board" data-board-for="' + tac.id + '">' +
               '▣ ' + t('board.edit') + '</button>' +
           '</div>' +
@@ -6660,7 +6861,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         '</div>' +
         shareBarHTML() +
       '</div>' +
-      boardPanelHTML(tac, side) +
+      boardPanelHTML(tac, side, uiState.livePhase) +
       analysisHTML(uiState);
   }
 
@@ -6677,20 +6878,34 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /* --- 配置盤（ライブボード上の表示） --- */
-  function boardPanelHTML(tactic, side) {
-    const empty = B.isEmpty(tactic);
-    const body = empty
-      ? '<div class="panel-body"><p class="deck-empty">' + t('board.empty') + '</p></div>'
-      : '<div class="panel-body board-view">' +
+  function boardPanelHTML(tactic, side, phaseIndex) {
+    const list = B.phases(tactic);
+    const idx = Math.max(0, Math.min(list.length - 1, phaseIndex || 0));
+    const phase = list[idx];
+
+    /* 局面が 2 つ以上あるときだけタブを出す。
+       A フェイク → B 本命 のように、1 枚に混ぜると読めない動きを分けて見る */
+    const tabs = list.length > 1
+      ? '<div class="stage-bar stage-bar-view">' + list.map(function (p, i) {
+          return '<button type="button" class="stage-tab' + (i === idx ? ' is-active' : '') + '"' +
+                   ' data-act="live-phase" data-phase-index="' + i + '">' +
+                   '<b>' + (i + 1) + '</b>' + esc(p.name || t('board.phaseN', { n: i + 1 })) +
+                 '</button>';
+        }).join('') + '</div>'
+      : '';
+
+    const body = B.isEmpty(phase)
+      ? '<div class="panel-body">' + tabs + '<p class="deck-empty">' + t('board.empty') + '</p></div>'
+      : '<div class="panel-body board-view">' + tabs +
           B.render({
-            tactic: tactic,
+            phase: phase,
             map: S.state.match.map,
             side: side,
             highlight: tactic.site,
             size: boardSize('view'),
             interactive: false
           }) +
-          boardLegendHTML(tactic) +
+          boardLegendHTML(phase) +
         '</div>';
 
     return '<article class="panel panel-clip board-panel">' +
@@ -6705,13 +6920,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /** エージェントごとにまとめたスキルの使用順。実戦ではこれを読み上げる */
-  function boardLegendHTML(tactic) {
-    const board = B.ensure(tactic);
+  function boardLegendHTML(phase) {
+    const board = B.ensure(phase);
     const abilities = board.marks.filter(function (m) {
       return m.kind === 'ability' && m.team === 'ally';
     });
     /* 設置位置は読み上げの起点になるので、スキルより先に出す */
-    const plantRow = B.plantMark(tactic)
+    const plantRow = B.plantMark(phase)
       ? '<p class="board-plant-note">' + B.spikeIconHTML() +
           '<b>' + t('board.plant') + '</b>' +
           '<span>' + t('board.plantMarked') + '</span></p>'
@@ -6760,11 +6975,39 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     if (!tactic) return;
 
     $('board-tactic-name').textContent = tactic.name;
+    renderBoardPhases(uiState);
     renderBoardPalette('ally', uiState);
     renderBoardPalette('enemy', uiState);
     renderBoardTools(uiState);
-    renderBoardCanvas(uiState);
+    /* ヒントの高さも予算に入るので、盤面より先に確定させる */
     renderBoardHint(uiState);
+    renderBoardCanvas(uiState);
+  }
+
+  /* 局面のタブ。名前は空でもよく、その場合は「局面 N」と表示する */
+  function renderBoardPhases(uiState) {
+    const list = B.phases(uiState.boardTactic);
+    const idx = uiState.phaseIndex || 0;
+
+    const tabs = list.map(function (p, i) {
+      return '<button type="button" class="stage-tab' + (i === idx ? ' is-active' : '') + '"' +
+               ' data-phase-act="go" data-phase-index="' + i + '">' +
+               '<b>' + (i + 1) + '</b>' + esc(p.name || t('board.phaseN', { n: i + 1 })) +
+             '</button>';
+    }).join('');
+
+    const add = list.length < B.MAX_PHASES
+      ? '<button type="button" class="stage-add" data-phase-act="add">＋ ' + t('board.phaseAdd') + '</button>'
+      : '';
+
+    $('board-phases').innerHTML =
+      tabs + add +
+      '<input type="text" id="phase-name" maxlength="24" value="' + esc(list[idx].name) + '" ' +
+        'placeholder="' + esc(t('board.phaseNamePh')) + '" />' +
+      (list.length > 1
+        ? '<button type="button" class="btn btn-ghost btn-sm btn-danger" data-phase-act="del">' +
+            t('board.phaseDel') + '</button>'
+        : '');
   }
 
   function renderBoardPalette(team, uiState) {
@@ -6807,14 +7050,14 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function renderBoardTools(uiState) {
     const routing = !!uiState.routeTeam;
     const selected = uiState.selectedMarkId
-      ? B.findMark(uiState.boardTactic, uiState.selectedMarkId) : null;
+      ? B.findMark(B.phaseAt(uiState.boardTactic, uiState.phaseIndex), uiState.selectedMarkId) : null;
 
     let html = '<div class="board-tool-row">';
     if (routing) {
       html += '<button class="btn btn-primary btn-sm" data-board-act="route-done">' + t('board.routeDone') + '</button>' +
               '<button class="btn btn-ghost btn-sm" data-board-act="route-cancel">' + t('board.routeCancel') + '</button>';
     } else {
-      const planted = !!B.plantMark(uiState.boardTactic);
+      const planted = !!B.plantMark(B.phaseAt(uiState.boardTactic, uiState.phaseIndex));
       const plantArmed = uiState.armed && uiState.armed.kind === 'plant';
       /* スパイクはどちらのチームのものでもないので、
          味方／敵のパレットではなくツールバーに置いている */
@@ -6885,23 +7128,63 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function boardSizeControlHTML(attr) {
     const idx = boardSizeIndex();
     const a = attr === 'act' ? 'data-act' : 'data-board-act';
+    /* 編集画面では画面に収まる大きさへ抑えるので、実寸を出す */
+    const shown = attr === 'act' ? SIZE_STEPS[idx] : fitBoardSize(SIZE_STEPS[idx]);
     return '<span class="board-size">' +
              '<span class="lc-label">' + t('board.size') + '</span>' +
              '<button class="btn btn-ghost btn-sm" ' + a + '="size-down"' +
                (idx <= 0 ? ' disabled' : '') + '>−</button>' +
-             '<b>' + SIZE_STEPS[idx] + '</b>' +
+             '<b>' + shown + '</b>' +
              '<button class="btn btn-ghost btn-sm" ' + a + '="size-up"' +
                (idx >= SIZE_STEPS.length - 1 ? ' disabled' : '') + '>＋</button>' +
            '</span>';
   }
 
+  /**
+   * 盤面に使える高さ。
+   * 指定サイズのまま描くと画面からはみ出し、下半分に置くたびに
+   * スクロールする羽目になるので、収まる大きさに抑える。
+   */
+  function fitBoardSize(desired) {
+    const card = document.querySelector('#modal-board .modal-card');
+    const stage = document.querySelector('#modal-board .board-stage');
+    const canvas = $('board-canvas');
+    if (!card || !stage) return desired;
+
+    /* 予算は「今のカードの高さ」ではなく「カードの最大高さ」から引く。
+       今の高さを基準にすると、盤面を縮める → カードが縮む → さらに縮める、と
+       描き直すたびに小さくなっていってしまう。 */
+    const maxH = parseFloat(getComputedStyle(card).maxHeight);
+    if (!(maxH > 0)) return desired;
+
+    let used = 0;
+    Array.prototype.forEach.call(card.children, function (el) {
+      if (el.classList.contains('modal-body')) return;
+      /* 余白ぶんも数える。数え落とすとその分だけ盤面がはみ出す */
+      const cs = getComputedStyle(el);
+      used += el.getBoundingClientRect().height +
+              (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+    });
+    Array.prototype.forEach.call(stage.children, function (el) {
+      if (el !== canvas) used += el.getBoundingClientRect().height + 8;
+    });
+
+    const body = card.querySelector('.modal-body');
+    const pad = body
+      ? parseFloat(getComputedStyle(body).paddingTop) + parseFloat(getComputedStyle(body).paddingBottom)
+      : 36;
+    const avail = Math.floor(maxH - used - pad - 18);   /* 18 は端に触れないための余裕 */
+    if (!(avail > 0)) return desired;
+    return Math.max(360, Math.min(desired, avail));
+  }
+
   function renderBoardCanvas(uiState) {
     $('board-canvas').innerHTML = B.render({
-      tactic: uiState.boardTactic,
+      phase: B.phaseAt(uiState.boardTactic, uiState.phaseIndex),
       map: S.state.match.map,
       side: uiState.boardSide,
       highlight: uiState.boardTactic.site,
-      size: boardSize('edit'),
+      size: fitBoardSize(boardSize('edit')),
       interactive: true,
       selectedId: uiState.selectedMarkId,
       draftRoute: uiState.draftRoute,
@@ -6917,7 +7200,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       return;
     }
     const selected = uiState.selectedMarkId
-      ? B.findMark(uiState.boardTactic, uiState.selectedMarkId) : null;
+      ? B.findMark(B.phaseAt(uiState.boardTactic, uiState.phaseIndex), uiState.selectedMarkId) : null;
     if (selected) {
       el.textContent = t('board.hintSelected', { name: markLabel(selected) });
       return;
@@ -7299,6 +7582,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     renderBoardTools: renderBoardTools,
     renderBoardHint: renderBoardHint,
     renderBoardPalette: renderBoardPalette,
+    renderBoardPhases: renderBoardPhases,
     renderTimeline: renderTimeline,
     renderPerf: renderPerf,
     renderAccount: renderAccount,
@@ -7368,6 +7652,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     /* 配置盤エディタ */
     boardTactic: null,        // 編集中の戦術
+    phaseIndex: 0,            // 編集中の局面（A フェイク / B 本命 など）
+    livePhase: 0,             // ライブ画面で表示中の局面
     boardSide: 'ATK',
     armed: null,              // パレットで選択中の「これから置くもの」
     selectedMarkId: null,     // 盤上で選択中のマーク
@@ -7530,24 +7816,33 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /* ================= 配置盤 ================= */
+
+  /** いま編集している局面の盤面 */
+  function curPhase() {
+    return BOARD.phaseAt(ui.boardTactic, ui.phaseIndex);
+  }
+
   function openBoardEditor(tactic) {
     /* 押しても何も起きないボタンを作らない。理由を必ず出す */
     if (!tactic) { U.toast(t('board.needTactic'), 'err'); return; }
     ui.boardTactic = tactic;
+    ui.phaseIndex = 0;
     ui.boardSide = S.sideForRound(S.currentRoundNumber());
     ui.armed = null;
     ui.selectedMarkId = null;
     ui.routeTeam = null;
     ui.draftRoute = [];
-    BOARD.ensure(tactic);
-    U.renderBoardEditor(ui);
+    BOARD.phases(tactic);
+    /* 高さを測ってから描くので、先に開く */
     openModal('modal-board');
+    U.renderBoardEditor(ui);
   }
 
   function refreshBoard() {
-    U.renderBoardCanvas(ui);
+    U.renderBoardPhases(ui);
     U.renderBoardTools(ui);
     U.renderBoardHint(ui);
+    U.renderBoardCanvas(ui);
     U.renderBoardPalette('ally', ui);
     U.renderBoardPalette('enemy', ui);
   }
@@ -7560,6 +7855,50 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   function bindBoardEditor() {
     bindPaletteDrag();
+
+    /* 局面（フェーズ）の切り替え・追加・削除・改名 */
+    $('board-phases').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-phase-act]');
+      if (!btn) return;
+      const act = btn.dataset.phaseAct;
+
+      if (act === 'go') {
+        ui.phaseIndex = Number(btn.dataset.phaseIndex) || 0;
+      } else if (act === 'add') {
+        if (!BOARD.addPhase(ui.boardTactic)) {
+          U.toast(t('board.phaseLimit', { n: BOARD.MAX_PHASES }), 'err');
+          return;
+        }
+        ui.phaseIndex = BOARD.phases(ui.boardTactic).length - 1;
+      } else if (act === 'del') {
+        const label = curPhase().name || t('board.phaseN', { n: ui.phaseIndex + 1 });
+        if (!confirm(t('board.confirmPhaseDel', { name: label }))) return;
+        BOARD.removePhase(ui.boardTactic, ui.phaseIndex);
+        ui.phaseIndex = Math.max(0, ui.phaseIndex - 1);
+      } else {
+        return;
+      }
+
+      ui.armed = null;
+      ui.selectedMarkId = null;
+      ui.routeTeam = null;
+      ui.draftRoute = [];
+      commitBoard();
+      refreshBoard();
+    });
+
+    /* 名前は打つたびに保存する。タブの見出しだけ差し替えて、
+       入力欄そのものは描き直さない（打っている途中で focus が飛ぶため） */
+    $('board-phases').addEventListener('input', function (e) {
+      if (e.target.id !== 'phase-name') return;
+      BOARD.renamePhase(ui.boardTactic, ui.phaseIndex, e.target.value);
+      const tab = $('board-phases').querySelector('.stage-tab.is-active');
+      if (tab) {
+        tab.lastChild.textContent = e.target.value ||
+          t('board.phaseN', { n: ui.phaseIndex + 1 });
+      }
+      commitBoard();
+    });
 
     /* ツールバー */
     $('board-tools').addEventListener('click', function (e) {
@@ -7574,7 +7913,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         ui.selectedMarkId = null;
       } else if (act === 'route-done') {
         if (ui.draftRoute.length >= 2) {
-          BOARD.addRoute(ui.boardTactic, ui.routeTeam, ui.draftRoute);
+          BOARD.addRoute(curPhase(), ui.routeTeam, ui.draftRoute);
           commitBoard();
         }
         ui.routeTeam = null;
@@ -7588,10 +7927,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
         if (ui.view === 'live') renderLive();
       } else if (act === 'order-up' || act === 'order-down') {
-        BOARD.bumpOrder(ui.boardTactic, ui.selectedMarkId, act === 'order-up' ? -1 : 1);
+        BOARD.bumpOrder(curPhase(), ui.selectedMarkId, act === 'order-up' ? -1 : 1);
         commitBoard();
       } else if (act === 'delete-mark') {
-        BOARD.removeMark(ui.boardTactic, ui.selectedMarkId);
+        BOARD.removeMark(curPhase(), ui.selectedMarkId);
         ui.selectedMarkId = null;
         commitBoard();
       }
@@ -7601,7 +7940,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     $('btn-board-clear').addEventListener('click', function () {
       if (!ui.boardTactic) return;
       if (!confirm(t('board.confirmClear'))) return;
-      BOARD.clearBoard(ui.boardTactic);
+      BOARD.clearBoard(curPhase());
       ui.selectedMarkId = null;
       ui.armed = null;
       ui.routeTeam = null;
@@ -7665,6 +8004,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       const pal = $(id);
 
       pal.addEventListener('pointerdown', function (e) {
+        if (e.button) return;          // 左ボタン（とタッチ）だけ掴める
         const btn = e.target.closest('[data-place-kind]');
         if (!btn) return;
         drag = {
@@ -7708,7 +8048,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
           const svg = boardUnder(e);
           if (svg) {
             const p = BOARD.toBoardPoint(svg, e);
-            BOARD.addMark(ui.boardTactic, {
+            BOARD.addMark(curPhase(), {
               kind: current.kind, ref: current.ref, team: current.team, x: p.x, y: p.y
             });
             commitBoard();
@@ -7749,8 +8089,48 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     function svgEl() { return canvas.querySelector('svg[data-board]'); }
 
+    /* 右クリックで消す。
+       マークの上なら そのマーク、ルートの上なら そのルート、
+       ルートを引いている途中なら 引きかけの線を取り消す。 */
+    canvas.addEventListener('contextmenu', function (e) {
+      if (!svgEl()) return;
+      e.preventDefault();
+
+      const markEl = e.target.closest('.board-mark');
+      if (markEl) {
+        BOARD.removeMark(curPhase(), markEl.dataset.mark);
+        if (ui.selectedMarkId === markEl.dataset.mark) ui.selectedMarkId = null;
+        commitBoard();
+        refreshBoard();
+        return;
+      }
+
+      const routeEl = e.target.closest('[data-route]');
+      if (routeEl && routeEl.dataset.route !== 'draft') {
+        BOARD.removeRoute(curPhase(), routeEl.dataset.route);
+        commitBoard();
+        refreshBoard();
+        return;
+      }
+
+      if (ui.routeTeam) {
+        ui.routeTeam = null;
+        ui.draftRoute = [];
+        refreshBoard();
+        return;
+      }
+
+      /* 何も無いところなら、選択と「これから置くもの」を解除する */
+      if (ui.armed || ui.selectedMarkId) {
+        ui.armed = null;
+        ui.selectedMarkId = null;
+        refreshBoard();
+      }
+    });
+
     canvas.addEventListener('pointerdown', function (e) {
       if (!svgEl()) return;
+      if (e.button) return;            // 左ボタン（とタッチ）だけ掴める
       const markEl = e.target.closest('.board-mark');
       press = {
         el: markEl || null,
@@ -7782,8 +8162,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       if (!svg) return;
 
       const p = BOARD.toBoardPoint(svg, e);
-      BOARD.moveMark(ui.boardTactic, press.markId, p.x, p.y);
-      const mark = BOARD.findMark(ui.boardTactic, press.markId);
+      BOARD.moveMark(curPhase(), press.markId, p.x, p.y);
+      const mark = BOARD.findMark(curPhase(), press.markId);
       if (mark) press.el.setAttribute('transform', 'translate(' + mark.x + ',' + mark.y + ')');
       e.preventDefault();
     });
@@ -7817,7 +8197,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
       /* 配置するものが選ばれていれば置く */
       if (ui.armed) {
-        BOARD.addMark(ui.boardTactic, {
+        BOARD.addMark(curPhase(), {
           kind: ui.armed.kind,
           ref: ui.armed.ref,
           team: ui.armed.team,
@@ -8004,6 +8384,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         }
       } else if (act === 'size-up' || act === 'size-down') {
         U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
+        renderLive();
+      } else if (act === 'live-phase') {
+        ui.livePhase = Number(el.dataset.phaseIndex) || 0;
         renderLive();
       } else if (act === 'edit-board') {
         openBoardEditor(currentTactic());
@@ -8361,7 +8744,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       /* 配置盤で選択中のマークは Delete で消せる */
       if (!$('modal-board').hidden && ui.selectedMarkId &&
           (e.key === 'Delete' || e.key === 'Backspace')) {
-        BOARD.removeMark(ui.boardTactic, ui.selectedMarkId);
+        BOARD.removeMark(curPhase(), ui.selectedMarkId);
         ui.selectedMarkId = null;
         commitBoard();
         refreshBoard();

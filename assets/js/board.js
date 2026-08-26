@@ -5,8 +5,11 @@
    矢印で描くための盤面。配置は戦術ごとに保存される。
 
    データ構造（tactic.board）:
+     phases: [{ id, name, marks:[...], routes:[...] }]
+     フェーズは 1 つの戦術の中の局面。A フェイク → B 本命 のように
+     時間で分かれる動きを、1 枚に混ぜず別々の盤面に描くためのもの。
      marks:  [{ id, kind:'agent'|'ability'|'plant', ref, team, x, y, order }]
-     plant はスパイクの設置位置。盤面に 1 つだけ置ける。
+     plant はスパイクの設置位置。1 つの盤面に 1 つだけ置ける。
      routes: [{ id, team, points:[{x,y}] }]
    座標はマップ簡易図と同じ 0-100 の正規化空間。
    ========================================================= */
@@ -28,28 +31,84 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /** 戦術に board が無ければ空の board を用意する */
-  function ensure(tactic) {
-    if (!tactic) return null;
-    if (!tactic.board || typeof tactic.board !== 'object') {
-      tactic.board = { marks: [], routes: [] };
-    }
-    if (!Array.isArray(tactic.board.marks)) tactic.board.marks = [];
-    if (!Array.isArray(tactic.board.routes)) tactic.board.routes = [];
-    return tactic.board;
+  /* ---------------- 局面（フェーズ） ---------------- */
+
+  const MAX_PHASES = 4;
+
+  function newPhase() {
+    return { id: uid('ph_'), name: '', marks: [], routes: [] };
   }
 
-  function isEmpty(tactic) {
-    const b = tactic && tactic.board;
-    return !b || ((b.marks || []).length === 0 && (b.routes || []).length === 0);
+  /** 盤面 1 枚ぶんを整える。壊れた入力でも落ちないようにする */
+  function ensure(phase) {
+    if (!phase || typeof phase !== 'object') return newPhase();
+    if (!phase.id) phase.id = uid('ph_');
+    if (typeof phase.name !== 'string') phase.name = '';
+    if (!Array.isArray(phase.marks)) phase.marks = [];
+    if (!Array.isArray(phase.routes)) phase.routes = [];
+    return phase;
+  }
+
+  /** 戦術の局面一覧。旧形式（board が 1 枚だけ）はここで引き継ぐ */
+  function phases(tactic) {
+    if (!tactic) return [];
+    if (!Array.isArray(tactic.phases) || !tactic.phases.length) {
+      const first = newPhase();
+      const old = tactic.board;
+      if (old && typeof old === 'object') {
+        if (Array.isArray(old.marks)) first.marks = old.marks;
+        if (Array.isArray(old.routes)) first.routes = old.routes;
+      }
+      tactic.phases = [first];
+      delete tactic.board;
+    }
+    tactic.phases.forEach(ensure);
+    return tactic.phases;
+  }
+
+  function phaseAt(tactic, index) {
+    const list = phases(tactic);
+    if (!list.length) return null;
+    return list[Math.max(0, Math.min(list.length - 1, Number(index) || 0))];
+  }
+
+  function addPhase(tactic) {
+    const list = phases(tactic);
+    if (list.length >= MAX_PHASES) return null;
+    const p = newPhase();
+    list.push(p);
+    return p;
+  }
+
+  /** 局面を消す。最後の 1 枚は残す（盤面が無い戦術は作れない） */
+  function removePhase(tactic, index) {
+    const list = phases(tactic);
+    if (list.length <= 1) return false;
+    list.splice(Math.max(0, Math.min(list.length - 1, Number(index) || 0)), 1);
+    return true;
+  }
+
+  function renamePhase(tactic, index, name) {
+    const p = phaseAt(tactic, index);
+    if (p) p.name = String(name == null ? '' : name).slice(0, 24);
+    return p;
+  }
+
+  function isEmpty(phase) {
+    return !phase || ((phase.marks || []).length === 0 && (phase.routes || []).length === 0);
+  }
+
+  /** 戦術に配置がひとつも無いか（デッキの印やライブ画面の判定に使う） */
+  function tacticIsEmpty(tactic) {
+    return phases(tactic).every(isEmpty);
   }
 
   /* ---------------- 配置の操作 ---------------- */
 
   const KINDS = ['agent', 'ability', 'plant'];
 
-  function addMark(tactic, mark) {
-    const b = ensure(tactic);
+  function addMark(phase, mark) {
+    const b = ensure(phase);
     const kind = KINDS.indexOf(mark.kind) >= 0 ? mark.kind : 'agent';
 
     /* プラント位置は 1 ラウンドに 1 か所しかない。
@@ -86,15 +145,15 @@
     return used.length ? Math.max.apply(null, used) + 1 : 1;
   }
 
-  function moveMark(tactic, id, x, y) {
-    const m = findMark(tactic, id);
+  function moveMark(phase, id, x, y) {
+    const m = findMark(phase, id);
     if (!m) return;
     m.x = clamp(x);
     m.y = clamp(y);
   }
 
-  function removeMark(tactic, id) {
-    const b = ensure(tactic);
+  function removeMark(phase, id) {
+    const b = ensure(phase);
     b.marks = b.marks.filter(function (m) { return m.id !== id; });
     renumber(b);
   }
@@ -114,9 +173,9 @@
     });
   }
 
-  function bumpOrder(tactic, id, delta) {
-    const b = ensure(tactic);
-    const target = findMark(tactic, id);
+  function bumpOrder(phase, id, delta) {
+    const b = ensure(phase);
+    const target = findMark(phase, id);
     if (!target || target.kind !== 'ability') return;
 
     const peers = b.marks
@@ -134,14 +193,14 @@
     swapWith.order = tmp;
   }
 
-  function findMark(tactic, id) {
-    const b = ensure(tactic);
+  function findMark(phase, id) {
+    const b = ensure(phase);
     return b.marks.filter(function (m) { return m.id === id; })[0] || null;
   }
 
-  function addRoute(tactic, team, points) {
+  function addRoute(phase, team, points) {
     if (!points || points.length < 2) return null;
-    const b = ensure(tactic);
+    const b = ensure(phase);
     const route = {
       id: uid('rt_'),
       team: team === 'enemy' ? 'enemy' : 'ally',
@@ -151,13 +210,13 @@
     return route;
   }
 
-  function removeRoute(tactic, id) {
-    const b = ensure(tactic);
+  function removeRoute(phase, id) {
+    const b = ensure(phase);
     b.routes = b.routes.filter(function (r) { return r.id !== id; });
   }
 
-  function clearBoard(tactic) {
-    const b = ensure(tactic);
+  function clearBoard(phase) {
+    const b = ensure(phase);
     b.marks = [];
     b.routes = [];
   }
@@ -170,11 +229,10 @@
 
   /**
    * 盤面を SVG で描く。
-   * @param {Object} opts { tactic, map, side, size, interactive, selectedId, draftRoute, draftTeam }
+   * @param {Object} opts { phase, map, side, size, interactive, selectedId, draftRoute, draftTeam }
    */
   function render(opts) {
-    const tactic = opts.tactic;
-    const board = ensure(tactic);
+    const board = ensure(opts.phase);
     const size = opts.size || 420;
     const interactive = !!opts.interactive;
 
@@ -225,10 +283,16 @@
 
   function routeHTML(route, isDraft) {
     const pts = route.points.map(function (p) { return p.x + ',' + p.y; }).join(' ');
-    return '<polyline class="board-route board-route-' + route.team + (isDraft ? ' is-draft' : '') + '" ' +
-           'points="' + pts + '" ' +
-           'marker-end="url(#ml-arrow-' + route.team + ')" ' +
-           'data-route="' + esc(route.id) + '" />';
+    /* 線そのものは細いので、右クリックで狙えるよう
+       見えない太い線を裏に重ねて当たり判定にする */
+    const hit = isDraft ? ''
+      : '<polyline class="board-route-hit" points="' + pts + '" ' +
+          'data-route="' + esc(route.id) + '" />';
+    return hit +
+      '<polyline class="board-route board-route-' + route.team + (isDraft ? ' is-draft' : '') + '" ' +
+      'points="' + pts + '" ' +
+      'marker-end="url(#ml-arrow-' + route.team + ')" ' +
+      'data-route="' + esc(route.id) + '" />';
   }
 
   function markHTML(mark, selected) {
@@ -354,8 +418,8 @@
   }
 
   /** 設置位置のマーク。無ければ null */
-  function plantMark(tactic) {
-    const b = ensure(tactic);
+  function plantMark(phase) {
+    const b = ensure(phase);
     if (!b) return null;
     return b.marks.filter(function (m) { return m.kind === 'plant'; })[0] || null;
   }
@@ -363,6 +427,13 @@
   global.VCT_BOARD = {
     ensure: ensure,
     isEmpty: isEmpty,
+    tacticIsEmpty: tacticIsEmpty,
+    phases: phases,
+    phaseAt: phaseAt,
+    addPhase: addPhase,
+    removePhase: removePhase,
+    renamePhase: renamePhase,
+    MAX_PHASES: MAX_PHASES,
     plantMark: plantMark,
     spikeIconHTML: spikeIconHTML,
     addMark: addMark,

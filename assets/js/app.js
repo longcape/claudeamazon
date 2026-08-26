@@ -45,6 +45,8 @@
 
     /* 配置盤エディタ */
     boardTactic: null,        // 編集中の戦術
+    phaseIndex: 0,            // 編集中の局面（A フェイク / B 本命 など）
+    livePhase: 0,             // ライブ画面で表示中の局面
     boardSide: 'ATK',
     armed: null,              // パレットで選択中の「これから置くもの」
     selectedMarkId: null,     // 盤上で選択中のマーク
@@ -207,24 +209,33 @@
   }
 
   /* ================= 配置盤 ================= */
+
+  /** いま編集している局面の盤面 */
+  function curPhase() {
+    return BOARD.phaseAt(ui.boardTactic, ui.phaseIndex);
+  }
+
   function openBoardEditor(tactic) {
     /* 押しても何も起きないボタンを作らない。理由を必ず出す */
     if (!tactic) { U.toast(t('board.needTactic'), 'err'); return; }
     ui.boardTactic = tactic;
+    ui.phaseIndex = 0;
     ui.boardSide = S.sideForRound(S.currentRoundNumber());
     ui.armed = null;
     ui.selectedMarkId = null;
     ui.routeTeam = null;
     ui.draftRoute = [];
-    BOARD.ensure(tactic);
-    U.renderBoardEditor(ui);
+    BOARD.phases(tactic);
+    /* 高さを測ってから描くので、先に開く */
     openModal('modal-board');
+    U.renderBoardEditor(ui);
   }
 
   function refreshBoard() {
-    U.renderBoardCanvas(ui);
+    U.renderBoardPhases(ui);
     U.renderBoardTools(ui);
     U.renderBoardHint(ui);
+    U.renderBoardCanvas(ui);
     U.renderBoardPalette('ally', ui);
     U.renderBoardPalette('enemy', ui);
   }
@@ -237,6 +248,50 @@
 
   function bindBoardEditor() {
     bindPaletteDrag();
+
+    /* 局面（フェーズ）の切り替え・追加・削除・改名 */
+    $('board-phases').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-phase-act]');
+      if (!btn) return;
+      const act = btn.dataset.phaseAct;
+
+      if (act === 'go') {
+        ui.phaseIndex = Number(btn.dataset.phaseIndex) || 0;
+      } else if (act === 'add') {
+        if (!BOARD.addPhase(ui.boardTactic)) {
+          U.toast(t('board.phaseLimit', { n: BOARD.MAX_PHASES }), 'err');
+          return;
+        }
+        ui.phaseIndex = BOARD.phases(ui.boardTactic).length - 1;
+      } else if (act === 'del') {
+        const label = curPhase().name || t('board.phaseN', { n: ui.phaseIndex + 1 });
+        if (!confirm(t('board.confirmPhaseDel', { name: label }))) return;
+        BOARD.removePhase(ui.boardTactic, ui.phaseIndex);
+        ui.phaseIndex = Math.max(0, ui.phaseIndex - 1);
+      } else {
+        return;
+      }
+
+      ui.armed = null;
+      ui.selectedMarkId = null;
+      ui.routeTeam = null;
+      ui.draftRoute = [];
+      commitBoard();
+      refreshBoard();
+    });
+
+    /* 名前は打つたびに保存する。タブの見出しだけ差し替えて、
+       入力欄そのものは描き直さない（打っている途中で focus が飛ぶため） */
+    $('board-phases').addEventListener('input', function (e) {
+      if (e.target.id !== 'phase-name') return;
+      BOARD.renamePhase(ui.boardTactic, ui.phaseIndex, e.target.value);
+      const tab = $('board-phases').querySelector('.stage-tab.is-active');
+      if (tab) {
+        tab.lastChild.textContent = e.target.value ||
+          t('board.phaseN', { n: ui.phaseIndex + 1 });
+      }
+      commitBoard();
+    });
 
     /* ツールバー */
     $('board-tools').addEventListener('click', function (e) {
@@ -251,7 +306,7 @@
         ui.selectedMarkId = null;
       } else if (act === 'route-done') {
         if (ui.draftRoute.length >= 2) {
-          BOARD.addRoute(ui.boardTactic, ui.routeTeam, ui.draftRoute);
+          BOARD.addRoute(curPhase(), ui.routeTeam, ui.draftRoute);
           commitBoard();
         }
         ui.routeTeam = null;
@@ -265,10 +320,10 @@
         U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
         if (ui.view === 'live') renderLive();
       } else if (act === 'order-up' || act === 'order-down') {
-        BOARD.bumpOrder(ui.boardTactic, ui.selectedMarkId, act === 'order-up' ? -1 : 1);
+        BOARD.bumpOrder(curPhase(), ui.selectedMarkId, act === 'order-up' ? -1 : 1);
         commitBoard();
       } else if (act === 'delete-mark') {
-        BOARD.removeMark(ui.boardTactic, ui.selectedMarkId);
+        BOARD.removeMark(curPhase(), ui.selectedMarkId);
         ui.selectedMarkId = null;
         commitBoard();
       }
@@ -278,7 +333,7 @@
     $('btn-board-clear').addEventListener('click', function () {
       if (!ui.boardTactic) return;
       if (!confirm(t('board.confirmClear'))) return;
-      BOARD.clearBoard(ui.boardTactic);
+      BOARD.clearBoard(curPhase());
       ui.selectedMarkId = null;
       ui.armed = null;
       ui.routeTeam = null;
@@ -342,6 +397,7 @@
       const pal = $(id);
 
       pal.addEventListener('pointerdown', function (e) {
+        if (e.button) return;          // 左ボタン（とタッチ）だけ掴める
         const btn = e.target.closest('[data-place-kind]');
         if (!btn) return;
         drag = {
@@ -385,7 +441,7 @@
           const svg = boardUnder(e);
           if (svg) {
             const p = BOARD.toBoardPoint(svg, e);
-            BOARD.addMark(ui.boardTactic, {
+            BOARD.addMark(curPhase(), {
               kind: current.kind, ref: current.ref, team: current.team, x: p.x, y: p.y
             });
             commitBoard();
@@ -426,8 +482,48 @@
 
     function svgEl() { return canvas.querySelector('svg[data-board]'); }
 
+    /* 右クリックで消す。
+       マークの上なら そのマーク、ルートの上なら そのルート、
+       ルートを引いている途中なら 引きかけの線を取り消す。 */
+    canvas.addEventListener('contextmenu', function (e) {
+      if (!svgEl()) return;
+      e.preventDefault();
+
+      const markEl = e.target.closest('.board-mark');
+      if (markEl) {
+        BOARD.removeMark(curPhase(), markEl.dataset.mark);
+        if (ui.selectedMarkId === markEl.dataset.mark) ui.selectedMarkId = null;
+        commitBoard();
+        refreshBoard();
+        return;
+      }
+
+      const routeEl = e.target.closest('[data-route]');
+      if (routeEl && routeEl.dataset.route !== 'draft') {
+        BOARD.removeRoute(curPhase(), routeEl.dataset.route);
+        commitBoard();
+        refreshBoard();
+        return;
+      }
+
+      if (ui.routeTeam) {
+        ui.routeTeam = null;
+        ui.draftRoute = [];
+        refreshBoard();
+        return;
+      }
+
+      /* 何も無いところなら、選択と「これから置くもの」を解除する */
+      if (ui.armed || ui.selectedMarkId) {
+        ui.armed = null;
+        ui.selectedMarkId = null;
+        refreshBoard();
+      }
+    });
+
     canvas.addEventListener('pointerdown', function (e) {
       if (!svgEl()) return;
+      if (e.button) return;            // 左ボタン（とタッチ）だけ掴める
       const markEl = e.target.closest('.board-mark');
       press = {
         el: markEl || null,
@@ -459,8 +555,8 @@
       if (!svg) return;
 
       const p = BOARD.toBoardPoint(svg, e);
-      BOARD.moveMark(ui.boardTactic, press.markId, p.x, p.y);
-      const mark = BOARD.findMark(ui.boardTactic, press.markId);
+      BOARD.moveMark(curPhase(), press.markId, p.x, p.y);
+      const mark = BOARD.findMark(curPhase(), press.markId);
       if (mark) press.el.setAttribute('transform', 'translate(' + mark.x + ',' + mark.y + ')');
       e.preventDefault();
     });
@@ -494,7 +590,7 @@
 
       /* 配置するものが選ばれていれば置く */
       if (ui.armed) {
-        BOARD.addMark(ui.boardTactic, {
+        BOARD.addMark(curPhase(), {
           kind: ui.armed.kind,
           ref: ui.armed.ref,
           team: ui.armed.team,
@@ -681,6 +777,9 @@
         }
       } else if (act === 'size-up' || act === 'size-down') {
         U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
+        renderLive();
+      } else if (act === 'live-phase') {
+        ui.livePhase = Number(el.dataset.phaseIndex) || 0;
         renderLive();
       } else if (act === 'edit-board') {
         openBoardEditor(currentTactic());
@@ -1038,7 +1137,7 @@
       /* 配置盤で選択中のマークは Delete で消せる */
       if (!$('modal-board').hidden && ui.selectedMarkId &&
           (e.key === 'Delete' || e.key === 'Backspace')) {
-        BOARD.removeMark(ui.boardTactic, ui.selectedMarkId);
+        BOARD.removeMark(curPhase(), ui.selectedMarkId);
         ui.selectedMarkId = null;
         commitBoard();
         refreshBoard();
