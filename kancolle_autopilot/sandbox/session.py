@@ -36,6 +36,7 @@ from sandbox.environment import SandboxEnvironment, SandboxPointer
 from sandbox.game import SandboxGame
 from sandbox.scenario import new_game
 from tasks.base_task import BaseTask, TaskContext, TaskResult
+from tasks.advance_task import AdvanceTask
 from tasks.sortie_task import SortieTask
 from tasks.constraints import NO_CONSTRAINTS, TaskConstraints, decide_advance
 
@@ -362,17 +363,14 @@ class SandboxSession:
         max_battles: int = 20,
         constraints: TaskConstraints = NO_CONSTRAINTS,
     ) -> list[str]:
-        """出撃中の海域を進んで戦い、母港へ戻る。
+        """出撃が終わるまで :class:`~tasks.advance_task.AdvanceTask` を回す。
 
-        実ゲームでは進撃も画面操作だが、まだタスク化していないため
-        ここではゲームを直接進める。進むかどうかの判断は
-        :func:`~tasks.constraints.decide_advance` に任せる。既定は撤退で、
-        「大破進撃を禁止していない」かつ「捨て艦戦法が許可されている」
-        場合だけ進む。
+        進撃するか撤退するかの判断はタスク側にある。ここは「出撃が続いて
+        いる限りタスクを投げ続ける」だけ。
 
         Args:
-            max_battles: 打ち切りまでの戦闘回数。
-            constraints: 与えられた制約。
+            max_battles: 打ち切りまでの周回数。
+            constraints: 進撃の判断に使う制約。
 
         Returns:
             各戦闘の勝利判定。
@@ -381,27 +379,48 @@ class SandboxSession:
         if self.game.sortie is None:
             return ranks
 
+        fleet_id = self.game.sortie.fleet_id
+        if self.game.last_battle_rank:
+            # 出撃した時点で最初のマスの戦闘が済んでいる。
+            ranks.append(self.game.last_battle_rank)
+            if self.recorder is not None:
+                self.recorder.record(
+                    EventKind.BATTLE_START,
+                    f"{self.game.sortie.map_key} セル{self.game.sortie.cell}",
+                )
+                self.recorder.record(
+                    EventKind.BATTLE_END, self.game.last_battle_rank
+                )
+
         for _ in range(max_battles):
             if self.game.sortie is None:
                 break
 
+            damaged_before = self._heavily_damaged_ids()
+            task = AdvanceTask(fleet_id)
+            task.constraints = constraints
             if self.recorder is not None:
                 self.recorder.record(
                     EventKind.BATTLE_START,
                     f"{self.game.sortie.map_key} セル{self.game.sortie.cell}",
                 )
 
-            damaged_before = self._heavily_damaged_ids()
-            records = self.game.fight()
-            rank = self._rank_of(records)
-            ranks.append(rank)
-            self.environment.records.extend(records)
-            self.sync()
+            before_rank = self.game.last_battle_rank
+            result = self.run(task)
+            if not result.ok:
+                logger.warning("進撃タスクが失敗しました: %s", result.message)
+                break
 
-            # 記録と通知は独立させる。片方だけ有効でも成り立つように。
+            if self.game.last_battle_rank != before_rank or (
+                result.details.get("advanced") and self.game.last_battle_rank
+            ):
+                ranks.append(self.game.last_battle_rank)
+
             newly_damaged = sorted(self._heavily_damaged_ids() - damaged_before)
             if self.recorder is not None:
-                self.recorder.record(EventKind.BATTLE_END, rank)
+                self.recorder.record(
+                    EventKind.BATTLE_END, self.game.last_battle_rank or "?"
+                )
                 if newly_damaged:
                     self.recorder.record(
                         EventKind.DAMAGE,
@@ -411,36 +430,13 @@ class SandboxSession:
             if newly_damaged and self.dispatcher is not None:
                 self.dispatcher.damage_detected(newly_damaged)
 
-            target = self.game.maps[self.game.sortie.map_key]
-            if self.game.at_boss or self.game.sortie.cell >= target.cells:
+            if not result.details.get("advanced"):
                 break
 
-            fleet_id = self.game.sortie.fleet_id
-            decision = decide_advance(
-                self.game_state.fleet_ships(fleet_id), constraints
-            )
-            if not decision.advance:
-                logger.info("撤退します: %s", decision.reason)
-                if self.recorder is not None:
-                    self.recorder.record(
-                        EventKind.DECISION,
-                        f"RETREAT / {decision.reason_code}",
-                        detail={"reason": decision.reason},
-                    )
-                break
-            if decision.sacrificed and self.recorder is not None:
-                self.recorder.record(
-                    EventKind.DECISION,
-                    f"ADVANCE / {decision.reason_code}",
-                    detail={"sacrificed": list(decision.sacrificed)},
-                )
-
-            self.environment.records.extend(self.game.advance())
+        if self.game.sortie is not None:
+            self.environment.records.extend(self.game.return_to_port())
+            self.environment.screen = Screen.HOME
             self.sync()
-
-        self.environment.records.extend(self.game.return_to_port())
-        self.environment.screen = Screen.HOME
-        self.sync()
         return ranks
 
     @staticmethod

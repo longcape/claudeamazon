@@ -64,6 +64,9 @@ PRIORITY_BY_TASK_NAME = {
     "construction": TaskPriority.DAILY_TASK,
     "expedition": TaskPriority.EXPEDITION,
     "sortie": TaskPriority.SORTIE,
+    "advance": TaskPriority.SORTIE,
+    "supply": TaskPriority.DAILY_TASK,
+    "repair": TaskPriority.SAFETY_TASK,
     "dismantle": TaskPriority.BACKGROUND,
 }
 

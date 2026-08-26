@@ -130,18 +130,18 @@ LAYOUT: Mapping[tuple[Screen, str], StaticTarget | IndexedTarget] = {
     (Screen.HOME, "fleet_button"): StaticTarget(Region(120, 460, 120, 60)),
     (Screen.HOME, "supply_button"): StaticTarget(Region(260, 460, 120, 60)),
     (Screen.HOME, "repair_button"): StaticTarget(Region(400, 460, 120, 60)),
-    # 出撃
+    # 出撃。海域の一覧は左の列、艦隊の選択は右。重ならないように分ける。
     (Screen.SORTIE_SELECT, "area"): IndexedTarget(
-        Region(100, 120, 90, 50), step_x=100, per_row=5, count=10
+        Region(60, 100, 90, 46), step_x=100, step_y=56, per_row=5, count=10
     ),
     (Screen.SORTIE_SELECT, "map"): IndexedTarget(
-        Region(300, 180, 200, 44), step_y=50, per_row=1, count=8
+        Region(60, 230, 200, 40), step_y=46, per_row=1, count=6
     ),
-    (Screen.SORTIE_SELECT, "sortie_decide"): StaticTarget(Region(560, 400, 120, 50)),
     (Screen.SORTIE_SELECT, "fleet"): IndexedTarget(
-        Region(120, 320, 80, 44), step_x=90, per_row=4, count=4
+        Region(320, 230, 80, 44), step_x=90, per_row=4, count=4
     ),
-    (Screen.SORTIE_SELECT, "sortie_start"): StaticTarget(Region(560, 470, 120, 50)),
+    (Screen.SORTIE_SELECT, "sortie_decide"): StaticTarget(Region(320, 320, 140, 50)),
+    (Screen.SORTIE_SELECT, "sortie_start"): StaticTarget(Region(500, 320, 140, 50)),
     # 遠征
     (Screen.EXPEDITION, "mission"): IndexedTarget(
         Region(80, 110, 160, 40), step_y=44, per_row=1, count=40
@@ -151,6 +151,20 @@ LAYOUT: Mapping[tuple[Screen, str], StaticTarget | IndexedTarget] = {
         Region(300, 320, 80, 44), step_x=90, per_row=4, count=4
     ),
     (Screen.EXPEDITION, "mission_start"): StaticTarget(Region(520, 470, 120, 50)),
+    # 海域進行中
+    (Screen.SORTIE_MAP, "advance"): StaticTarget(Region(420, 430, 140, 56)),
+    (Screen.SORTIE_MAP, "retreat"): StaticTarget(Region(200, 430, 140, 56)),
+    # 補給
+    (Screen.SUPPLY, "fleet"): IndexedTarget(
+        Region(100, 110, 80, 44), step_x=90, per_row=4, count=4
+    ),
+    (Screen.SUPPLY, "supply_all"): StaticTarget(Region(480, 420, 160, 52)),
+    # 入渠。艦一覧（動的に解決する）は x=300..520 に並ぶので、そこを避ける。
+    (Screen.REPAIR, "dock"): IndexedTarget(
+        Region(60, 130, 200, 56), step_y=66, per_row=1, count=4
+    ),
+    (Screen.REPAIR, "use_fast_repair"): StaticTarget(Region(560, 300, 150, 44)),
+    (Screen.REPAIR, "repair_start"): StaticTarget(Region(560, 380, 150, 52)),
     # 工廠
     (Screen.ARSENAL, "build_button"): StaticTarget(Region(150, 200, 140, 60)),
     (Screen.ARSENAL, "develop_button"): StaticTarget(Region(310, 200, 140, 60)),

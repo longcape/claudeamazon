@@ -21,7 +21,16 @@ logger = logging.getLogger(__name__)
 
 #: 実行できるタスク名。
 TASK_NAMES: frozenset[str] = frozenset(
-    {"daily", "expedition", "sortie", "construction", "dismantle"}
+    {
+        "daily",
+        "expedition",
+        "sortie",
+        "advance",
+        "supply",
+        "repair",
+        "construction",
+        "dismantle",
+    }
 )
 
 #: 目標の種類（追加指示書 §6・§7）。

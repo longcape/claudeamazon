@@ -216,6 +216,8 @@ class SandboxGame:
     repair_docks: dict[int, dict[str, Any]] = field(default_factory=dict)
     maps: dict[str, SandboxMap] = field(default_factory=default_maps)
     rank_points: int = 0
+    #: 直近の戦闘の勝利判定。
+    last_battle_rank: str = ""
     sortie: SortieState | None = None
     battle: BattleModel = field(default_factory=BattleModel)
     clock: Callable[[], datetime] = utcnow
@@ -406,6 +408,7 @@ class SandboxGame:
             self.resources[kind] = max(0, self.resource(kind) - amount)
 
         self.rank_points += outcome.rank_points
+        self.last_battle_rank = outcome.rank
 
         body: dict[str, Any] = {
             "api_win_rank": outcome.rank,
@@ -656,6 +659,24 @@ class SandboxGame:
                 + timedelta(seconds=missing * REPAIR_SECONDS_PER_HP),
             }
         )
+        return [self.port_record()]
+
+    def use_bucket(self, ship_id: int) -> list[dict[str, Any]]:
+        """高速修復材で即座に修復する。
+
+        Raises:
+            ValueError: 艦がいない、またはバケツが足りない場合。
+        """
+        ship = self.ships.get(ship_id)
+        if ship is None:
+            raise ValueError(f"艦 #{ship_id} がいません")
+        if self.resource(ResourceKind.FAST_REPAIR) < 1:
+            raise ValueError("高速修復材が足りません")
+        self.resources[ResourceKind.FAST_REPAIR] = (
+            self.resource(ResourceKind.FAST_REPAIR) - 1
+        )
+        ship.hp = ship.max_hp
+        logger.info("バケツで修復しました: #%s", ship_id)
         return [self.port_record()]
 
     def finish_repair(self, dock_id: int) -> list[dict[str, Any]]:

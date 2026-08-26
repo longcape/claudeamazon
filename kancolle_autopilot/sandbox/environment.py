@@ -38,10 +38,17 @@ logger = logging.getLogger(__name__)
 SANDBOX_TRANSITIONS: Mapping[tuple[Screen, str], Screen] = {
     (Screen.SORTIE_SELECT, "sortie_start"): Screen.SORTIE_MAP,
     (Screen.EXPEDITION, "mission_start"): Screen.HOME,
+    (Screen.SORTIE_MAP, "retreat"): Screen.HOME,
 }
 
-#: 解体画面の艦一覧の配置。
-SHIP_LIST_FIRST = Region(80, 120, 220, 40)
+#: 艦一覧の配置。画面ごとに置き場所が違う。
+#:
+#: 入渠画面ではドックの一覧と横に並ぶので、重ならない位置に置く。領域が
+#: 重なると、艦を押したつもりがドックの選択になる。
+SHIP_LIST_ORIGIN: Mapping[Screen, Region] = {
+    Screen.DISMANTLE: Region(80, 120, 220, 40),
+    Screen.REPAIR: Region(300, 120, 220, 40),
+}
 SHIP_LIST_STEP_Y = 44
 #: スクロールせずに見える隻数。これを超える艦は位置を決められない。
 SHIP_LIST_VISIBLE = 8
@@ -97,7 +104,9 @@ class SandboxEnvironment(DynamicResolver):
         並び順を知っているのは環境側なので、``ship_<所有ID>`` の解決は
         ここが担う。一覧に無い、または画面外の艦は ``None``。
         """
-        if screen is not Screen.DISMANTLE or not target.startswith("ship_"):
+        if screen not in (Screen.DISMANTLE, Screen.REPAIR):
+            return None
+        if not target.startswith("ship_"):
             return None
         try:
             ship_id = int(target[len("ship_") :])
@@ -110,7 +119,7 @@ class SandboxEnvironment(DynamicResolver):
             # スクロールが要る位置は「分からない」として扱う。
             logger.info("艦 #%s は画面外です（%d 番目）", ship_id, index + 1)
             return None
-        return SHIP_LIST_FIRST.shifted(0, index * SHIP_LIST_STEP_Y)
+        return SHIP_LIST_ORIGIN[screen].shifted(0, index * SHIP_LIST_STEP_Y)
 
     # -- 当たり判定 ------------------------------------------------------
 
@@ -132,9 +141,9 @@ class SandboxEnvironment(DynamicResolver):
                 if region is not None and region.contains(point):
                     return f"{prefix}_{index}"
 
-        if self.screen is Screen.DISMANTLE:
+        if self.screen in (Screen.DISMANTLE, Screen.REPAIR):
             for ship_id in list(self.ship_order)[:SHIP_LIST_VISIBLE]:
-                region = self.locate(Screen.DISMANTLE, f"ship_{ship_id}")
+                region = self.locate(self.screen, f"ship_{ship_id}")
                 if region is not None and region.contains(point):
                     return f"ship_{ship_id}"
         return None
@@ -216,7 +225,11 @@ class SandboxEnvironment(DynamicResolver):
             fleet = self.selection.get("fleet")
             if area is None or number is None or fleet is None:
                 raise ValueError("海域または艦隊が選ばれていません")
-            return game.start_sortie(int(fleet), f"{area}-{number}")
+            # 出撃すると最初のマスに着き、そこで戦闘が起きる。損傷を見て
+            # から進撃を判断できるよう、到着時に戦うのが正しい順序。
+            records = list(game.start_sortie(int(fleet), f"{area}-{number}"))
+            records.extend(game.fight())
+            return records
 
         if target == "mission_start":
             mission = self.selection.get("mission")
@@ -230,6 +243,46 @@ class SandboxEnvironment(DynamicResolver):
             if dock is None:
                 raise ValueError("ドックが選ばれていません")
             return game.build(int(dock), self.recipe)
+
+        if target == "advance":
+            if game.sortie is None:
+                raise ValueError("出撃中ではありません")
+            current = game.maps[game.sortie.map_key]
+            if game.at_boss or game.sortie.cell >= current.cells:
+                # 先が無いので、進撃ではなく帰投になる。
+                return game.return_to_port()
+            # 次のマスへ進み、そこで戦う。
+            records = list(game.advance())
+            records.extend(game.fight())
+            return records
+
+        if target == "retreat":
+            return game.return_to_port()
+
+        if target == "supply_all":
+            fleet = self.selection.get("fleet")
+            if fleet is None:
+                raise ValueError("艦隊が選ばれていません")
+            return game.supply(int(fleet))
+
+        if target == "use_fast_repair":
+            ships = self.selection.get("ships") or []
+            assert isinstance(ships, list)
+            if not ships:
+                raise ValueError("艦が選ばれていません")
+            records = game.use_bucket(ships[-1])
+            self.selection["ships"] = []
+            return records
+
+        if target == "repair_start":
+            dock = self.selection.get("dock")
+            ships = self.selection.get("ships") or []
+            assert isinstance(ships, list)
+            if dock is None or not ships:
+                raise ValueError("ドックまたは艦が選ばれていません")
+            records = game.repair(int(dock), ships[-1])
+            self.selection["ships"] = []
+            return records
 
         if target == "dismantle_confirm":
             ships = self.selection.get("ships") or []

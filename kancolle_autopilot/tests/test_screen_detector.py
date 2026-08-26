@@ -144,3 +144,70 @@ def test_back_button_exists_on_sub_screens() -> None:
     for screen in (Screen.BUILD, Screen.EXPEDITION, Screen.QUEST, Screen.ARSENAL):
         detector = ScreenDetector(FixedSource(screen))
         assert detector.find("back_button") is not None
+
+
+# -- 領域が重ならないこと -------------------------------------------------
+
+
+def _regions_for(screen: Screen) -> list[tuple[str, Region]]:
+    """その画面のすべての操作対象と領域を並べる。"""
+    from automation.screen_detector import LAYOUT
+
+    found: list[tuple[str, Region]] = []
+    for (where, prefix), entry in LAYOUT.items():
+        if where is not screen:
+            continue
+        if isinstance(entry, StaticTarget):
+            found.append((prefix, entry.region))
+            continue
+        for index in range(1, entry.count + 1):
+            region = entry.resolve(str(index))
+            if region is not None:
+                found.append((f"{prefix}_{index}", region))
+    return found
+
+
+def _overlaps(left: Region, right: Region) -> bool:
+    """2 つの領域が重なっていれば ``True``。"""
+    return (
+        left.x < right.x + right.width
+        and right.x < left.x + left.width
+        and left.y < right.y + right.height
+        and right.y < left.y + left.height
+    )
+
+
+@pytest.mark.parametrize("screen", list(Screen))
+def test_layout_regions_do_not_overlap(screen) -> None:
+    """同じ画面の操作対象が重なっていないこと。
+
+    重なっていると、ある対象を押したつもりが別の対象になる。入渠画面で
+    実際に起きた（艦を選んだつもりがドックの選択になっていた）。
+    """
+    regions = _regions_for(screen)
+    for index, (name, region) in enumerate(regions):
+        for other_name, other in regions[index + 1 :]:
+            assert not _overlaps(region, other), (
+                f"{screen.value}: {name} と {other_name} が重なっています"
+            )
+
+
+@pytest.mark.parametrize("screen", [Screen.DISMANTLE, Screen.REPAIR])
+def test_ship_list_does_not_overlap_the_layout(screen) -> None:
+    """動的に置かれる艦一覧が、固定の対象と重なっていないこと。"""
+    from sandbox.environment import (
+        SHIP_LIST_ORIGIN,
+        SHIP_LIST_STEP_Y,
+        SHIP_LIST_VISIBLE,
+    )
+
+    origin = SHIP_LIST_ORIGIN[screen]
+    ship_regions = [
+        origin.shifted(0, index * SHIP_LIST_STEP_Y)
+        for index in range(SHIP_LIST_VISIBLE)
+    ]
+    for name, region in _regions_for(screen):
+        for index, ship_region in enumerate(ship_regions):
+            assert not _overlaps(region, ship_region), (
+                f"{screen.value}: {name} と艦一覧の {index + 1} 番目が重なっています"
+            )

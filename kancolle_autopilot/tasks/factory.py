@@ -18,11 +18,14 @@ from typing import Any, Mapping, Sequence
 from core.task_queue import Task
 from tasks.base_task import BaseTask
 from tasks.constraints import TaskConstraints
+from tasks.advance_task import AdvanceTask
 from tasks.construction_task import ConstructionTask, Recipe
 from tasks.daily_task import DailyTask
 from tasks.dismantle_task import DismantleTask
 from tasks.expedition_task import ExpeditionTask
+from tasks.repair_task import RepairTask
 from tasks.sortie_task import SortieTask
+from tasks.supply_task import SupplyTask
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +126,26 @@ def _build_construction(payload: Mapping[str, Any]) -> BaseTask:
     )
 
 
+def _build_advance(payload: Mapping[str, Any]) -> BaseTask:
+    """進撃タスクを組み立てる。"""
+    return AdvanceTask(fleet_id=_as_int(payload, "fleet_id", DEFAULT_SORTIE_FLEET))
+
+
+def _build_supply(payload: Mapping[str, Any]) -> BaseTask:
+    """補給タスクを組み立てる。"""
+    return SupplyTask(fleet_id=_as_int(payload, "fleet_id", DEFAULT_SORTIE_FLEET))
+
+
+def _build_repair(payload: Mapping[str, Any]) -> BaseTask:
+    """入渠タスクを組み立てる。"""
+    dock_id = payload.get("dock_id")
+    return RepairTask(
+        ship_id=_as_int(payload, "ship_id"),
+        dock_id=int(dock_id) if dock_id is not None else None,
+        prefer_fast=bool(payload.get("prefer_fast", False)),
+    )
+
+
 def _build_dismantle(payload: Mapping[str, Any]) -> BaseTask:
     """解体タスクを組み立てる。"""
     ship_ids = payload.get("ship_ids") or ()
@@ -136,6 +159,9 @@ def _build_dismantle(payload: Mapping[str, Any]) -> BaseTask:
 #: タスク名と組み立て関数の対応。
 BUILDERS = {
     "sortie": _build_sortie,
+    "advance": _build_advance,
+    "supply": _build_supply,
+    "repair": _build_repair,
     "expedition": _build_expedition,
     "daily": _build_daily,
     "construction": _build_construction,
