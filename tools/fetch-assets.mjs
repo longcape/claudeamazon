@@ -233,6 +233,36 @@ async function main() {
     console.log(`  map    ${want.id.padEnd(10)} ${(buf.length / 1024).toFixed(0)} KB`);
   }
 
+  /* ---------- スパイク ---------- */
+  /* スパイクのアイコンはエージェントやマップとは別のところにある。
+     ゲームモード「スタンダード」の表示アイコンがスパイクの図そのものなので、
+     そこから取る。並びや名称が変わっても拾えるよう候補を順に当たり、
+     どうしても見つからないときは --spike-url= で直接指定できる。 */
+  let spikeEntry = null;
+  const spikeArg = process.argv.find((a) => a.startsWith('--spike-url='));
+  try {
+    let url = spikeArg ? spikeArg.slice('--spike-url='.length) : null;
+    if (!url) {
+      const modes = await getJSON(`${API}/gamemodes`);
+      const pick =
+        modes.data.find((m) => /Bomb/i.test(m.assetPath || '')) ||
+        modes.data.find((m) => normalize(m.displayName) === normalize('Standard')) ||
+        modes.data.find((m) => /standard|unrated/i.test(m.displayName || ''));
+      if (pick) {
+        url = pick.displayIcon;
+        console.log(`  spike  ゲームモード「${pick.displayName}」のアイコンを使います`);
+      }
+    }
+    if (!url) throw new Error('候補が見つかりませんでした');
+    const dest = path.join(ROOT, 'assets/img/spike.png');
+    const buf = await download(url, dest, 96);
+    spikeEntry = INLINE ? `data:image/png;base64,${buf.toString('base64')}` : 'assets/img/spike.png';
+    console.log(`  spike  ${(buf.length / 1024).toFixed(0)} KB`);
+  } catch (err) {
+    missing.push('spike');
+    console.log(`  spike  取得できませんでした（${err.message}）。アプリ側の自前の図で代用されます`);
+  }
+
   /* ---------- 生成 ---------- */
   const out = `/* =========================================================
    OFFICIAL ASSETS （自動生成 — 直接編集しないこと）
@@ -246,7 +276,10 @@ async function main() {
   const MAPS = ${JSON.stringify(mapEntries, null, 2)};
   const ABILITY_ICONS = ${JSON.stringify(abilityIcons, null, 2)};
   const ABILITY_NAMES = ${JSON.stringify(abilityNames, null, 2)};
+  const SPIKE = ${JSON.stringify(spikeEntry)};
 
+  /* board.js はこの後に読み込まれるので、素のグローバルに置いておく */
+  global.VCT_OFFICIAL_SPIKE = SPIKE;
   if (global.VCT_PORTRAITS) Object.assign(global.VCT_PORTRAITS.OFFICIAL, AGENTS);
   if (global.VCT_MAPS) Object.assign(global.VCT_MAPS.MINIMAP, MAPS);
   if (global.VCT_ABILITIES) {
@@ -258,7 +291,8 @@ async function main() {
   fs.writeFileSync(OUT_FILE, out);
 
   console.log(`\n✓ ${Object.keys(agentEntries).length} 体のアイコン / ${Object.keys(mapEntries).length} 枚のミニマップ / ` +
-              `${Object.keys(abilityIcons).length} 個のスキルアイコンを取り込みました`);
+              `${Object.keys(abilityIcons).length} 個のスキルアイコン` +
+              `${spikeEntry ? ' / スパイク 1 枚' : ''}を取り込みました`);
   console.log(`  → ${path.relative(ROOT, OUT_FILE)}`);
   if (missing.length) console.log('  取得できなかったもの:', missing.join(', '));
   if (oversized) {

@@ -5708,10 +5708,25 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     return abilityMarkHTML(mark, selected);
   }
 
-  /* スパイクの図形。公式アイコンは配布されていないので、
-     形が伝わる最小限の図として自前で描いている。
-     半径 1 くらいの原点中心で、呼び出し側で scale する。 */
+  /* スパイクの図。
+     公式アイコンが official-assets.js に取り込まれていればそれを使う。
+     取り込みは環境によっては走らせられないので、
+     形が伝わる自前の図を代用として持っている。
+     原点中心の半径 2.5 くらいで、呼び出し側で scale する。 */
+  function officialSpike() {
+    return global.VCT_OFFICIAL_SPIKE || null;
+  }
+
   function spikeGlyphHTML() {
+    const url = officialSpike();
+    if (url) {
+      return '<image class="spike-official" href="' + url + '" x="-2.1" y="-2.1" ' +
+               'width="4.2" height="4.2" preserveAspectRatio="xMidYMid meet" />';
+    }
+    return drawnSpikeHTML();
+  }
+
+  function drawnSpikeHTML() {
     return '' +
       '<g class="spike-glyph">' +
         '<path class="spike-fin" d="M-0.72 -1.15 L-1.5 -2.2 L-1.08 -2.42 L-0.4 -1.3 Z" />' +
@@ -5725,8 +5740,11 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   /** パレットのチップや凡例で使う、単体のスパイクアイコン */
   function spikeIconHTML(cls) {
-    return '<svg class="spike-icon' + (cls ? ' ' + cls : '') + '" viewBox="-2.6 -2.6 5.2 5.2" ' +
-             'aria-hidden="true" focusable="false">' + spikeGlyphHTML() + '</svg>';
+    const klass = 'spike-icon' + (cls ? ' ' + cls : '');
+    const url = officialSpike();
+    if (url) return '<img class="' + klass + '" src="' + url + '" alt="" />';
+    return '<svg class="' + klass + '" viewBox="-2.6 -2.6 5.2 5.2" ' +
+             'aria-hidden="true" focusable="false">' + drawnSpikeHTML() + '</svg>';
   }
 
   function plantMarkHTML(mark, selected) {
