@@ -5,7 +5,8 @@
    矢印で描くための盤面。配置は戦術ごとに保存される。
 
    データ構造（tactic.board）:
-     marks:  [{ id, kind:'agent'|'ability', ref, team, x, y, order }]
+     marks:  [{ id, kind:'agent'|'ability'|'plant', ref, team, x, y, order }]
+     plant はスパイクの設置位置。盤面に 1 つだけ置ける。
      routes: [{ id, team, points:[{x,y}] }]
    座標はマップ簡易図と同じ 0-100 の正規化空間。
    ========================================================= */
@@ -45,12 +46,20 @@
 
   /* ---------------- 配置の操作 ---------------- */
 
+  const KINDS = ['agent', 'ability', 'plant'];
+
   function addMark(tactic, mark) {
     const b = ensure(tactic);
+    const kind = KINDS.indexOf(mark.kind) >= 0 ? mark.kind : 'agent';
+
+    /* プラント位置は 1 ラウンドに 1 か所しかない。
+       置き直したら前のものと入れ替える */
+    if (kind === 'plant') b.marks = b.marks.filter(function (m) { return m.kind !== 'plant'; });
+
     const entry = {
       id: uid('mk_'),
-      kind: mark.kind === 'ability' ? 'ability' : 'agent',
-      ref: String(mark.ref),
+      kind: kind,
+      ref: kind === 'plant' ? 'spike' : String(mark.ref),
       team: mark.team === 'enemy' ? 'enemy' : 'ally',
       x: clamp(mark.x),
       y: clamp(mark.y),
@@ -217,8 +226,40 @@
   }
 
   function markHTML(mark, selected) {
+    if (mark.kind === 'plant') return plantMarkHTML(mark, selected);
     if (mark.kind === 'agent') return agentMarkHTML(mark, selected);
     return abilityMarkHTML(mark, selected);
+  }
+
+  /* スパイクの図形。公式アイコンは配布されていないので、
+     形が伝わる最小限の図として自前で描いている。
+     半径 1 くらいの原点中心で、呼び出し側で scale する。 */
+  function spikeGlyphHTML() {
+    return '' +
+      '<g class="spike-glyph">' +
+        '<path class="spike-fin" d="M-0.72 -1.15 L-1.5 -2.2 L-1.08 -2.42 L-0.4 -1.3 Z" />' +
+        '<path class="spike-fin" d="M0.72 -1.15 L1.5 -2.2 L1.08 -2.42 L0.4 -1.3 Z" />' +
+        '<rect class="spike-fin" x="-0.3" y="-2.5" width="0.6" height="1.4" rx="0.22" />' +
+        '<path class="spike-body" d="M-1.05 -1.02 L1.05 -1.02 L1.05 0.9 L0 2.42 L-1.05 0.9 Z" />' +
+        '<rect class="spike-collar" x="-1.22" y="-1.32" width="2.44" height="0.62" rx="0.18" />' +
+        '<path class="spike-core" d="M0 -0.28 L0.62 0.38 L0 1.04 L-0.62 0.38 Z" />' +
+      '</g>';
+  }
+
+  /** パレットのチップや凡例で使う、単体のスパイクアイコン */
+  function spikeIconHTML(cls) {
+    return '<svg class="spike-icon' + (cls ? ' ' + cls : '') + '" viewBox="-2.6 -2.6 5.2 5.2" ' +
+             'aria-hidden="true" focusable="false">' + spikeGlyphHTML() + '</svg>';
+  }
+
+  function plantMarkHTML(mark, selected) {
+    return '<g class="board-mark board-mark-plant' + (selected ? ' is-selected' : '') + '" ' +
+             'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
+             '<circle class="board-hit" r="3" fill="transparent" />' +
+             '<circle class="board-plant-bg" r="2.7" />' +
+             '<g transform="scale(0.92)">' + spikeGlyphHTML() + '</g>' +
+             '<circle class="board-ring" r="2.7" fill="none" stroke="#FF4655" stroke-width="0.45" />' +
+           '</g>';
   }
 
   function agentMarkHTML(mark, selected) {
@@ -282,9 +323,18 @@
     };
   }
 
+  /** 設置位置のマーク。無ければ null */
+  function plantMark(tactic) {
+    const b = ensure(tactic);
+    if (!b) return null;
+    return b.marks.filter(function (m) { return m.kind === 'plant'; })[0] || null;
+  }
+
   global.VCT_BOARD = {
     ensure: ensure,
     isEmpty: isEmpty,
+    plantMark: plantMark,
+    spikeIconHTML: spikeIconHTML,
     addMark: addMark,
     moveMark: moveMark,
     removeMark: removeMark,

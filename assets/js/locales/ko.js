@@ -304,6 +304,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'board.done': '완료',
   'board.clear': '전체 지우기',
   'board.noRoster': '요원이 설정되지 않았습니다. 설정 화면에서 아군과 적을 고르면 스킬이 여기에 표시됩니다.',
+  'board.plant': '설치 위치',
+  'board.plantMarked': '스파이크 설치 지점 지정됨',
   'board.needTactic': '먼저 전술을 선택하거나 새로 추가하세요.',
   'board.empty': '아직 배치가 없습니다. 좌우 팔레트에서 골라 맵 위에 놓으세요.',
   'board.agents': '요원',

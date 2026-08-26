@@ -1976,9 +1976,9 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 /* =========================================================
    パレットからのドラッグ＆ドロップ
    ========================================================= */
-.pal-agent, .pal-ability { cursor: grab; }
-.pal-agent:active, .pal-ability:active { cursor: grabbing; }
-.pal-agent.is-dragging, .pal-ability.is-dragging { opacity: .4; }
+.pal-agent, .pal-ability, .pal-plant { cursor: grab; }
+.pal-agent:active, .pal-ability:active, .pal-plant:active { cursor: grabbing; }
+.pal-agent.is-dragging, .pal-ability.is-dragging, .pal-plant.is-dragging { opacity: .4; }
 
 /* 掴んでいる間、ポインタに追従する見た目 */
 .place-ghost {
@@ -2005,6 +2005,68 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   outline: 2px dashed var(--cyan);
   outline-offset: -3px;
 }
+
+/* =========================================================
+   スパイクの設置位置
+   ---------------------------------------------------------
+   公式アイコンは配布されていないため、形が伝わる図を自前で描いている。
+   ========================================================= */
+.spike-glyph .spike-body {
+  fill: #D7DEE5;
+  stroke: #0B1116;
+  stroke-width: .22;
+  stroke-linejoin: round;
+}
+.spike-glyph .spike-fin {
+  fill: #98A6B2;
+  stroke: #0B1116;
+  stroke-width: .18;
+  stroke-linejoin: round;
+}
+.spike-glyph .spike-collar {
+  fill: #7C8A97;
+  stroke: #0B1116;
+  stroke-width: .18;
+}
+.spike-glyph .spike-core { fill: var(--red); }
+
+.board-plant-bg { fill: rgba(11, 17, 22, .82); }
+.board-mark-plant .board-ring { stroke-dasharray: 1.6 .9; }
+.board-mark-plant.is-selected .board-ring { stroke-dasharray: none; }
+
+.spike-icon { width: 18px; height: 18px; flex: 0 0 auto; }
+
+/* ツールバーのスパイクチップ。ルート描画ボタンと同じ高さで並ぶ */
+.pal-plant {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 70, 85, .5);
+  background: rgba(255, 70, 85, .1);
+  color: #FFD9DC;
+}
+.pal-plant:hover { border-color: var(--red); background: rgba(255, 70, 85, .2); }
+.pal-plant.is-armed { border-color: var(--red); background: rgba(255, 70, 85, .3); color: #fff; }
+/* 置いてあることが一目で分かるように印を足す */
+.pal-plant.is-placed::after {
+  content: '✓';
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* 凡例の先頭に出す設置位置の行 */
+.board-plant-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 7px 10px;
+  border-left: 3px solid var(--red);
+  background: rgba(255, 70, 85, .08);
+  font-size: 12px;
+}
+.board-plant-note b { color: #fff; letter-spacing: .04em; }
+.board-plant-note span { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -2860,6 +2922,8 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.done': '完了',
   'board.clear': 'すべて消去',
   'board.noRoster': 'エージェントが未設定です。セットアップ画面で味方と敵を選ぶと、ここにスキルが並びます。',
+  'board.plant': 'プラント位置',
+  'board.plantMarked': 'スパイクの設置場所を指定済み',
   'board.needTactic': '先に戦術を選ぶか、新しく追加してください。',
   'board.empty': 'まだ配置がありません。左右のパレットから選んで、マップ上に置いてください。',
   'board.agents': 'エージェント',
@@ -3191,6 +3255,8 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'board.done': 'Done',
   'board.clear': 'Clear all',
   'board.noRoster': 'No agents set. Pick your team and the enemy on the setup screen and their abilities appear here.',
+  'board.plant': 'Plant spot',
+  'board.plantMarked': 'Spike plant location set',
   'board.needTactic': 'Pick a tactic first, or add a new one.',
   'board.empty': 'Nothing placed yet. Pick something from the side palettes and drop it on the map.',
   'board.agents': 'Agents',
@@ -3522,6 +3588,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'board.done': '완료',
   'board.clear': '전체 지우기',
   'board.noRoster': '요원이 설정되지 않았습니다. 설정 화면에서 아군과 적을 고르면 스킬이 여기에 표시됩니다.',
+  'board.plant': '설치 위치',
+  'board.plantMarked': '스파이크 설치 지점 지정됨',
   'board.needTactic': '먼저 전술을 선택하거나 새로 추가하세요.',
   'board.empty': '아직 배치가 없습니다. 좌우 팔레트에서 골라 맵 위에 놓으세요.',
   'board.agents': '요원',
@@ -5422,7 +5490,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
    矢印で描くための盤面。配置は戦術ごとに保存される。
 
    データ構造（tactic.board）:
-     marks:  [{ id, kind:'agent'|'ability', ref, team, x, y, order }]
+     marks:  [{ id, kind:'agent'|'ability'|'plant', ref, team, x, y, order }]
+     plant はスパイクの設置位置。盤面に 1 つだけ置ける。
      routes: [{ id, team, points:[{x,y}] }]
    座標はマップ簡易図と同じ 0-100 の正規化空間。
    ========================================================= */
@@ -5462,12 +5531,20 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   /* ---------------- 配置の操作 ---------------- */
 
+  const KINDS = ['agent', 'ability', 'plant'];
+
   function addMark(tactic, mark) {
     const b = ensure(tactic);
+    const kind = KINDS.indexOf(mark.kind) >= 0 ? mark.kind : 'agent';
+
+    /* プラント位置は 1 ラウンドに 1 か所しかない。
+       置き直したら前のものと入れ替える */
+    if (kind === 'plant') b.marks = b.marks.filter(function (m) { return m.kind !== 'plant'; });
+
     const entry = {
       id: uid('mk_'),
-      kind: mark.kind === 'ability' ? 'ability' : 'agent',
-      ref: String(mark.ref),
+      kind: kind,
+      ref: kind === 'plant' ? 'spike' : String(mark.ref),
       team: mark.team === 'enemy' ? 'enemy' : 'ally',
       x: clamp(mark.x),
       y: clamp(mark.y),
@@ -5634,8 +5711,40 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   function markHTML(mark, selected) {
+    if (mark.kind === 'plant') return plantMarkHTML(mark, selected);
     if (mark.kind === 'agent') return agentMarkHTML(mark, selected);
     return abilityMarkHTML(mark, selected);
+  }
+
+  /* スパイクの図形。公式アイコンは配布されていないので、
+     形が伝わる最小限の図として自前で描いている。
+     半径 1 くらいの原点中心で、呼び出し側で scale する。 */
+  function spikeGlyphHTML() {
+    return '' +
+      '<g class="spike-glyph">' +
+        '<path class="spike-fin" d="M-0.72 -1.15 L-1.5 -2.2 L-1.08 -2.42 L-0.4 -1.3 Z" />' +
+        '<path class="spike-fin" d="M0.72 -1.15 L1.5 -2.2 L1.08 -2.42 L0.4 -1.3 Z" />' +
+        '<rect class="spike-fin" x="-0.3" y="-2.5" width="0.6" height="1.4" rx="0.22" />' +
+        '<path class="spike-body" d="M-1.05 -1.02 L1.05 -1.02 L1.05 0.9 L0 2.42 L-1.05 0.9 Z" />' +
+        '<rect class="spike-collar" x="-1.22" y="-1.32" width="2.44" height="0.62" rx="0.18" />' +
+        '<path class="spike-core" d="M0 -0.28 L0.62 0.38 L0 1.04 L-0.62 0.38 Z" />' +
+      '</g>';
+  }
+
+  /** パレットのチップや凡例で使う、単体のスパイクアイコン */
+  function spikeIconHTML(cls) {
+    return '<svg class="spike-icon' + (cls ? ' ' + cls : '') + '" viewBox="-2.6 -2.6 5.2 5.2" ' +
+             'aria-hidden="true" focusable="false">' + spikeGlyphHTML() + '</svg>';
+  }
+
+  function plantMarkHTML(mark, selected) {
+    return '<g class="board-mark board-mark-plant' + (selected ? ' is-selected' : '') + '" ' +
+             'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
+             '<circle class="board-hit" r="3" fill="transparent" />' +
+             '<circle class="board-plant-bg" r="2.7" />' +
+             '<g transform="scale(0.92)">' + spikeGlyphHTML() + '</g>' +
+             '<circle class="board-ring" r="2.7" fill="none" stroke="#FF4655" stroke-width="0.45" />' +
+           '</g>';
   }
 
   function agentMarkHTML(mark, selected) {
@@ -5699,9 +5808,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     };
   }
 
+  /** 設置位置のマーク。無ければ null */
+  function plantMark(tactic) {
+    const b = ensure(tactic);
+    if (!b) return null;
+    return b.marks.filter(function (m) { return m.kind === 'plant'; })[0] || null;
+  }
+
   global.VCT_BOARD = {
     ensure: ensure,
     isEmpty: isEmpty,
+    plantMark: plantMark,
+    spikeIconHTML: spikeIconHTML,
     addMark: addMark,
     moveMark: moveMark,
     removeMark: removeMark,
@@ -6508,7 +6626,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     const abilities = board.marks.filter(function (m) {
       return m.kind === 'ability' && m.team === 'ally';
     });
-    if (!abilities.length) return '';
+    /* 設置位置は読み上げの起点になるので、スキルより先に出す */
+    const plantRow = B.plantMark(tactic)
+      ? '<p class="board-plant-note">' + B.spikeIconHTML() +
+          '<b>' + t('board.plant') + '</b>' +
+          '<span>' + t('board.plantMarked') + '</span></p>'
+      : '';
+    if (!abilities.length) return plantRow;
 
     /* エージェント単位にまとめ、各エージェントの中で使用順に並べる */
     const order = [];
@@ -6519,7 +6643,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       groups[id].push(m);
     });
 
-    return '<ul class="board-legend">' + order.map(function (id) {
+    return plantRow + '<ul class="board-legend">' + order.map(function (id) {
       const agent = D.agentById(id);
       const color = agent ? P.signature(id) : '#6B7F8C';
       const steps = groups[id]
@@ -6606,7 +6730,17 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       html += '<button class="btn btn-primary btn-sm" data-board-act="route-done">' + t('board.routeDone') + '</button>' +
               '<button class="btn btn-ghost btn-sm" data-board-act="route-cancel">' + t('board.routeCancel') + '</button>';
     } else {
-      html += '<button class="btn btn-ghost btn-sm" data-board-act="route-start" data-team="ally">' +
+      const planted = !!B.plantMark(uiState.boardTactic);
+      const plantArmed = uiState.armed && uiState.armed.kind === 'plant';
+      /* スパイクはどちらのチームのものでもないので、
+         味方／敵のパレットではなくツールバーに置いている */
+      html += '<button type="button" class="btn btn-sm pal-plant' +
+                (plantArmed ? ' is-armed' : '') + (planted ? ' is-placed' : '') + '"' +
+                ' data-place-kind="plant" data-place-ref="spike" data-place-team="ally"' +
+                ' title="' + esc(t('board.plant')) + '">' +
+                B.spikeIconHTML() + '<span>' + t('board.plant') + '</span>' +
+              '</button>' +
+              '<button class="btn btn-ghost btn-sm" data-board-act="route-start" data-team="ally">' +
                 '<span class="dot-ally"></span>' + t('board.route') + ' / ' + t('tag.ally') + '</button>' +
               '<button class="btn btn-ghost btn-sm" data-board-act="route-start" data-team="enemy">' +
                 '<span class="dot-enemy"></span>' + t('board.route') + ' / ' + t('tag.enemy') + '</button>';
@@ -6708,6 +6842,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   function armedLabel(armed) {
+    if (armed.kind === 'plant') return t('board.plant');
     if (armed.kind === 'agent') {
       const a = D.agentById(armed.ref);
       return a ? a.name : armed.ref;
@@ -7409,11 +7544,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       const ghost = document.createElement('div');
       ghost.className = 'place-ghost';
       const img = btn.querySelector('img');
+      const glyph = btn.querySelector('svg');
       const label = btn.querySelector('span');
       /* パレットはアイコンのみなので、名前は title 属性から取る */
       const name = label ? label.textContent : (btn.getAttribute('title') || '').trim();
-      ghost.innerHTML = (img ? '<img src="' + img.src + '" alt="" />' : '') +
-                        '<span>' + name + '</span>';
+      const icon = img ? '<img src="' + img.src + '" alt="" />'
+                       : (glyph ? glyph.outerHTML : '');
+      ghost.innerHTML = icon + '<span>' + name + '</span>';
       document.body.appendChild(ghost);
       return ghost;
     }
@@ -7439,7 +7576,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       if (svg) svg.classList.remove('is-drop-target');
     }
 
-    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
+    /* スパイクのチップはツールバーにあるので、そこも掴める場所に含める */
+    ['board-palette-ally', 'board-palette-enemy', 'board-tools'].forEach(function (id) {
       const pal = $(id);
 
       pal.addEventListener('pointerdown', function (e) {

@@ -314,6 +314,8 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.done': '完了',
   'board.clear': 'すべて消去',
   'board.noRoster': 'エージェントが未設定です。セットアップ画面で味方と敵を選ぶと、ここにスキルが並びます。',
+  'board.plant': 'プラント位置',
+  'board.plantMarked': 'スパイクの設置場所を指定済み',
   'board.needTactic': '先に戦術を選ぶか、新しく追加してください。',
   'board.empty': 'まだ配置がありません。左右のパレットから選んで、マップ上に置いてください。',
   'board.agents': 'エージェント',

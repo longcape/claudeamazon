@@ -384,7 +384,13 @@
     const abilities = board.marks.filter(function (m) {
       return m.kind === 'ability' && m.team === 'ally';
     });
-    if (!abilities.length) return '';
+    /* 設置位置は読み上げの起点になるので、スキルより先に出す */
+    const plantRow = B.plantMark(tactic)
+      ? '<p class="board-plant-note">' + B.spikeIconHTML() +
+          '<b>' + t('board.plant') + '</b>' +
+          '<span>' + t('board.plantMarked') + '</span></p>'
+      : '';
+    if (!abilities.length) return plantRow;
 
     /* エージェント単位にまとめ、各エージェントの中で使用順に並べる */
     const order = [];
@@ -395,7 +401,7 @@
       groups[id].push(m);
     });
 
-    return '<ul class="board-legend">' + order.map(function (id) {
+    return plantRow + '<ul class="board-legend">' + order.map(function (id) {
       const agent = D.agentById(id);
       const color = agent ? P.signature(id) : '#6B7F8C';
       const steps = groups[id]
@@ -482,7 +488,17 @@
       html += '<button class="btn btn-primary btn-sm" data-board-act="route-done">' + t('board.routeDone') + '</button>' +
               '<button class="btn btn-ghost btn-sm" data-board-act="route-cancel">' + t('board.routeCancel') + '</button>';
     } else {
-      html += '<button class="btn btn-ghost btn-sm" data-board-act="route-start" data-team="ally">' +
+      const planted = !!B.plantMark(uiState.boardTactic);
+      const plantArmed = uiState.armed && uiState.armed.kind === 'plant';
+      /* スパイクはどちらのチームのものでもないので、
+         味方／敵のパレットではなくツールバーに置いている */
+      html += '<button type="button" class="btn btn-sm pal-plant' +
+                (plantArmed ? ' is-armed' : '') + (planted ? ' is-placed' : '') + '"' +
+                ' data-place-kind="plant" data-place-ref="spike" data-place-team="ally"' +
+                ' title="' + esc(t('board.plant')) + '">' +
+                B.spikeIconHTML() + '<span>' + t('board.plant') + '</span>' +
+              '</button>' +
+              '<button class="btn btn-ghost btn-sm" data-board-act="route-start" data-team="ally">' +
                 '<span class="dot-ally"></span>' + t('board.route') + ' / ' + t('tag.ally') + '</button>' +
               '<button class="btn btn-ghost btn-sm" data-board-act="route-start" data-team="enemy">' +
                 '<span class="dot-enemy"></span>' + t('board.route') + ' / ' + t('tag.enemy') + '</button>';
@@ -584,6 +600,7 @@
   }
 
   function armedLabel(armed) {
+    if (armed.kind === 'plant') return t('board.plant');
     if (armed.kind === 'agent') {
       const a = D.agentById(armed.ref);
       return a ? a.name : armed.ref;

@@ -1966,9 +1966,9 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 /* =========================================================
    パレットからのドラッグ＆ドロップ
    ========================================================= */
-.pal-agent, .pal-ability { cursor: grab; }
-.pal-agent:active, .pal-ability:active { cursor: grabbing; }
-.pal-agent.is-dragging, .pal-ability.is-dragging { opacity: .4; }
+.pal-agent, .pal-ability, .pal-plant { cursor: grab; }
+.pal-agent:active, .pal-ability:active, .pal-plant:active { cursor: grabbing; }
+.pal-agent.is-dragging, .pal-ability.is-dragging, .pal-plant.is-dragging { opacity: .4; }
 
 /* 掴んでいる間、ポインタに追従する見た目 */
 .place-ghost {
@@ -1995,3 +1995,65 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   outline: 2px dashed var(--cyan);
   outline-offset: -3px;
 }
+
+/* =========================================================
+   スパイクの設置位置
+   ---------------------------------------------------------
+   公式アイコンは配布されていないため、形が伝わる図を自前で描いている。
+   ========================================================= */
+.spike-glyph .spike-body {
+  fill: #D7DEE5;
+  stroke: #0B1116;
+  stroke-width: .22;
+  stroke-linejoin: round;
+}
+.spike-glyph .spike-fin {
+  fill: #98A6B2;
+  stroke: #0B1116;
+  stroke-width: .18;
+  stroke-linejoin: round;
+}
+.spike-glyph .spike-collar {
+  fill: #7C8A97;
+  stroke: #0B1116;
+  stroke-width: .18;
+}
+.spike-glyph .spike-core { fill: var(--red); }
+
+.board-plant-bg { fill: rgba(11, 17, 22, .82); }
+.board-mark-plant .board-ring { stroke-dasharray: 1.6 .9; }
+.board-mark-plant.is-selected .board-ring { stroke-dasharray: none; }
+
+.spike-icon { width: 18px; height: 18px; flex: 0 0 auto; }
+
+/* ツールバーのスパイクチップ。ルート描画ボタンと同じ高さで並ぶ */
+.pal-plant {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 70, 85, .5);
+  background: rgba(255, 70, 85, .1);
+  color: #FFD9DC;
+}
+.pal-plant:hover { border-color: var(--red); background: rgba(255, 70, 85, .2); }
+.pal-plant.is-armed { border-color: var(--red); background: rgba(255, 70, 85, .3); color: #fff; }
+/* 置いてあることが一目で分かるように印を足す */
+.pal-plant.is-placed::after {
+  content: '✓';
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* 凡例の先頭に出す設置位置の行 */
+.board-plant-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 7px 10px;
+  border-left: 3px solid var(--red);
+  background: rgba(255, 70, 85, .08);
+  font-size: 12px;
+}
+.board-plant-note b { color: #fff; letter-spacing: .04em; }
+.board-plant-note span { color: var(--muted); }

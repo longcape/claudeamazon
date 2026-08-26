@@ -305,11 +305,13 @@
       const ghost = document.createElement('div');
       ghost.className = 'place-ghost';
       const img = btn.querySelector('img');
+      const glyph = btn.querySelector('svg');
       const label = btn.querySelector('span');
       /* パレットはアイコンのみなので、名前は title 属性から取る */
       const name = label ? label.textContent : (btn.getAttribute('title') || '').trim();
-      ghost.innerHTML = (img ? '<img src="' + img.src + '" alt="" />' : '') +
-                        '<span>' + name + '</span>';
+      const icon = img ? '<img src="' + img.src + '" alt="" />'
+                       : (glyph ? glyph.outerHTML : '');
+      ghost.innerHTML = icon + '<span>' + name + '</span>';
       document.body.appendChild(ghost);
       return ghost;
     }
@@ -335,7 +337,8 @@
       if (svg) svg.classList.remove('is-drop-target');
     }
 
-    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
+    /* スパイクのチップはツールバーにあるので、そこも掴める場所に含める */
+    ['board-palette-ally', 'board-palette-enemy', 'board-tools'].forEach(function (id) {
       const pal = $(id);
 
       pal.addEventListener('pointerdown', function (e) {
