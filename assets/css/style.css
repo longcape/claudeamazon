@@ -2020,11 +2020,16 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 .spike-glyph .spike-core { fill: var(--red); }
 
-.board-plant-bg { fill: rgba(11, 17, 22, .82); }
-.board-mark-plant .board-ring { stroke-dasharray: 1.6 .9; }
-.board-mark-plant.is-selected .board-ring { stroke-dasharray: none; }
+/* 背景も囲みも置かないぶん、マップの明るい床の上でも見えるよう
+   輪郭ぶんの影だけ落としている */
+.board-mark-plant .spike-official,
+.board-mark-plant .spike-glyph {
+  filter: drop-shadow(0 0 .5px #0B1116) drop-shadow(0 0 .9px rgba(0, 0, 0, .85));
+}
+.board-mark-plant .board-ring { stroke: none; }
+.board-mark-plant.is-selected .board-ring { stroke: #fff; stroke-width: .4; }
 
-.spike-icon { width: 18px; height: 18px; flex: 0 0 auto; }
+.spike-icon { width: 15px; height: 15px; flex: 0 0 auto; }
 
 /* ツールバーのスパイクチップ。ルート描画ボタンと同じ高さで並ぶ */
 .pal-plant {

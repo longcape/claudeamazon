@@ -240,13 +240,17 @@
     return global.VCT_OFFICIAL_SPIKE || null;
   }
 
+  const SPIKE_R = 1.7;   // 盤面に置いたときの大きさ（半径・0-100 空間）
+
   function spikeGlyphHTML() {
     const url = officialSpike();
     if (url) {
-      return '<image class="spike-official" href="' + url + '" x="-2.1" y="-2.1" ' +
-               'width="4.2" height="4.2" preserveAspectRatio="xMidYMid meet" />';
+      return '<image class="spike-official" href="' + url + '" ' +
+               'x="' + (-SPIKE_R) + '" y="' + (-SPIKE_R) + '" ' +
+               'width="' + (SPIKE_R * 2) + '" height="' + (SPIKE_R * 2) + '" ' +
+               'preserveAspectRatio="xMidYMid meet" />';
     }
-    return drawnSpikeHTML();
+    return '<g transform="scale(' + (SPIKE_R / 2.5) + ')">' + drawnSpikeHTML() + '</g>';
   }
 
   function drawnSpikeHTML() {
@@ -270,13 +274,15 @@
              'aria-hidden="true" focusable="false">' + drawnSpikeHTML() + '</svg>';
   }
 
+  /* 設置位置はエージェントやスキルより控えめでよい。
+     背景の円や囲みは置かず、アイコンだけを浮かせている。
+     選択中だけ、掴んでいる対象が分かるよう輪郭を出す。 */
   function plantMarkHTML(mark, selected) {
     return '<g class="board-mark board-mark-plant' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle class="board-hit" r="3" fill="transparent" />' +
-             '<circle class="board-plant-bg" r="2.7" />' +
-             '<g transform="scale(0.92)">' + spikeGlyphHTML() + '</g>' +
-             '<circle class="board-ring" r="2.7" fill="none" stroke="#FF4655" stroke-width="0.45" />' +
+             '<circle class="board-hit" r="' + (SPIKE_R + 0.5) + '" fill="transparent" />' +
+             spikeGlyphHTML() +
+             '<circle class="board-ring" r="' + (SPIKE_R + 0.35) + '" fill="none" />' +
            '</g>';
   }
 
