@@ -50,6 +50,7 @@
   "pearl": "assets/img/maps/pearl.png",
   "lotus": "assets/img/maps/lotus.png",
   "sunset": "assets/img/maps/sunset.png",
+  "summit": "assets/img/maps/summit.png",
   "abyss": "assets/img/maps/abyss.png",
   "corrode": "assets/img/maps/corrode.png"
 };
