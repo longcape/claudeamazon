@@ -10,7 +10,7 @@ import random
 from datetime import datetime, timezone
 from typing import Callable
 
-from core.state import ResourceKind
+from core.state import ResourceKind, utcnow
 from sandbox.battle import BattleModel
 from sandbox.game import SHIP_MASTERS, SandboxFleet, SandboxGame, SandboxShip
 
@@ -44,13 +44,16 @@ def new_game(
 
     Args:
         seed: 戦闘乱数の種。同じ種なら結果は毎回同じ。
-        clock: 現在時刻を返す関数。省略時は固定時刻。
+        clock: 現在時刻を返す関数。省略時は実時刻。
+
+            固定時刻を既定にしていたが、実時刻で作られた予約や
+            通知と噛み合わなかった。時刻を止めたいテストだけが
+            明示的に渡す。
 
     Returns:
         初期化済みのゲーム。
     """
-    fixed = datetime(2024, 5, 2, 12, 0, tzinfo=timezone.utc)
-    tick = clock or (lambda: fixed)
+    tick = clock or utcnow
 
     game = SandboxGame(
         resources=dict(DEFAULT_RESOURCES),

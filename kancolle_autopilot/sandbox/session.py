@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Sequence
+from typing import Callable, Sequence
 
 from automation.controller import ControlledInterface
 from automation.interface import Screen
@@ -67,6 +67,7 @@ class SandboxSession:
     def create(
         cls,
         seed: int = 0,
+        clock: Callable[[], datetime] | None = None,
         blacklist: Blacklist | None = None,
         safety: SafetyManager | None = None,
         recorder: SessionRecorder | None = None,
@@ -76,6 +77,7 @@ class SandboxSession:
 
         Args:
             seed: 戦闘乱数の種。
+            clock: 現在時刻を返す関数。省略時は実時刻。
             blacklist: 解体保護のブラックリスト。省略時は空を許可した
                 ものを使う（サンドボックスには保護対象の実艦がいない）。
             safety: 差し替える SafetyManager。
@@ -85,7 +87,7 @@ class SandboxSession:
         Returns:
             組み立て済みのセッション。
         """
-        game = new_game(seed=seed)
+        game = new_game(seed=seed, clock=clock)
         environment = SandboxEnvironment(game=game)
         interface = ControlledInterface(
             detector=ScreenDetector(environment, dynamic=environment),

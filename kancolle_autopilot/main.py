@@ -613,7 +613,7 @@ def command_plan(args: argparse.Namespace, config: ConfigManager) -> int:
     from core.task_queue import TaskQueue
     from llm.parser import AnthropicClient, ParseError, TaskParser
     from llm.schema import SchemaError, validate_plan
-    from llm.task_planner import TaskPlanner
+    from llm.task_planner import TaskPlanner, plan_to_specs
 
     try:
         if args.json:
@@ -651,8 +651,22 @@ def command_plan(args: argparse.Namespace, config: ConfigManager) -> int:
             return 1
         state, _ = replay(log_path, manager)
 
+    scheduler = open_scheduler(config)
+
+    if not plan.schedule.is_scheduled:
+        # 時刻指定が無い計画も予約として残す。CLI はキューを持たないので、
+        # ここで投入しても常駐プロセスには届かない。発火時刻を「いま」に
+        # して、次に起きた常駐が拾えるようにする。
+        reservation = scheduler.reserve(
+            state.clock(), plan_to_specs(plan), name="immediate", max_delay_seconds=None
+        )
+        print("\n== 適用結果 ==")
+        print(f"  予約: {reservation.describe()}")
+        print("  （main.py run が次の周で拾います）")
+        return 0
+
     planner = TaskPlanner(
-        scheduler=open_scheduler(config),
+        scheduler=scheduler,
         queue=TaskQueue(),
         safety=manager,
         game_state=state,
@@ -663,6 +677,115 @@ def command_plan(args: argparse.Namespace, config: ConfigManager) -> int:
     for line in result.describe().splitlines():
         print(f"  {line}")
     return 0 if result.accepted else 2
+
+
+def stdin_command_source() -> Any:
+    """標準入力から管理コマンドを読む。
+
+    Discord bot を繋ぐ場合も、同じ :class:`~notify.commands.CommandHandler`
+    へ文字列を渡すだけでよい。ここは入口が 1 つあることを示す最小の実装。
+
+    Returns:
+        溜まっている行を返す関数。
+    """
+    import queue as queue_module
+
+    pending: Any = queue_module.Queue()
+
+    def reader() -> None:
+        # 入力が閉じても常駐は止めない。終了は --ticks か割り込みで決める。
+        for line in sys.stdin:
+            text = line.strip()
+            if text:
+                pending.put(text)
+
+    threading.Thread(target=reader, daemon=True).start()
+
+    def drain() -> list[str]:
+        lines: list[str] = []
+        while not pending.empty():
+            lines.append(pending.get_nowait())
+        return lines
+
+    return drain
+
+
+def command_run(args: argparse.Namespace, config: ConfigManager) -> int:
+    """サンドボックスに対して常駐運用する。
+
+    予約の発火・安全判定・タスク実行・記録・通知を 1 プロセスで回す。
+    実ゲームには接続しない。
+    """
+    from core.orchestrator import Orchestrator
+    from core.task_queue import TaskQueue
+    from notify.commands import available_commands
+    from sandbox.session import SandboxSession
+
+    try:
+        recorder = make_recorder(args)
+    except Exception as exc:  # noqa: BLE001 - ブレークポイント名の誤り
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    dispatcher = None
+    if args.notify:
+        from notify.dispatcher import NotificationDispatcher
+        from notify.notifier import ConsoleNotifier, build_notifier
+
+        notifier = (
+            build_notifier(True, str(config.get("discord.webhook_url")))
+            if config.get("discord.enabled")
+            else ConsoleNotifier()
+        )
+        dispatcher = NotificationDispatcher(notifier)
+
+    session = SandboxSession.create(
+        seed=args.seed, recorder=recorder, dispatcher=dispatcher
+    )
+    session.bootstrap()
+    session.environment.records.append(session.game.kdock_record())
+    session.sync()
+
+    orchestrator = Orchestrator(
+        source=session,
+        game_state=session.game_state,
+        safety=session.safety,
+        queue=TaskQueue(),
+        scheduler=open_scheduler(config),
+        execute=session.run,
+        dispatcher=dispatcher,
+    )
+
+    stop = threading.Event()
+    if args.commands:
+        orchestrator.command_source = stdin_command_source()
+        print("== 管理コマンド ==")
+        for line in available_commands():
+            print(f"  {line}")
+
+    print(f"== 常駐開始（{args.ticks or '無制限'} 周 / 間隔 {args.interval}s）==")
+
+    def show(report) -> None:
+        print(f"  {report.describe()}", flush=True)
+
+    try:
+        orchestrator.run(
+            stop=stop,
+            interval=args.interval,
+            on_tick=show,
+            max_ticks=args.ticks or None,
+        )
+    except KeyboardInterrupt:
+        stop.set()
+        orchestrator.shutdown("割り込み")
+
+    print("\n== 最終状態 ==")
+    for key, value in session.summary().items():
+        print(f"  {key}: {value}")
+    if recorder is not None and args.record:
+        paths = recorder.save(args.record)
+        print(f"  記録: {paths['timeline'].parent}")
+    return 2 if session.safety.is_stopped else 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -746,6 +869,26 @@ def main(argv: list[str] | None = None) -> int:
         help="重要イベントを通知する（discord.enabled が false なら標準出力）",
     )
 
+    run_parser = subparsers.add_parser(
+        "run", help="常駐運用する（サンドボックス。実ゲームに接続しない）"
+    )
+    run_parser.add_argument("--seed", type=int, default=0, help="戦闘乱数の種")
+    run_parser.add_argument(
+        "--interval", type=float, default=1.0, help="1 周ごとの待ち時間（秒）"
+    )
+    run_parser.add_argument(
+        "--ticks", type=int, default=0, help="回す周回数（0 で無制限）"
+    )
+    run_parser.add_argument(
+        "--commands", action="store_true", help="標準入力から管理コマンドを受ける"
+    )
+    run_parser.add_argument("--record", default="", help="記録の保存先ディレクトリ")
+    run_parser.add_argument(
+        "--break", dest="breakpoints", default="", help="停止条件（カンマ区切り）"
+    )
+    run_parser.add_argument("--step", action="store_true", help="1 イベントごとに止める")
+    run_parser.add_argument("--notify", action="store_true", help="重要イベントを通知する")
+
     plan_parser = subparsers.add_parser(
         "plan", help="自然言語を構造化タスクへ変換する"
     )
@@ -824,6 +967,8 @@ def main(argv: list[str] | None = None) -> int:
         return command_sandbox(args, config)
     if args.command == "review":
         return command_review(args, config)
+    if args.command == "run":
+        return command_run(args, config)
     if args.command == "plan":
         if not (args.text or args.json):
             parser.error("plan には --text か --json が必要です")

@@ -122,6 +122,21 @@ def resolve_run_at(plan: TaskPlan, now: datetime) -> datetime | None:
     return run_at
 
 
+def plan_to_specs(plan: TaskPlan) -> list[TaskSpec]:
+    """計画を :class:`~core.scheduler.TaskSpec` の並びへ変換する。
+
+    予約に載せる場合も、キューへ直接入れる場合も、ここを通す。
+    """
+    return [
+        TaskSpec(
+            name=task.name,
+            priority=priority_for(task.name),
+            payload=_payload_for(plan, task),
+        )
+        for task in expand_tasks(plan)
+    ]
+
+
 @dataclass
 class TaskPlanner:
     """計画を予約とキューへ落とす。
@@ -157,16 +172,7 @@ class TaskPlanner:
         run_at = resolve_run_at(plan, moment)
         if run_at is not None:
             reservation = self.scheduler.reserve(
-                run_at,
-                [
-                    TaskSpec(
-                        name=task.name,
-                        priority=priority_for(task.name),
-                        payload=_payload_for(plan, task),
-                    )
-                    for task in tasks
-                ],
-                name=plan.schedule.type,
+                run_at, plan_to_specs(plan), name=plan.schedule.type
             )
             logger.info("計画を予約しました: %s", reservation.describe())
             return PlanApplication(reservation=reservation)

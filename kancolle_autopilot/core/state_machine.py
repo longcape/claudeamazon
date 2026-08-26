@@ -44,7 +44,8 @@ class SystemState(str, Enum):
 #:   を経由させ、復旧作業を明示的な状態として残す。
 #: * ``SHUTDOWN`` は終端。
 TRANSITIONS: Mapping[SystemState, frozenset[SystemState]] = {
-    SystemState.IDLE: frozenset({SystemState.INITIALIZING}),
+    # IDLE からは、起動（INITIALIZING）と、常駐の次の周（SYNCING）へ進める。
+    SystemState.IDLE: frozenset({SystemState.INITIALIZING, SystemState.SYNCING}),
     SystemState.INITIALIZING: frozenset({SystemState.SYNCING}),
     SystemState.SYNCING: frozenset({SystemState.SAFETY_CHECK, SystemState.IDLE}),
     SystemState.SAFETY_CHECK: frozenset(
