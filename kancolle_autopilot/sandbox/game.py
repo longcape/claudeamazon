@@ -271,6 +271,24 @@ class SandboxGame:
             },
         )
 
+    def fleet_ships_record(self, fleet_id: int) -> dict[str, Any]:
+        """艦隊の艦の現状（``api_get_member/ship_deck``）を作る。
+
+        戦闘結果（``battleresult``）には HP が含まれない。これを流さないと、
+        AI は出撃中の損傷を知らないまま進撃を判断することになる。
+        """
+        return self._record(
+            "api_get_member/ship_deck",
+            {
+                "api_ship_data": [
+                    ship.to_api() for ship in self.fleet_ships(fleet_id)
+                ],
+                "api_deck_data": [self.fleets[fleet_id].to_api()]
+                if fleet_id in self.fleets
+                else [],
+            },
+        )
+
     def kdock_record(self) -> dict[str, Any]:
         """建造ドック一覧（``api_get_member/kdock``）を作る。"""
         return self._record(
@@ -407,7 +425,12 @@ class SandboxGame:
                 self.cleared_maps.append(target.label)
                 logger.info("%s のゲージを割りました", target.label)
 
-        return [self._record("api_req_sortie/battleresult", body)]
+        return [
+            self._record("api_req_sortie/battleresult", body),
+            # 損傷を AI から見えるようにする。実ゲームでも戦闘中の応答に
+            # 現在 HP が含まれる。
+            self.fleet_ships_record(self.sortie.fleet_id),
+        ]
 
     def return_to_port(self) -> list[dict[str, Any]]:
         """母港へ帰投する。"""

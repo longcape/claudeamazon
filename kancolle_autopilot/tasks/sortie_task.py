@@ -9,6 +9,7 @@ from automation.interface import Screen
 from core.task_queue import TaskPriority
 from safety.verdict import SafetyVerdict
 from tasks.base_task import BaseTask, TaskContext, TaskResult
+from tasks.constraints import AdvanceDecision, decide_advance
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,18 @@ class SortieTask(BaseTask):
     def safety_fleet_id(self, ctx: TaskContext) -> int | None:
         """出撃する艦隊を損傷判定の対象にする。"""
         return self.fleet_id
+
+    def advance_decision(self, ctx: TaskContext) -> AdvanceDecision:
+        """次のマスへ進むかを、与えられた制約に照らして判断する。
+
+        出撃そのものは :class:`~safety.damage_guard.DamageGuard` が
+        大破を無条件に止める。こちらは出撃後、大破が出たあとの判断。
+        """
+        decision = decide_advance(
+            ctx.game_state.fleet_ships(self.fleet_id), self.constraints
+        )
+        logger.info("%s 進撃判断: %s", self.map_label, decision.describe())
+        return decision
 
     def preconditions(self, ctx: TaskContext) -> SafetyVerdict:
         """既に出撃中でないか、艦隊が使えるかを見る。"""

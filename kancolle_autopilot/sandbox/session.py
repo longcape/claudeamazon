@@ -36,6 +36,8 @@ from sandbox.environment import SandboxEnvironment, SandboxPointer
 from sandbox.game import SandboxGame
 from sandbox.scenario import new_game
 from tasks.base_task import BaseTask, TaskContext, TaskResult
+from tasks.sortie_task import SortieTask
+from tasks.constraints import NO_CONSTRAINTS, TaskConstraints, decide_advance
 
 logger = logging.getLogger(__name__)
 
@@ -330,18 +332,47 @@ class SandboxSession:
         )
         return result
 
+    def run_and_resolve(self, task: BaseTask, now: datetime | None = None) -> TaskResult:
+        """タスクを実行し、出撃なら海域を進み切るまで面倒を見る。
+
+        常駐ループから渡す実行関数はこれ。:meth:`run` だけでは出撃を
+        始めたところで止まり、戦闘が進まない。進撃の判断にはタスクへ
+        与えられた制約をそのまま使う。
+
+        Returns:
+            タスクの結果。出撃の場合は戦闘結果を details に足す。
+        """
+        result = self.run(task, now)
+        if not result.ok or not isinstance(task, SortieTask):
+            return result
+
+        ranks = self.fight_through(constraints=task.constraints)
+        return TaskResult.succeeded(
+            f"{result.message}（戦闘 {len(ranks)} 回: {' '.join(ranks)}）",
+            {**result.details, "ranks": ranks, "rank_points": self.game.rank_points},
+            result.actions,
+        )
+
     # ------------------------------------------------------------------
     # ゲーム側の進行
     # ------------------------------------------------------------------
 
-    def fight_through(self, max_battles: int = 20) -> list[str]:
+    def fight_through(
+        self,
+        max_battles: int = 20,
+        constraints: TaskConstraints = NO_CONSTRAINTS,
+    ) -> list[str]:
         """出撃中の海域を進んで戦い、母港へ戻る。
 
         実ゲームでは進撃も画面操作だが、まだタスク化していないため
-        ここではゲームを直接進める。大破艦が出た時点で撤退する。
+        ここではゲームを直接進める。進むかどうかの判断は
+        :func:`~tasks.constraints.decide_advance` に任せる。既定は撤退で、
+        「大破進撃を禁止していない」かつ「捨て艦戦法が許可されている」
+        場合だけ進む。
 
         Args:
             max_battles: 打ち切りまでの戦闘回数。
+            constraints: 与えられた制約。
 
         Returns:
             各戦闘の勝利判定。
@@ -383,9 +414,26 @@ class SandboxSession:
             target = self.game.maps[self.game.sortie.map_key]
             if self.game.at_boss or self.game.sortie.cell >= target.cells:
                 break
-            if self._has_heavy_damage():
-                logger.info("大破艦が出たため撤退します")
+
+            fleet_id = self.game.sortie.fleet_id
+            decision = decide_advance(
+                self.game_state.fleet_ships(fleet_id), constraints
+            )
+            if not decision.advance:
+                logger.info("撤退します: %s", decision.reason)
+                if self.recorder is not None:
+                    self.recorder.record(
+                        EventKind.DECISION,
+                        f"RETREAT / {decision.reason_code}",
+                        detail={"reason": decision.reason},
+                    )
                 break
+            if decision.sacrificed and self.recorder is not None:
+                self.recorder.record(
+                    EventKind.DECISION,
+                    f"ADVANCE / {decision.reason_code}",
+                    detail={"sacrificed": list(decision.sacrificed)},
+                )
 
             self.environment.records.extend(self.game.advance())
             self.sync()

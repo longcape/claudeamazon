@@ -19,6 +19,7 @@ from core.state import ResourceKind
 from core.task_queue import TaskPriority
 from safety.verdict import SafetyVerdict
 from tasks.base_task import BaseTask, TaskContext, TaskResult
+from tasks.constraints import LARGE_BUILD, LARGE_BUILD_TOTAL
 
 logger = logging.getLogger(__name__)
 
@@ -98,10 +99,20 @@ class ConstructionTask(BaseTask):
             remaining[kind] = current - cost
         return remaining, unknown
 
+    @property
+    def total_cost(self) -> int:
+        """レシピの資材合計。"""
+        return sum(self.recipe.as_payload().values())
+
     def preconditions(self, ctx: TaskContext) -> SafetyVerdict:
-        """ドックの空きと、建造後も閾値を保てるかを見る。"""
+        """ドックの空き、制約、建造後も閾値を保てるかを見る。"""
         reasons: list[str] = []
         details: dict[str, object] = {"recipe": self.recipe.as_payload()}
+
+        if self.constraints.forbids(LARGE_BUILD) and self.total_cost > LARGE_BUILD_TOTAL:
+            reasons.append(
+                f"大型建造は禁止されています（合計 {self.total_cost} > {LARGE_BUILD_TOTAL}）"
+            )
 
         if not ctx.game_state.build_docks:
             reasons.append("建造ドックの情報がありません")
@@ -117,12 +128,16 @@ class ConstructionTask(BaseTask):
             reasons.append("残量が不明な資材があります: " + ", ".join(unknown))
 
         thresholds = ctx.safety.resource_guard.thresholds
+        # 資源効率は閾値を「上げる」方向にしか効かない。下限そのものは
+        # ResourceGuard が持つ絶対の値で、指示で緩められては困る。
+        margin = self.constraints.resource_margin
         limits = {
-            ResourceKind.FUEL: thresholds.min_fuel,
-            ResourceKind.AMMO: thresholds.min_ammo,
-            ResourceKind.STEEL: thresholds.min_steel,
-            ResourceKind.BAUXITE: thresholds.min_bauxite,
+            ResourceKind.FUEL: int(thresholds.min_fuel * margin),
+            ResourceKind.AMMO: int(thresholds.min_ammo * margin),
+            ResourceKind.STEEL: int(thresholds.min_steel * margin),
+            ResourceKind.BAUXITE: int(thresholds.min_bauxite * margin),
         }
+        details["resource_margin"] = margin
         for kind, value in remaining.items():
             if value < limits[kind]:
                 reasons.append(

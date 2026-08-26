@@ -29,6 +29,7 @@ from core.task_queue import Task, TaskPriority
 from monitor.game_state import GameState
 from safety.safety_manager import SafetyManager
 from safety.verdict import SafetyVerdict
+from tasks.constraints import NO_CONSTRAINTS, TaskConstraints
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,9 @@ class BaseTask(ABC):
     name: ClassVar[str] = "task"
     #: キューでの優先度。
     priority: ClassVar[TaskPriority] = TaskPriority.BACKGROUND
+    #: 与えられた制約。:mod:`tasks.factory` が payload から設定する。
+    #: 既定は「何も許可されていない」状態。
+    constraints: TaskConstraints = NO_CONSTRAINTS
 
     # ------------------------------------------------------------------
     # サブクラスが差し替える部分

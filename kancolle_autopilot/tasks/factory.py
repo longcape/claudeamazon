@@ -17,6 +17,7 @@ from typing import Any, Mapping, Sequence
 
 from core.task_queue import Task
 from tasks.base_task import BaseTask
+from tasks.constraints import TaskConstraints
 from tasks.construction_task import ConstructionTask, Recipe
 from tasks.daily_task import DailyTask
 from tasks.dismantle_task import DismantleTask
@@ -161,5 +162,11 @@ def build_task(task: Task) -> BaseTask:
             f"（使えるのは {', '.join(sorted(BUILDERS))}）"
         )
     built = builder(task.payload)
-    logger.debug("タスクを組み立てました: %s", task.describe())
+    # 制約は payload に一律で載っている。ここで型にしてタスクへ渡す。
+    built.constraints = TaskConstraints.from_payload(task.payload)
+    logger.debug(
+        "タスクを組み立てました: %s（%s）",
+        task.describe(),
+        built.constraints.describe(),
+    )
     return built

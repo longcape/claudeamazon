@@ -20,6 +20,7 @@ from core.task_queue import TaskPriority
 from monitor.game_state import GameState
 from safety.verdict import SafetyVerdict
 from tasks.base_task import BaseTask, TaskContext, TaskResult
+from tasks.constraints import DISMANTLE_SHIPS
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,8 @@ class DismantleTask(BaseTask):
 
     def preconditions(self, ctx: TaskContext) -> SafetyVerdict:
         """SafetyManager に承認を取る。"""
+        if self.constraints.forbids(DISMANTLE_SHIPS):
+            return SafetyVerdict.stop(["解体は禁止されています"])
         if not self.candidate_ids:
             return SafetyVerdict.stop(["解体候補が指定されていません"])
 

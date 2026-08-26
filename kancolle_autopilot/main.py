@@ -752,7 +752,7 @@ def command_run(args: argparse.Namespace, config: ConfigManager) -> int:
         safety=session.safety,
         queue=TaskQueue(),
         scheduler=open_scheduler(config),
-        execute=session.run,
+        execute=session.run_and_resolve,
         dispatcher=dispatcher,
     )
 
