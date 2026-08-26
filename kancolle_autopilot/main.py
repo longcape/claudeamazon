@@ -19,9 +19,13 @@ import logging
 import sys
 import threading
 from pathlib import Path
+from datetime import datetime
 from typing import Any, Iterator, Sequence
 
 from core.config_manager import ConfigError, ConfigManager
+from core.persistence import PersistenceError
+from core.scheduler import Scheduler, TaskSpec
+from core.task_queue import TaskPriority
 from monitor.api_parser import APIParser, Event, EventType
 from monitor.game_state import GameState
 from monitor.log_monitor import LogMonitor
@@ -32,6 +36,15 @@ logger = logging.getLogger("kancolle_autopilot")
 
 #: 要約時に一覧すると煩いイベント。
 _QUIET_EVENTS = frozenset({EventType.PORT_REFRESHED})
+
+#: ``schedule add`` で使えるタスク名と優先度。
+TASK_PRIORITIES: dict[str, TaskPriority] = {
+    "daily": TaskPriority.DAILY_TASK,
+    "construction": TaskPriority.DAILY_TASK,
+    "expedition": TaskPriority.EXPEDITION,
+    "sortie": TaskPriority.SORTIE,
+    "dismantle": TaskPriority.BACKGROUND,
+}
 
 #: 安全判定レベルごとの終了コード。
 _EXIT_CODE_BY_LEVEL = {
@@ -223,6 +236,79 @@ def command_watch(args: argparse.Namespace, config: ConfigManager) -> int:
     return 0
 
 
+def parse_when(text: str) -> datetime:
+    """``--at`` の文字列を tz 付き datetime へ変換する。
+
+    オフセットが無い場合はローカルタイムとして解釈し、採用した
+    オフセットを表示する（暗黙に UTC とみなすと時刻がずれるため）。
+
+    Raises:
+        ValueError: ISO 8601 として解釈できない場合。
+    """
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None:
+        parsed = parsed.astimezone()
+        print(f"オフセット省略のためローカル時刻として解釈: {parsed.isoformat()}")
+    return parsed
+
+
+def open_scheduler(config: ConfigManager) -> Scheduler:
+    """設定に従って予約ファイルを開く。"""
+    path = config.path.parent / str(config.get("scheduler.state_path"))
+    return Scheduler.load(path)
+
+
+def command_schedule(args: argparse.Namespace, config: ConfigManager) -> int:
+    """予約の一覧・追加・取り消しを行う。"""
+    scheduler = open_scheduler(config)
+
+    if args.action == "list":
+        pending = scheduler.pending()
+        if not pending:
+            print("予約はありません")
+            return 0
+        print(f"== 予約（{len(pending)} 件）==")
+        for reservation in pending:
+            print(f"  [{reservation.reservation_id}] {reservation.describe()}")
+        return 0
+
+    if args.action == "cancel":
+        if scheduler.cancel(args.id):
+            print(f"取り消しました: {args.id}")
+            return 0
+        print(f"該当する待機中の予約がありません: {args.id}", file=sys.stderr)
+        return 1
+
+    # add
+    try:
+        run_at = parse_when(args.at)
+    except ValueError as exc:
+        print(f"時刻を解釈できません: {args.at}: {exc}", file=sys.stderr)
+        return 1
+
+    names = [name.strip() for name in args.tasks.split(",") if name.strip()]
+    unknown = [name for name in names if name not in TASK_PRIORITIES]
+    if unknown:
+        print(
+            "未知のタスク名です: " + ", ".join(unknown)
+            + "（使えるのは " + ", ".join(sorted(TASK_PRIORITIES)) + "）",
+            file=sys.stderr,
+        )
+        return 1
+
+    specs = [TaskSpec(name, TASK_PRIORITIES[name]) for name in names]
+    try:
+        reservation = scheduler.reserve(
+            run_at, specs, name=args.name or "", max_delay_seconds=args.max_delay
+        )
+    except (ValueError, PersistenceError) as exc:
+        print(f"予約できません: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"予約しました: [{reservation.reservation_id}] {reservation.describe()}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """エントリポイント。
 
@@ -248,7 +334,33 @@ def main(argv: list[str] | None = None) -> int:
             "--fleet", type=int, default=None, help="損傷判定の対象とする艦隊 ID"
         )
 
+    schedule = subparsers.add_parser("schedule", help="未来タスクの予約を操作する")
+    schedule.add_argument(
+        "action", choices=("list", "add", "cancel"), help="操作の種類"
+    )
+    schedule.add_argument("--at", help="発火時刻（ISO 8601、例 2026-08-27T10:52+09:00）")
+    schedule.add_argument(
+        "--tasks", default="", help="投入するタスク名をカンマ区切りで指定"
+    )
+    schedule.add_argument("--name", default="", help="予約の表示名")
+    schedule.add_argument("--id", default="", help="cancel する予約 ID")
+    schedule.add_argument(
+        "--max-delay",
+        dest="max_delay",
+        type=int,
+        default=3600,
+        help="発火時刻からこの秒数を過ぎたら失効させる（0 で無期限）",
+    )
+
     args = parser.parse_args(argv)
+
+    if args.command == "schedule":
+        if args.action == "add" and not (args.at and args.tasks):
+            parser.error("add には --at と --tasks が必要です")
+        if args.action == "cancel" and not args.id:
+            parser.error("cancel には --id が必要です")
+        if args.max_delay == 0:
+            args.max_delay = None
 
     try:
         config = ConfigManager(args.config).load()
@@ -263,6 +375,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "watch":
         return command_watch(args, config)
+    if args.command == "schedule":
+        return command_schedule(args, config)
     return command_replay(args, config)
 
 

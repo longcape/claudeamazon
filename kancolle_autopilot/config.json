@@ -21,6 +21,9 @@
     "poll_interval_seconds": 1.0,
     "read_existing": false
   },
+  "scheduler": {
+    "state_path": "data/schedule.json"
+  },
   "discord": {
     "enabled": false,
     "webhook_url": ""

@@ -7,3 +7,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+
+# ランタイム状態（予約は各環境ごと）
+kancolle_autopilot/data/schedule.json

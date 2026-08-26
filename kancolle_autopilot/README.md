@@ -2,9 +2,9 @@
 
 「艦これ Auto-Pilot 開発指示書」に基づく運用補助システム。
 
-現在の到達点は **Phase 2**。保存済み／稼働中の kcsapi ログを読み込んで
-ゲームの現在状態を再構築し、資材・損傷・艦の保護について安全判定を
-返せるところまで。
+現在の到達点は **Phase 3**。保存済み／稼働中の kcsapi ログを読み込んで
+ゲームの現在状態を再構築し、安全判定を返し、優先度付きタスクキュー・
+ステートマシン・未来タスクの予約まで揃ったところ。まだ何も実行しない。
 
 ## 現時点でできること / できないこと
 
@@ -17,12 +17,15 @@
 - 未所持艦のドロップを検出し、ロックが確認できるまで停止し続ける
 - 資材の下限割れ、大破・状態不明の艦隊、破棄してはならない艦を判定する
 - 緊急停止をラッチする（自動復帰しない）
-- 保存ログの再生とライブ監視を CLI で確認する
+- 優先度付きキューでタスクの実行順を決める（同一優先度は FIFO）
+- 明示的な状態遷移を管理し、不正な遷移で停止する
+- 未来タスクを予約し、PC 再起動をまたいで復元する
+- 保存ログの再生・ライブ監視・予約操作を CLI で確認する
 
 できないこと（未実装）
 
 - 実ゲームへの接続、GUI 操作、自動出撃・自動解体・自動建造
-- TaskQueue / StateMachine / Scheduler
+- タスクの実行そのもの（Task 実装とシミュレーションモード）
 - 通知連携、LLM によるタスク解釈
 
 開発指示書 §2 のとおり、**自動化検知の回避を目的とした機能は実装しない**。
@@ -40,6 +43,11 @@ python main.py replay --log data/fixtures/scenario_unknown_drop.jsonl
 
 # ログディレクトリを監視して、更新のたびに状態を表示（読み取り専用）
 python main.py watch --log "C:/poi/kcsapi" --fleet 1
+
+# 未来タスクの予約
+python main.py schedule add --at "2026-08-27T10:52+09:00" --tasks daily,expedition,sortie --name "朝の周回"
+python main.py schedule list
+python main.py schedule cancel --id <予約ID>
 
 # テスト
 python -m pytest
@@ -62,7 +70,11 @@ kancolle_autopilot/
 ├─ config.json                設定
 ├─ core/
 │  ├─ config_manager.py       設定の読み込み・検証・atomic save
-│  └─ state.py                ドメインモデル（艦・艦隊・資材・任務…）
+│  ├─ persistence.py          atomic な JSON 読み書き
+│  ├─ state.py                ドメインモデル（艦・艦隊・資材・任務…）
+│  ├─ task_queue.py           優先度付きキュー
+│  ├─ state_machine.py        状態と遷移の定義
+│  └─ scheduler.py            未来タスクの予約と復元
 ├─ monitor/
 │  ├─ api_parser.py           kcsapi 応答 → イベント（状態を持たない）
 │  ├─ game_state.py           イベント → 現在状態（派生イベントを返す）
@@ -75,12 +87,12 @@ kancolle_autopilot/
 │  └─ safety_manager.py       集約・ラッチ・保護待ちの管理
 ├─ data/
 │  ├─ blacklist.json          破棄禁止の艦種（**要設定**）
+│  ├─ schedule.json           予約状態（実行時に生成、git 管理外）
 │  └─ fixtures/               再生用シナリオ
 └─ tests/                     unit test と kcsapi フィクスチャ
 ```
 
-未作成（今後の Phase）: `core/task_queue.py`, `core/state_machine.py`,
-`core/scheduler.py`, `core/gametime.py`, `automation/`, `tasks/`,
+未作成（今後の Phase）: `core/gametime.py`, `automation/`, `tasks/`,
 `notify/`, `llm/`。
 
 ## 使う前に設定が要るもの
@@ -136,6 +148,27 @@ ID を推測で書かないこと。間違った ID は「保護されていな�
 **ロック済み個体を所有していることを確認するまで**解消しない
 （艦種が特定できなかった場合は自動では解消せず、人手での確認が要る）。
 
+### 不正な状態遷移は既定で停止に倒す
+
+指示書 §12 は「例外または STOP」を求めている。既定は
+`EMERGENCY_STOP`。想定外の遷移が起きた時点でシステムの理解と実際が
+ずれているので、例外で落として途中状態を残すより、停止を明示して人間の
+確認を待つほうが安全なため。ずれを即座に検出したいテストでは
+`InvalidTransitionPolicy.RAISE` を使う。
+
+`EMERGENCY_STOP` から通常状態へは直接戻れない。必ず `RECOVERING` を
+経由させ、復旧作業を状態として残す。
+
+### 遅れた予約は失効させる
+
+PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのまま実行すると
+意図しない時刻に動き出す。`Reservation.max_delay_seconds`（既定 1 時間）
+を超えていたら `EXPIRED` にして発火しない。無期限に待たせたい場合だけ
+明示的に `None` を指定する。
+
+予約は変更のたびに atomic に書き出すので、発火済みの予約が再起動後に
+二重発火することもない。
+
 ### 起動時に過去ログを読まない
 
 `LogMonitor` は既定で既存ファイルを末尾まで読み飛ばす。古いログを
@@ -170,11 +203,18 @@ ID を推測で書かないこと。間違った ID は「保護されていな�
    取りこぼすと出撃が開いたままになる。
 7. **`LogMonitor` はポーリング**。走査間隔より短い周期でファイルが
    作られて消える環境では取りこぼす。専ブラの通常の出力では起きない。
+8. **プレイリストの順序より優先度が強い**。`Scheduler` は予約された順に
+   キューへ投入するが、取り出し順を決めるのは優先度。デイリー(700) →
+   遠征(500) → 周回(400) は優先度も降順なので一致するが、これに反する
+   順序を指定した場合はキューの順序が勝つ。
+9. **`schedule add` の時刻でオフセットを省略するとローカル時刻扱い**。
+   採用したオフセットを表示するが、明示するほうが確実。
 
 ## 次の Phase
 
-Phase 3: `core/task_queue.py`, `core/state_machine.py`, `core/scheduler.py`。
+Phase 4: シミュレーションモードと `tasks/`。
 
-優先度付きキュー（EMERGENCY_STOP 1000 〜 BACKGROUND 100、同一優先度は
-FIFO）と、明示的な状態遷移。`SafetyManager` がすべての Task より上位に
-立つ構造は既にできているので、Phase 3 はその上に載せる形になる。
+`simulation_mode=true` のとき、実際にクリックせず
+`SIMULATION: would click sortie button` としてログ出力する層を先に作り、
+その上に遠征・出撃・デイリー・建造・解体の Task を載せる。
+`core/gametime.py`（JST 05:00 のゲーム日付境界）もここで実装する。

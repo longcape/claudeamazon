@@ -20,10 +20,11 @@ from __future__ import annotations
 import json
 import logging
 import os
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
+
+from core.persistence import PersistenceError, write_json_atomic
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,9 @@ SCHEMA: Mapping[str, Mapping[str, Field]] = {
         # 起動時に既存ログを読み直すか。既定は false（末尾から監視）。
         # true にすると古いログを再生して状態を作るため、実態とずれうる。
         "read_existing": Field(bool, False),
+    },
+    "scheduler": {
+        "state_path": Field(str, "data/schedule.json"),
     },
     "discord": {
         "enabled": Field(bool, False),
@@ -338,26 +342,8 @@ class ConfigManager:
         Raises:
             ConfigError: 書き出しに失敗した場合。
         """
-        payload = json.dumps(self._data, ensure_ascii=False, indent=2) + "\n"
-        directory = self._path.parent
         try:
-            directory.mkdir(parents=True, exist_ok=True)
-            # 同一ファイルシステム上に一時ファイルを作らないと os.replace が
-            # atomic にならないため、保存先と同じディレクトリを使う。
-            fd, tmp_name = tempfile.mkstemp(
-                prefix=self._path.name, suffix=".tmp", dir=directory
-            )
-            try:
-                with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                    handle.write(payload)
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                os.replace(tmp_name, self._path)
-            except BaseException:
-                # 失敗時に一時ファイルを残さない。
-                if os.path.exists(tmp_name):
-                    os.unlink(tmp_name)
-                raise
-        except OSError as exc:
-            raise ConfigError(f"設定を保存できません: {self._path}: {exc}") from exc
+            write_json_atomic(self._path, self._data)
+        except PersistenceError as exc:
+            raise ConfigError(str(exc)) from exc
         logger.info("設定を保存しました: %s", self._path)
