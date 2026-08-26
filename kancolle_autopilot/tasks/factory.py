@@ -19,6 +19,7 @@ from core.task_queue import Task
 from tasks.base_task import BaseTask
 from tasks.constraints import TaskConstraints
 from tasks.advance_task import AdvanceTask
+from tasks.collect_task import CollectBuildTask, CollectExpeditionTask
 from tasks.construction_task import ConstructionTask, Recipe
 from tasks.daily_task import DailyTask
 from tasks.dismantle_task import DismantleTask
@@ -146,6 +147,16 @@ def _build_repair(payload: Mapping[str, Any]) -> BaseTask:
     )
 
 
+def _build_collect_expedition(payload: Mapping[str, Any]) -> BaseTask:
+    """遠征の受け取りタスクを組み立てる。"""
+    return CollectExpeditionTask(fleet_id=_as_int(payload, "fleet_id"))
+
+
+def _build_collect_build(payload: Mapping[str, Any]) -> BaseTask:
+    """建造艦の受け取りタスクを組み立てる。"""
+    return CollectBuildTask(dock_id=_as_int(payload, "dock_id"))
+
+
 def _build_dismantle(payload: Mapping[str, Any]) -> BaseTask:
     """解体タスクを組み立てる。"""
     ship_ids = payload.get("ship_ids") or ()
@@ -163,6 +174,8 @@ BUILDERS = {
     "supply": _build_supply,
     "repair": _build_repair,
     "expedition": _build_expedition,
+    "collect_expedition": _build_collect_expedition,
+    "collect_build": _build_collect_build,
     "daily": _build_daily,
     "construction": _build_construction,
     "dismantle": _build_dismantle,

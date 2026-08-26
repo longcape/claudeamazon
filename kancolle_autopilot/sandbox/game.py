@@ -310,6 +310,57 @@ class SandboxGame:
     # 操作
     # ------------------------------------------------------------------
 
+    def settle(self, now: datetime | None = None) -> list[dict[str, Any]]:
+        """こちらが見ていない間に進んだことを反映する。
+
+        時間で決まる変化を、実ゲームと同じ粒度で扱う。
+
+        * **入渠は自動的に完了する。** 時間が来れば艦はドックから出る。
+          プレイヤーの操作は要らない。
+        * **遠征は帰投済みになるだけ。** 報酬の受け取りは操作が要るので、
+          状態を ``RETURNED`` にして止める。
+        * **建造も完成済みになるだけ。** 艦の受け取りは操作が要る。
+
+        Args:
+            now: 現在時刻。省略時は :attr:`clock`。
+
+        Returns:
+            変化があった場合の kcsapi レコード。無ければ空。
+        """
+        moment = now or self.clock()
+        changed = False
+
+        for dock_id, dock in self.repair_docks.items():
+            complete_at = dock.get("complete_at")
+            if dock["state"] == 1 and complete_at is not None and moment >= complete_at:
+                ship = self.ships.get(dock.get("ship_id", 0))
+                if ship is not None:
+                    ship.hp = ship.max_hp
+                dock.update({"state": 0, "ship_id": 0, "complete_at": None})
+                logger.info("入渠が完了しました: ドック%s", dock_id)
+                changed = True
+
+        for fleet in self.fleets.values():
+            if (
+                fleet.mission_state == 2
+                and fleet.mission_complete_at is not None
+                and moment >= fleet.mission_complete_at
+            ):
+                fleet.mission_state = 3  # 帰投済み（未回収）
+                logger.info("遠征が帰投しました: 第%s艦隊", fleet.fleet_id)
+                changed = True
+
+        for dock_id, dock in self.build_docks.items():
+            complete_at = dock.get("complete_at")
+            if dock["state"] == 2 and complete_at is not None and moment >= complete_at:
+                dock["state"] = 3  # 完成（受け取り待ち）
+                logger.info("建造が完了しました: ドック%s", dock_id)
+                changed = True
+
+        if not changed:
+            return []
+        return [self.port_record(), self.kdock_record()]
+
     def set_lock(self, ship_id: int, locked: bool = True) -> list[dict[str, Any]]:
         """艦のロックを切り替える。"""
         ship = self.ships.get(ship_id)
@@ -471,6 +522,8 @@ class SandboxGame:
         fleet = self.fleets.get(fleet_id)
         if fleet is None or fleet.mission_state == 0:
             raise ValueError(f"第{fleet_id}艦隊は遠征に出ていません")
+        if fleet.mission_id not in MISSIONS:
+            raise ValueError(f"未知の遠征です: {fleet.mission_id}")
 
         _, reward = MISSIONS[fleet.mission_id]
         for kind, amount in reward.items():
@@ -560,7 +613,9 @@ class SandboxGame:
         dock = self.build_docks.get(dock_id)
         if dock is None or dock["state"] not in (2, 3):
             raise ValueError(f"ドック{dock_id}に受け取れる艦がありません")
-        if dock.get("complete_at") and self.clock() < dock["complete_at"]:
+        if dock["state"] == 2 and (
+            dock.get("complete_at") and self.clock() < dock["complete_at"]
+        ):
             raise ValueError(f"ドック{dock_id}はまだ建造中です")
 
         ship = self._create_ship(dock["created_ship_id"])

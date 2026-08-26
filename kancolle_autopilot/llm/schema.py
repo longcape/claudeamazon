@@ -30,6 +30,8 @@ TASK_NAMES: frozenset[str] = frozenset(
         "repair",
         "construction",
         "dismantle",
+        "collect_expedition",
+        "collect_build",
     }
 )
 

@@ -177,6 +177,24 @@ class GameState:
                 unknown.append(ship_id)
         return unknown
 
+    def returned_expeditions(self) -> list[int]:
+        """帰投していて、まだ受け取っていない遠征の艦隊 ID。"""
+        from core.state import FleetMissionState
+
+        return sorted(
+            fleet_id
+            for fleet_id, fleet in self.fleets.items()
+            if fleet.mission.state is FleetMissionState.RETURNED
+        )
+
+    def completed_builds(self) -> list[int]:
+        """完成していて、まだ受け取っていない建造ドックの ID。"""
+        return sorted(
+            dock_id
+            for dock_id, dock in self.build_docks.items()
+            if dock.is_complete
+        )
+
     def is_stale(self, max_age_seconds: float, now: datetime | None = None) -> bool:
         """一定時間イベントを受け取っていないなら ``True``。
 

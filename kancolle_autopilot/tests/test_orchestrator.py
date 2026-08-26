@@ -156,8 +156,9 @@ def build_orchestrator(
         source=session,
         game_state=session.game_state,
         safety=session.safety,
-        queue=queue or TaskQueue(),
-        scheduler=scheduler or Scheduler(),
+        # 空のキューは falsy なので `or` は使えない（渡した物が捨てられる）。
+        queue=queue if queue is not None else TaskQueue(),
+        scheduler=scheduler if scheduler is not None else Scheduler(),
         execute=session.run,
         dispatcher=dispatcher,
     )

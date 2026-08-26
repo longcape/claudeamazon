@@ -244,6 +244,16 @@ class SandboxEnvironment(DynamicResolver):
                 raise ValueError("ドックが選ばれていません")
             return game.build(int(dock), self.recipe)
 
+        if target.startswith("expedition_return_"):
+            fleet_id = int(target[len("expedition_return_") :])
+            return game.complete_expedition(fleet_id)
+
+        if target == "receive_ship":
+            dock = self.selection.get("dock")
+            if dock is None:
+                raise ValueError("ドックが選ばれていません")
+            return game.receive_ship(int(dock))
+
         if target == "advance":
             if game.sortie is None:
                 raise ValueError("出撃中ではありません")

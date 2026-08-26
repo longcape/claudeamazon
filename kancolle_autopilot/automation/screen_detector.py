@@ -130,6 +130,10 @@ LAYOUT: Mapping[tuple[Screen, str], StaticTarget | IndexedTarget] = {
     (Screen.HOME, "fleet_button"): StaticTarget(Region(120, 460, 120, 60)),
     (Screen.HOME, "supply_button"): StaticTarget(Region(260, 460, 120, 60)),
     (Screen.HOME, "repair_button"): StaticTarget(Region(400, 460, 120, 60)),
+    # 帰投した遠征の受け取り（母港に艦隊ごとに出る）。
+    (Screen.HOME, "expedition_return"): IndexedTarget(
+        Region(120, 200, 90, 44), step_x=100, per_row=4, count=4
+    ),
     # 出撃。海域の一覧は左の列、艦隊の選択は右。重ならないように分ける。
     (Screen.SORTIE_SELECT, "area"): IndexedTarget(
         Region(60, 100, 90, 46), step_x=100, step_y=56, per_row=5, count=10
@@ -175,6 +179,7 @@ LAYOUT: Mapping[tuple[Screen, str], StaticTarget | IndexedTarget] = {
     ),
     (Screen.BUILD, "recipe_input"): StaticTarget(Region(380, 160, 220, 120)),
     (Screen.BUILD, "build_start"): StaticTarget(Region(480, 420, 140, 50)),
+    (Screen.BUILD, "receive_ship"): StaticTarget(Region(380, 320, 200, 50)),
     # 解体
     (Screen.DISMANTLE, "dismantle_confirm"): StaticTarget(Region(520, 440, 140, 50)),
     # 任務

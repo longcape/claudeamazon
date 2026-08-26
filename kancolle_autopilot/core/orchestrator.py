@@ -25,12 +25,12 @@ import logging
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable, Protocol, Sequence
+from typing import Callable, Mapping, Protocol, Sequence
 
 from core.scheduler import Scheduler
 from core.state import utcnow
 from core.state_machine import StateMachine, SystemState
-from core.task_queue import Task, TaskQueue
+from core.task_queue import Task, TaskPriority, TaskQueue
 from monitor.api_parser import Event
 from monitor.game_state import GameState
 from notify.commands import CommandError, CommandHandler
@@ -64,6 +64,7 @@ class TickReport:
     state: SystemState
     verdict: SafetyVerdict
     fired: tuple[str, ...] = ()
+    collected: tuple[str, ...] = ()
     executed: str | None = None
     result: TaskResult | None = None
     note: str = ""
@@ -71,13 +72,15 @@ class TickReport:
     @property
     def did_work(self) -> bool:
         """何かしら進んだなら ``True``。"""
-        return bool(self.fired) or self.executed is not None
+        return bool(self.fired) or bool(self.collected) or self.executed is not None
 
     def describe(self) -> str:
         """ログ用の 1 行表記。"""
         parts = [self.state.value, self.verdict.level.name]
         if self.fired:
             parts.append(f"予約発火 {len(self.fired)}")
+        if self.collected:
+            parts.append(f"受け取り {len(self.collected)}")
         if self.executed:
             outcome = "成功" if self.result and self.result.ok else "失敗"
             parts.append(f"{self.executed} → {outcome}")
@@ -162,17 +165,20 @@ class Orchestrator:
         self._enter_sync()
         self.source.sync()
         fired = self._promote_reservations(now)
+        collected = self._enqueue_collections()
 
         self.machine.transition(SystemState.SAFETY_CHECK, "安全判定")
         verdict = self.safety.evaluate(self.game_state, now=now)
         if verdict.should_stop:
-            return self._halt(verdict, fired)
+            return self._halt(verdict, fired, collected)
 
         if self.queue.is_empty:
             self.machine.transition(SystemState.IDLE, "待機タスクなし")
-            return TickReport(self.machine.state, verdict, fired, note="待機")
+            return TickReport(
+                self.machine.state, verdict, fired, collected, note="待機"
+            )
 
-        return self._run_next(verdict, fired, now)
+        return self._run_next(verdict, fired, collected, now)
 
     def run(
         self,
@@ -241,21 +247,76 @@ class Orchestrator:
             logger.info("予約を投入しました: %s", reservation.describe())
         return tuple(fired)
 
-    def _halt(self, verdict: SafetyVerdict, fired: tuple[str, ...]) -> TickReport:
+    def _enqueue_collections(self) -> tuple[str, ...]:
+        """時間が来て受け取り待ちになったものを積む。
+
+        遠征の帰投と建造の完成は、放っておくと艦隊もドックも塞がったまま
+        になる。周回のたびに見つけて積む。
+
+        同じものを毎周積まないよう、待機中に同じタスクがあれば飛ばす。
+        実行中のものは重複しない（キューから取り出した時点で待機列から
+        消え、完了すれば状態も変わるため）。
+
+        Returns:
+            積んだタスクの説明。
+        """
+        added: list[str] = []
+
+        for fleet_id in self.game_state.returned_expeditions():
+            payload = {"fleet_id": fleet_id}
+            if self._already_queued("collect_expedition", payload):
+                continue
+            self.queue.push(
+                Task("collect_expedition", TaskPriority.SAFETY_TASK, payload)
+            )
+            added.append(f"遠征の受け取り（第{fleet_id}艦隊）")
+
+        for dock_id in self.game_state.completed_builds():
+            payload = {"dock_id": dock_id}
+            if self._already_queued("collect_build", payload):
+                continue
+            self.queue.push(Task("collect_build", TaskPriority.SAFETY_TASK, payload))
+            added.append(f"建造艦の受け取り（ドック{dock_id}）")
+
+        if added:
+            logger.info("受け取り待ちを積みました: %s", added)
+        return tuple(added)
+
+    def _already_queued(self, name: str, payload: Mapping[str, object]) -> bool:
+        """同じ内容のタスクが待機中なら ``True``。"""
+        return any(
+            task.name == name and dict(task.payload) == dict(payload)
+            for task in self.queue.pending()
+        )
+
+    def _halt(
+        self,
+        verdict: SafetyVerdict,
+        fired: tuple[str, ...],
+        collected: tuple[str, ...] = (),
+    ) -> TickReport:
         """安全判定により止まる。"""
         self.machine.emergency_stop(verdict.describe())
         if self.dispatcher is not None:
             self.dispatcher.observe_verdict(verdict, self.game_state)
-        return TickReport(self.machine.state, verdict, fired, note="安全判定により停止")
+        return TickReport(
+            self.machine.state, verdict, fired, collected, note="安全判定により停止"
+        )
 
     def _run_next(
-        self, verdict: SafetyVerdict, fired: tuple[str, ...], now: datetime
+        self,
+        verdict: SafetyVerdict,
+        fired: tuple[str, ...],
+        collected: tuple[str, ...],
+        now: datetime,
     ) -> TickReport:
         """キューから 1 件取り出して実行する。"""
         task = self.queue.pop()
         if task is None:
             self.machine.transition(SystemState.IDLE, "待機タスクなし")
-            return TickReport(self.machine.state, verdict, fired, note="待機")
+            return TickReport(
+                self.machine.state, verdict, fired, collected, note="待機"
+            )
 
         try:
             implementation = build_task(task)
@@ -269,6 +330,7 @@ class Orchestrator:
                 self.machine.state,
                 verdict,
                 fired,
+                collected,
                 executed=task.name,
                 result=TaskResult.failure(str(exc)),
                 note="組み立てに失敗",
@@ -295,7 +357,12 @@ class Orchestrator:
             )
 
         return TickReport(
-            self.machine.state, verdict, fired, executed=task.name, result=result
+            self.machine.state,
+            verdict,
+            fired,
+            collected,
+            executed=task.name,
+            result=result,
         )
 
     def _notify_task(self, task: Task, ok: bool, message: str) -> None:

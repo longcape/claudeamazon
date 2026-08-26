@@ -126,6 +126,9 @@ class SandboxSession:
         Returns:
             適用によって導出された派生イベント。
         """
+        # 見ていない間に進んだこと（入渠の完了など）を先に取り込む。
+        self.environment.records.extend(self.game.settle())
+
         events: list[Event] = []
         for record in self.environment.drain_records():
             events.extend(self.parser.parse_record(record))
