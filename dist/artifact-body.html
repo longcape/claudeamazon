@@ -1924,6 +1924,11 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ドラッグ中のマーク */
+.board-mark.is-dragging { opacity: .85; }
+.board-mark.is-dragging circle:first-child,
+.board-mark.is-dragging rect { stroke: #fff; stroke-width: 1.1; }
 </style>
 <div class="bg-grid" aria-hidden="true"></div>
 <div class="bg-glow" aria-hidden="true"></div>
@@ -6429,6 +6434,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
              '<header class="panel-head">' +
                '<h2><span class="idx">▣</span>' + t('board.title') + '</h2>' +
                '<div class="panel-head-actions">' +
+                 boardSizeControlHTML('act') +
                  '<button class="btn btn-primary btn-sm" data-act="edit-board">' + t('board.edit') + '</button>' +
                '</div>' +
              '</header>' + body +
@@ -6549,15 +6555,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
                   esc(armedLabel(uiState.armed)) + '</button>';
       }
     }
-    const idx = boardSizeIndex();
-    html += '<span class="board-size">' +
-              '<span class="lc-label">' + t('board.size') + '</span>' +
-              '<button class="btn btn-ghost btn-sm" data-board-act="size-down"' +
-                (idx <= 0 ? ' disabled' : '') + '>−</button>' +
-              '<b>' + SIZE_STEPS[idx] + '</b>' +
-              '<button class="btn btn-ghost btn-sm" data-board-act="size-up"' +
-                (idx >= SIZE_STEPS.length - 1 ? ' disabled' : '') + '>＋</button>' +
-            '</span>';
+    html += boardSizeControlHTML('board-act');
     html += '</div>';
 
     if (selected) {
@@ -6600,6 +6598,23 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       if (Number.isFinite(saved)) return Math.max(0, Math.min(SIZE_STEPS.length - 1, saved));
     } catch (e) { /* noop */ }
     return 2;
+  }
+
+  /**
+   * 表示サイズの増減。ライブボードと編集画面の両方から使えるよう、
+   * 属性名（data-act / data-board-act）を切り替えられるようにしている。
+   */
+  function boardSizeControlHTML(attr) {
+    const idx = boardSizeIndex();
+    const a = attr === 'act' ? 'data-act' : 'data-board-act';
+    return '<span class="board-size">' +
+             '<span class="lc-label">' + t('board.size') + '</span>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="size-down"' +
+               (idx <= 0 ? ' disabled' : '') + '>−</button>' +
+             '<b>' + SIZE_STEPS[idx] + '</b>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="size-up"' +
+               (idx >= SIZE_STEPS.length - 1 ? ' disabled' : '') + '>＋</button>' +
+           '</span>';
   }
 
   function renderBoardCanvas(uiState) {
@@ -7334,54 +7349,81 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     bindBoardCanvas();
   }
 
-  /** 盤面のポインタ操作。マウスとタッチの両方を pointer event で扱う */
+  /**
+   * 盤面のポインタ操作。マウスとタッチの両方を pointer event で扱う。
+   *
+   * 「押して動かしたらドラッグ」「動かさずに離したらタップ」で判定する。
+   * こうしないと、配置するものを選んだ状態のままだと
+   * 既存のマークを掴めず、重ねて置いてしまう。
+   *
+   * ドラッグ中に盤面全体を描き直すと掴んでいる要素が差し替わって
+   * 操作が切れるため、動かしている間は transform だけを書き換える。
+   */
   function bindBoardCanvas() {
     const canvas = $('board-canvas');
-    let dragging = null;   // { markId, moved }
+    const THRESHOLD = 4;   // これ以上動いたらドラッグとみなす（px）
+    let press = null;
+
+    function svgEl() { return canvas.querySelector('svg[data-board]'); }
 
     canvas.addEventListener('pointerdown', function (e) {
-      const svg = canvas.querySelector('svg[data-board]');
-      if (!svg) return;
-
-      /* 配置するものを選んでいる間は、既存のマークの上でも「置く」を優先する。
-         掴んでしまうと、近い位置に 2 個目を置けない */
+      if (!svgEl()) return;
       const markEl = e.target.closest('.board-mark');
-      if (markEl && !ui.routeTeam && !ui.armed) {
-        dragging = { markId: markEl.dataset.mark, moved: false };
-        svg.setPointerCapture(e.pointerId);
-        e.preventDefault();
+      press = {
+        el: markEl || null,
+        markId: markEl ? markEl.dataset.mark : null,
+        startX: e.clientX,
+        startY: e.clientY,
+        moved: false,
+        pointerId: e.pointerId
+      };
+      if (markEl && !ui.routeTeam) {
+        try { markEl.setPointerCapture(e.pointerId); } catch (err) { /* 未対応でも動く */ }
       }
     });
 
     canvas.addEventListener('pointermove', function (e) {
-      if (!dragging) return;
-      const svg = canvas.querySelector('svg[data-board]');
+      if (!press) return;
+
+      if (!press.moved) {
+        const dx = e.clientX - press.startX;
+        const dy = e.clientY - press.startY;
+        if (Math.sqrt(dx * dx + dy * dy) < THRESHOLD) return;
+        press.moved = true;
+        if (press.el) press.el.classList.add('is-dragging');
+      }
+
+      /* マークを掴んでいるときだけ動かす */
+      if (!press.markId || ui.routeTeam) return;
+      const svg = svgEl();
       if (!svg) return;
+
       const p = BOARD.toBoardPoint(svg, e);
-      BOARD.moveMark(ui.boardTactic, dragging.markId, p.x, p.y);
-      dragging.moved = true;
-      U.renderBoardCanvas(ui);
+      BOARD.moveMark(ui.boardTactic, press.markId, p.x, p.y);
+      const mark = BOARD.findMark(ui.boardTactic, press.markId);
+      if (mark) press.el.setAttribute('transform', 'translate(' + mark.x + ',' + mark.y + ')');
       e.preventDefault();
     });
 
     canvas.addEventListener('pointerup', function (e) {
-      const svg = canvas.querySelector('svg[data-board]');
-      if (!svg) return;
-      const p = BOARD.toBoardPoint(svg, e);
+      const svg = svgEl();
+      const current = press;
+      press = null;
+      if (!svg || !current) return;
 
-      /* マークをドラッグしていた場合 */
-      if (dragging) {
-        if (dragging.moved) {
-          commitBoard();
-        } else {
-          /* 動かさずに離した = 選択 */
-          ui.selectedMarkId = ui.selectedMarkId === dragging.markId ? null : dragging.markId;
-          ui.armed = null;
-        }
-        dragging = null;
+      if (current.el) {
+        current.el.classList.remove('is-dragging');
+        try { current.el.releasePointerCapture(current.pointerId); } catch (err) { /* noop */ }
+      }
+
+      /* 動かした = ドラッグ。位置を確定して終わり */
+      if (current.moved && current.markId && !ui.routeTeam) {
+        commitBoard();
         refreshBoard();
         return;
       }
+
+      const p = BOARD.toBoardPoint(svg, e);
 
       /* ルート描画中はタップごとに点を足す */
       if (ui.routeTeam) {
@@ -7404,14 +7446,29 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         return;
       }
 
-      /* 何も選ばれていない状態で余白を押したら選択を解除 */
+      /* マークをタップした = 選択の切り替え */
+      if (current.markId) {
+        ui.selectedMarkId = ui.selectedMarkId === current.markId ? null : current.markId;
+        refreshBoard();
+        return;
+      }
+
+      /* 余白をタップしたら選択を解除 */
       if (ui.selectedMarkId) {
         ui.selectedMarkId = null;
         refreshBoard();
       }
     });
 
-    canvas.addEventListener('pointercancel', function () { dragging = null; });
+    /* 指が画面外に出るなどして中断された場合も、位置は確定させる */
+    canvas.addEventListener('pointercancel', function () {
+      const current = press;
+      press = null;
+      if (!current) return;
+      if (current.el) current.el.classList.remove('is-dragging');
+      if (current.moved && current.markId) commitBoard();
+      refreshBoard();
+    });
   }
 
   /* ================= 共有 ================= */
@@ -7555,6 +7612,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
             U.toast(ok ? t('share.copied') : t('toast.exportFailed', { msg: 'clipboard' }), ok ? 'ok' : 'err');
           });
         }
+      } else if (act === 'size-up' || act === 'size-down') {
+        U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
+        renderLive();
       } else if (act === 'edit-board') {
         openBoardEditor(currentTactic());
       } else if (act === 'share-post') {

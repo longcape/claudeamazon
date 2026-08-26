@@ -369,6 +369,7 @@
              '<header class="panel-head">' +
                '<h2><span class="idx">▣</span>' + t('board.title') + '</h2>' +
                '<div class="panel-head-actions">' +
+                 boardSizeControlHTML('act') +
                  '<button class="btn btn-primary btn-sm" data-act="edit-board">' + t('board.edit') + '</button>' +
                '</div>' +
              '</header>' + body +
@@ -489,15 +490,7 @@
                   esc(armedLabel(uiState.armed)) + '</button>';
       }
     }
-    const idx = boardSizeIndex();
-    html += '<span class="board-size">' +
-              '<span class="lc-label">' + t('board.size') + '</span>' +
-              '<button class="btn btn-ghost btn-sm" data-board-act="size-down"' +
-                (idx <= 0 ? ' disabled' : '') + '>−</button>' +
-              '<b>' + SIZE_STEPS[idx] + '</b>' +
-              '<button class="btn btn-ghost btn-sm" data-board-act="size-up"' +
-                (idx >= SIZE_STEPS.length - 1 ? ' disabled' : '') + '>＋</button>' +
-            '</span>';
+    html += boardSizeControlHTML('board-act');
     html += '</div>';
 
     if (selected) {
@@ -540,6 +533,23 @@
       if (Number.isFinite(saved)) return Math.max(0, Math.min(SIZE_STEPS.length - 1, saved));
     } catch (e) { /* noop */ }
     return 2;
+  }
+
+  /**
+   * 表示サイズの増減。ライブボードと編集画面の両方から使えるよう、
+   * 属性名（data-act / data-board-act）を切り替えられるようにしている。
+   */
+  function boardSizeControlHTML(attr) {
+    const idx = boardSizeIndex();
+    const a = attr === 'act' ? 'data-act' : 'data-board-act';
+    return '<span class="board-size">' +
+             '<span class="lc-label">' + t('board.size') + '</span>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="size-down"' +
+               (idx <= 0 ? ' disabled' : '') + '>−</button>' +
+             '<b>' + SIZE_STEPS[idx] + '</b>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="size-up"' +
+               (idx >= SIZE_STEPS.length - 1 ? ' disabled' : '') + '>＋</button>' +
+           '</span>';
   }
 
   function renderBoardCanvas(uiState) {

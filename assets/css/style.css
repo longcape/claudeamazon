@@ -1920,3 +1920,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ドラッグ中のマーク */
+.board-mark.is-dragging { opacity: .85; }
+.board-mark.is-dragging circle:first-child,
+.board-mark.is-dragging rect { stroke: #fff; stroke-width: 1.1; }
