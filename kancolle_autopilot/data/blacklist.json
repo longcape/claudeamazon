@@ -1,0 +1,5 @@
+{
+  "description": "破棄してはならない艦種マスタ ID の一覧。master_id は api_start2 の api_mst_ship にある api_id で、図鑑番号ではない。自分の環境の master data から引いて記入すること。ID を推測で書かないこと（間違えた ID は保護されない艦を生む）。",
+  "allow_empty": false,
+  "entries": []
+}

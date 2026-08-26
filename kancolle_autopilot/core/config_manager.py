@@ -59,7 +59,14 @@ SCHEMA: Mapping[str, Mapping[str, Field]] = {
         "min_steel": Field(int, 1000, minimum=0),
         "min_bauxite": Field(int, 1000, minimum=0),
         "min_buckets": Field(int, 20, minimum=0),
-        "log_stale_seconds": Field(int, 300, minimum=0),
+        "log_stale_seconds": Field(int, 300, minimum=0, exclusive_minimum=True),
+        # 疲労の警告閾値。これ未満の cond を警告として扱う。
+        "min_cond": Field(int, 30, minimum=0),
+        # 解体候補として許容する最大レベル。
+        "max_dismantle_level": Field(int, 1, minimum=1),
+        # 入手が新しい順にこの隻数を保護する。
+        "protect_newest_count": Field(int, 1, minimum=0),
+        "blacklist_path": Field(str, "data/blacklist.json"),
     },
     "automation": {
         # 安全上、既定は必ず「自動操作無効・シミュレーション」。
@@ -74,6 +81,9 @@ SCHEMA: Mapping[str, Mapping[str, Field]] = {
         "poll_interval_seconds": Field(
             float, 1.0, minimum=0.0, exclusive_minimum=True
         ),
+        # 起動時に既存ログを読み直すか。既定は false（末尾から監視）。
+        # true にすると古いログを再生して状態を作るため、実態とずれうる。
+        "read_existing": Field(bool, False),
     },
     "discord": {
         "enabled": Field(bool, False),

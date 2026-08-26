@@ -20,7 +20,7 @@ import copy
 import logging
 from dataclasses import dataclass, field, replace as dataclass_replace
 from datetime import datetime, timedelta
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from core.state import (
     BuildDock,
@@ -49,6 +49,12 @@ class GameState:
             未所持艦判定に使う。所有艦一覧から自動的に育つが、
             過去に解体した艦は含まれないため「未所持」と誤判定しうる。
             誤判定の向きは常に「保護しすぎる側」で、保護漏れは起きない。
+        last_event_at: 直近イベントが「発生したと主張している」時刻。
+            ログ側のタイムスタンプ由来なので、専ブラの時計がずれて
+            いればずれる。
+        last_observed_at: 直近イベントを実際に受け取った時刻。
+            「まだデータが届いているか」の判定にはこちらを使う。
+        clock: 現在時刻を返す関数。テストから差し替えるための注入点。
     """
 
     resources: Resources = field(default_factory=Resources)
@@ -63,7 +69,9 @@ class GameState:
     last_expedition_result: dict[str, Any] | None = None
     encyclopedia_master_ids: set[int] = field(default_factory=set)
     last_event_at: datetime | None = None
+    last_observed_at: datetime | None = None
     last_resource_update_at: datetime | None = None
+    clock: Callable[[], datetime] = utcnow
 
     # ------------------------------------------------------------------
     # 適用
@@ -80,6 +88,9 @@ class GameState:
         """
         handler = _HANDLERS.get(event.type)
         self.last_event_at = event.occurred_at
+        # 鮮度は「受け取った時刻」で測る。ログ側の時刻を使うと、
+        # 専ブラの時計ずれや古いログの再生で誤検知する。
+        self.last_observed_at = self.clock()
         if handler is None:
             logger.debug("状態へ反映しないイベントです: %s", event.type)
             return []
@@ -167,15 +178,16 @@ class GameState:
         return unknown
 
     def is_stale(self, max_age_seconds: float, now: datetime | None = None) -> bool:
-        """一定時間イベントが来ていないなら ``True``。
+        """一定時間イベントを受け取っていないなら ``True``。
 
-        一度もイベントを受け取っていない場合も ``True`` を返す
-        （「状態不明」を正常とみなさないため）。
+        判定にはログ側のタイムスタンプ（:attr:`last_event_at`）ではなく
+        受信時刻（:attr:`last_observed_at`）を使う。一度もイベントを
+        受け取っていない場合も ``True``（「状態不明」を正常とみなさない）。
         """
-        if self.last_event_at is None:
+        if self.last_observed_at is None:
             return True
-        current = now or utcnow()
-        return current - self.last_event_at > timedelta(seconds=max_age_seconds)
+        current = now or self.clock()
+        return current - self.last_observed_at > timedelta(seconds=max_age_seconds)
 
     def seed_encyclopedia(self, master_ids: Iterable[int]) -> None:
         """既知の艦種マスタ ID を外部から追加する。

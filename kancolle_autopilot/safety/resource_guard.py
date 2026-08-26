@@ -11,52 +11,13 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from enum import IntEnum
-from typing import Mapping, Sequence
+from dataclasses import dataclass
+from typing import Mapping
 
 from core.state import ResourceKind, Resources
+from safety.verdict import SafetyLevel, SafetyVerdict
 
 logger = logging.getLogger(__name__)
-
-
-class SafetyLevel(IntEnum):
-    """安全判定の結果。数値が大きいほど深刻。"""
-
-    OK = 0
-    WARNING = 1
-    STOP = 2
-
-
-@dataclass(frozen=True)
-class SafetyVerdict:
-    """安全判定の結果と理由。"""
-
-    level: SafetyLevel
-    reasons: tuple[str, ...] = ()
-    details: Mapping[str, object] = field(default_factory=dict)
-
-    @property
-    def should_stop(self) -> bool:
-        """タスク実行を止めるべきなら ``True``。"""
-        return self.level is SafetyLevel.STOP
-
-    @property
-    def is_ok(self) -> bool:
-        """問題が無ければ ``True``。"""
-        return self.level is SafetyLevel.OK
-
-    @classmethod
-    def ok(cls) -> "SafetyVerdict":
-        """問題なしの判定を作る。"""
-        return cls(SafetyLevel.OK)
-
-    @classmethod
-    def stop(
-        cls, reasons: Sequence[str], details: Mapping[str, object] | None = None
-    ) -> "SafetyVerdict":
-        """停止判定を作る。"""
-        return cls(SafetyLevel.STOP, tuple(reasons), dict(details or {}))
 
 
 #: 監視対象の資材と、対応する設定キー・表示名。

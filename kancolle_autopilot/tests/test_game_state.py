@@ -21,8 +21,8 @@ def parser() -> APIParser:
 
 @pytest.fixture
 def state_at_port(parser: APIParser) -> GameState:
-    """母港応答を 1 回適用した状態。"""
-    state = GameState()
+    """母港応答を 1 回適用した状態（受信時刻を T0 に固定）。"""
+    state = GameState(clock=lambda: T0)
     state.apply_all(parser.parse_record(load_fixture("port.json"), T0))
     return state
 
@@ -234,6 +234,20 @@ def test_seed_encyclopedia_prevents_false_new_drop(
 def test_is_stale_when_no_events() -> None:
     """一度もイベントが無い状態は「不明」であり stale 扱い。"""
     assert GameState().is_stale(300, T0) is True
+
+
+def test_is_stale_uses_receive_time_not_log_timestamp(parser: APIParser) -> None:
+    """古い時刻を主張するログでも、受信していれば stale にしない。
+
+    専ブラの時計がずれていたり、過去ログを再生したりしたときに
+    誤って緊急停止しないようにするため。
+    """
+    old = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    state = GameState(clock=lambda: T0)
+    state.apply_all(parser.parse_record(load_fixture("port.json"), old))
+    assert state.last_event_at == old
+    assert state.last_observed_at == T0
+    assert state.is_stale(300, T0) is False
 
 
 def test_is_stale_boundary(state_at_port: GameState) -> None:

@@ -5,7 +5,11 @@
     "min_steel": 1000,
     "min_bauxite": 1000,
     "min_buckets": 20,
-    "log_stale_seconds": 300
+    "log_stale_seconds": 300,
+    "min_cond": 30,
+    "max_dismantle_level": 1,
+    "protect_newest_count": 1,
+    "blacklist_path": "data/blacklist.json"
   },
   "automation": {
     "enabled": false,
@@ -14,7 +18,8 @@
   },
   "monitor": {
     "log_dir": "",
-    "poll_interval_seconds": 1.0
+    "poll_interval_seconds": 1.0,
+    "read_existing": false
   },
   "discord": {
     "enabled": false,

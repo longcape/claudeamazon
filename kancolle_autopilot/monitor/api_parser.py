@@ -414,7 +414,10 @@ class APIParser:
             return []
 
     def parse_record(
-        self, record: Any, occurred_at: datetime | None = None
+        self,
+        record: Any,
+        occurred_at: datetime | None = None,
+        default_path: str | None = None,
     ) -> list[Event]:
         """専ブラのログ 1 レコードを変換する。
 
@@ -425,6 +428,9 @@ class APIParser:
             record: ログ 1 件。辞書または JSON 文字列。
             occurred_at: 発生時刻。省略時はレコード内の時刻、
                 無ければ現在時刻。
+            default_path: レコードに API パスが無い場合に使うパス。
+                専ブラが ``api_port@port.json`` のようにファイル名へ
+                パスを埋め込む形式に対応するための入口。
 
         Returns:
             イベント列。形式が判別できなければ空リスト。
@@ -446,6 +452,8 @@ class APIParser:
             if value.get(key):
                 path = str(value[key])
                 break
+        if not path:
+            path = default_path or ""
         if not path:
             logger.warning("ログレコードに API パスがありません")
             return []
