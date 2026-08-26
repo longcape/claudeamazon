@@ -1,0 +1,27 @@
+{
+  "safety": {
+    "min_fuel": 1000,
+    "min_ammo": 1000,
+    "min_steel": 1000,
+    "min_bauxite": 1000,
+    "min_buckets": 20,
+    "log_stale_seconds": 300
+  },
+  "automation": {
+    "enabled": false,
+    "simulation_mode": true,
+    "action_timeout_seconds": 10
+  },
+  "monitor": {
+    "log_dir": "",
+    "poll_interval_seconds": 1.0
+  },
+  "discord": {
+    "enabled": false,
+    "webhook_url": ""
+  },
+  "logging": {
+    "level": "INFO",
+    "jsonl_path": ""
+  }
+}

@@ -1,0 +1,5 @@
+# Phase 1 は標準ライブラリのみで動作する。
+# 実行時依存はまだ無い（PyAutoGUI / discord.py / LLM SDK は Phase 5 以降）。
+
+# 開発・テスト用
+pytest>=8.0

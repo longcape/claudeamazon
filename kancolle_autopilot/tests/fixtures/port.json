@@ -1,0 +1,65 @@
+{
+  "path": "/kcsapi/api_port/port",
+  "time": 1700000000000,
+  "body": {
+    "api_result": 1,
+    "api_result_msg": "成功",
+    "api_data": {
+      "api_material": [
+        {"api_member_id": 1, "api_id": 1, "api_value": 25000},
+        {"api_member_id": 1, "api_id": 2, "api_value": 24000},
+        {"api_member_id": 1, "api_id": 3, "api_value": 30000},
+        {"api_member_id": 1, "api_id": 4, "api_value": 12000},
+        {"api_member_id": 1, "api_id": 5, "api_value": 300},
+        {"api_member_id": 1, "api_id": 6, "api_value": 120},
+        {"api_member_id": 1, "api_id": 7, "api_value": 800},
+        {"api_member_id": 1, "api_id": 8, "api_value": 500}
+      ],
+      "api_basic": {
+        "api_member_id": "1",
+        "api_nickname": "テスト提督",
+        "api_level": 120,
+        "api_max_chara": 330,
+        "api_max_slotitem": 1000
+      },
+      "api_ship": [
+        {
+          "api_id": 101, "api_ship_id": 131, "api_lv": 99,
+          "api_exp": [1000000, 0, 100], "api_nowhp": 90, "api_maxhp": 90,
+          "api_fuel": 250, "api_bull": 250, "api_cond": 49, "api_locked": 1,
+          "api_sally_area": 0
+        },
+        {
+          "api_id": 102, "api_ship_id": 2, "api_lv": 1,
+          "api_exp": [0, 100, 0], "api_nowhp": 15, "api_maxhp": 15,
+          "api_fuel": 15, "api_bull": 20, "api_cond": 40, "api_locked": 0,
+          "api_sally_area": 0
+        },
+        {
+          "api_id": 103, "api_ship_id": 20, "api_lv": 45,
+          "api_exp": [30000, 500, 60], "api_nowhp": 6, "api_maxhp": 30,
+          "api_fuel": 10, "api_bull": 12, "api_cond": 22, "api_locked": 1,
+          "api_sally_area": 0
+        }
+      ],
+      "api_deck_port": [
+        {
+          "api_member_id": 1, "api_id": 1, "api_name": "第一艦隊",
+          "api_mission": [0, 0, 0, 0],
+          "api_ship": [101, 103, -1, -1, -1, -1]
+        },
+        {
+          "api_member_id": 1, "api_id": 2, "api_name": "第二艦隊",
+          "api_mission": [2, 5, 1700003600000, 0],
+          "api_ship": [102, -1, -1, -1, -1, -1]
+        }
+      ],
+      "api_ndock": [
+        {"api_member_id": 1, "api_id": 1, "api_state": 0, "api_ship_id": 0, "api_complete_time": 0},
+        {"api_member_id": 1, "api_id": 2, "api_state": 1, "api_ship_id": 103, "api_complete_time": 1700001800000},
+        {"api_member_id": 1, "api_id": 3, "api_state": -1, "api_ship_id": 0, "api_complete_time": 0},
+        {"api_member_id": 1, "api_id": 4, "api_state": -1, "api_ship_id": 0, "api_complete_time": 0}
+      ]
+    }
+  }
+}

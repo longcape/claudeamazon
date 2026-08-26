@@ -1,0 +1,16 @@
+{
+  "path": "/kcsapi/api_req_sortie/battleresult",
+  "body": {
+    "api_result": 1,
+    "api_data": {
+      "api_win_rank": "A",
+      "api_get_exp": 120,
+      "api_get_ship": {
+        "api_ship_id": 2,
+        "api_ship_type": "駆逐艦",
+        "api_ship_name": "二番艦",
+        "api_ship_getmes": "..."
+      }
+    }
+  }
+}

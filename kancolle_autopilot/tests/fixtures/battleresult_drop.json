@@ -1,0 +1,17 @@
+{
+  "path": "/kcsapi/api_req_sortie/battleresult",
+  "body": {
+    "api_result": 1,
+    "api_data": {
+      "api_win_rank": "S",
+      "api_get_exp": 300,
+      "api_quest_name": "潜水棲地姫",
+      "api_get_ship": {
+        "api_ship_id": 543,
+        "api_ship_type": "駆逐艦",
+        "api_ship_name": "黄平",
+        "api_ship_getmes": "..."
+      }
+    }
+  }
+}

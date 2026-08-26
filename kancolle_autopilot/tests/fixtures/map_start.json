@@ -1,0 +1,14 @@
+{
+  "path": "/kcsapi/api_req_map/start",
+  "body": {
+    "api_result": 1,
+    "api_data": {
+      "api_maparea_id": 5,
+      "api_mapinfo_no": 5,
+      "api_no": 1,
+      "api_bosscell_no": 15,
+      "api_event_id": 4,
+      "api_next": 2
+    }
+  }
+}

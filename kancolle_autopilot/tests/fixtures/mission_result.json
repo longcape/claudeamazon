@@ -1,0 +1,11 @@
+{
+  "path": "/kcsapi/api_req_mission/result",
+  "body": {
+    "api_result": 1,
+    "api_data": {
+      "api_quest_name": "輸送護衛任務",
+      "api_clear_result": 1,
+      "api_get_material": [0, 0, 0, 0]
+    }
+  }
+}

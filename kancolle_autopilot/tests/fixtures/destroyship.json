@@ -1,0 +1,10 @@
+{
+  "path": "/kcsapi/api_req_kousyou/destroyship",
+  "postBody": {"api_ship_id": "102", "api_slot_dest_flag": "1"},
+  "body": {
+    "api_result": 1,
+    "api_data": {
+      "api_material": [25010, 24010, 30010, 12000]
+    }
+  }
+}

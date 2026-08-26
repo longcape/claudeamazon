@@ -1,0 +1,13 @@
+{
+  "path": "/kcsapi/api_get_member/material",
+  "body": {
+    "api_result": 1,
+    "api_data": [
+      {"api_member_id": 1, "api_id": 1, "api_value": 900},
+      {"api_member_id": 1, "api_id": 2, "api_value": 24000},
+      {"api_member_id": 1, "api_id": 3, "api_value": 30000},
+      {"api_member_id": 1, "api_id": 4, "api_value": 12000},
+      {"api_member_id": 1, "api_id": 6, "api_value": 15}
+    ]
+  }
+}
