@@ -508,7 +508,7 @@
   }
 
   /* 表示サイズ。localStorage に覚えさせる */
-  const SIZE_STEPS = [320, 400, 480, 580, 700];
+  const SIZE_STEPS = [420, 540, 660, 780, 900];
   const SIZE_KEY = 'vct.boardSize';
 
   function boardSize(mode) {
@@ -519,7 +519,7 @@
     } catch (e) { /* 使えなくても既定値で動く */ }
     const base = SIZE_STEPS[idx];
     /* ライブボードは横に凡例を並べるので少し小さめにする */
-    return mode === 'view' ? Math.round(base * 0.85) : base;
+    return mode === 'view' ? Math.round(base * 0.8) : base;
   }
 
   function setBoardSizeIndex(idx) {

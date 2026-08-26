@@ -1588,8 +1588,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 
 .ml-frame { fill: none; stroke: var(--line); stroke-width: 1; }
-.ml-lane  { stroke: #2A3F4C; stroke-width: 2.4; stroke-linecap: round; }
-.ml-lane.is-hot { stroke: var(--cyan); stroke-width: 3.2; }
+.ml-lane  { stroke: #2A3F4C; stroke-width: 1.8; stroke-linecap: round; }
+.ml-lane.is-hot { stroke: var(--cyan); stroke-width: 2.4; }
 .ml-link  { fill: none; stroke: var(--violet); stroke-width: 1.6; stroke-dasharray: 3 3; opacity: .8; }
 
 .ml-site { fill: #16242D; stroke: #3A5464; stroke-width: 1.4; }
@@ -1662,20 +1662,22 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .board-mark-label,
 .board-mark-slot {
   font-family: var(--font-display);
-  font-size: 3.4px;
+  font-size: 2.4px;
   font-weight: 700;
   text-anchor: middle;
   fill: #06111a;
   pointer-events: none;
 }
-.board-mark-slot { fill: #fff; font-size: 4px; }
-.board-mark.is-selected circle:first-child,
-.board-mark.is-selected rect { stroke: #fff; stroke-width: 1.1; }
+.board-mark-slot { fill: #fff; font-size: 3px; }
+.board-mark.is-selected rect,
+.board-mark.is-selected > circle:nth-of-type(2) { stroke: #fff; stroke-width: .8; }
+/* 掴みやすいよう、見た目より広い判定を持たせている */
+.board-hit { pointer-events: all; }
 
-.board-order-bg { fill: #0B1116; stroke: var(--gold); stroke-width: .6; }
+.board-order-bg { fill: #0B1116; stroke: var(--gold); stroke-width: .45; }
 .board-order {
   font-family: var(--font-display);
-  font-size: 3.2px;
+  font-size: 2.4px;
   font-weight: 700;
   text-anchor: middle;
   fill: var(--gold);
@@ -1684,7 +1686,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 .board-route {
   fill: none;
-  stroke-width: 1.5;
+  stroke-width: 1.1;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: .9;
@@ -1776,7 +1778,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 /* =========================================================
    BOARD EDITOR MODAL
    ========================================================= */
-.modal-wide { width: min(1180px, 100%); }
+.modal-wide { width: min(1480px, 100%); }
 .board-tactic-name {
   margin-left: 14px;
   font-size: 12px;
@@ -1788,16 +1790,16 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 .board-layout {
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr) 236px;
-  gap: 16px;
+  grid-template-columns: 208px minmax(0, 1fr) 208px;
+  gap: 14px;
   align-items: start;
 }
 
 .board-palette {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 62vh;
+  gap: 8px;
+  max-height: 70vh;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -1810,6 +1812,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   padding: 8px;
 }
 .pal-agent {
+  touch-action: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1828,9 +1831,10 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .pal-agent:hover { border-color: var(--line-hot); background: rgba(255, 255, 255, .04); }
 .pal-agent.is-armed { border-color: var(--cyan); background: rgba(53, 198, 232, .14); }
 
-.pal-abilities { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 7px; }
+.pal-abilities { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; }
 .pal-ability {
   position: relative;
+  touch-action: none;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1849,12 +1853,14 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .pal-ability.is-armed { border-color: var(--cyan); background: rgba(53, 198, 232, .14); color: #fff; }
 .pal-ability b { font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; }
 .pal-ability span {
-  font-size: 9.5px;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 9px;
+  line-height: 1.25;
   max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
 .pal-ability em {
   position: absolute;
@@ -1887,7 +1893,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   color: var(--text-mute);
   text-align: center;
   line-height: 1.6;
-  max-width: 460px;
+  max-width: 620px;
 }
 
 /* --- 決着バナーの「新しいマッチを始める」 --- */
@@ -1923,8 +1929,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 /* ドラッグ中のマーク */
 .board-mark.is-dragging { opacity: .85; }
-.board-mark.is-dragging circle:first-child,
-.board-mark.is-dragging rect { stroke: #fff; stroke-width: 1.1; }
+.board-mark.is-dragging rect,
+.board-mark.is-dragging > circle:nth-of-type(2) { stroke: #fff; stroke-width: .8; }
 
 /* 戦術カードから配置盤を開くボタン */
 .tcard-board {
@@ -1945,3 +1951,36 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   background: rgba(139, 123, 255, .16);
 }
 .tcard-hasboard { color: var(--violet); font-size: 12px; }
+
+/* =========================================================
+   パレットからのドラッグ＆ドロップ
+   ========================================================= */
+.pal-agent, .pal-ability { cursor: grab; }
+.pal-agent:active, .pal-ability:active { cursor: grabbing; }
+.pal-agent.is-dragging, .pal-ability.is-dragging { opacity: .4; }
+
+/* 掴んでいる間、ポインタに追従する見た目 */
+.place-ghost {
+  position: fixed;
+  z-index: 200;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--cyan);
+  background: rgba(13, 21, 27, .96);
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .6);
+  clip-path: var(--clip-sm);
+}
+.place-ghost img { width: 18px; height: 18px; object-fit: contain; }
+
+/* 落とせる場所に来たときの盤面 */
+.board-svg.is-drop-target {
+  outline: 2px dashed var(--cyan);
+  outline-offset: -3px;
+}

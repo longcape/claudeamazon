@@ -1598,8 +1598,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 
 .ml-frame { fill: none; stroke: var(--line); stroke-width: 1; }
-.ml-lane  { stroke: #2A3F4C; stroke-width: 2.4; stroke-linecap: round; }
-.ml-lane.is-hot { stroke: var(--cyan); stroke-width: 3.2; }
+.ml-lane  { stroke: #2A3F4C; stroke-width: 1.8; stroke-linecap: round; }
+.ml-lane.is-hot { stroke: var(--cyan); stroke-width: 2.4; }
 .ml-link  { fill: none; stroke: var(--violet); stroke-width: 1.6; stroke-dasharray: 3 3; opacity: .8; }
 
 .ml-site { fill: #16242D; stroke: #3A5464; stroke-width: 1.4; }
@@ -1672,20 +1672,22 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .board-mark-label,
 .board-mark-slot {
   font-family: var(--font-display);
-  font-size: 3.4px;
+  font-size: 2.4px;
   font-weight: 700;
   text-anchor: middle;
   fill: #06111a;
   pointer-events: none;
 }
-.board-mark-slot { fill: #fff; font-size: 4px; }
-.board-mark.is-selected circle:first-child,
-.board-mark.is-selected rect { stroke: #fff; stroke-width: 1.1; }
+.board-mark-slot { fill: #fff; font-size: 3px; }
+.board-mark.is-selected rect,
+.board-mark.is-selected > circle:nth-of-type(2) { stroke: #fff; stroke-width: .8; }
+/* 掴みやすいよう、見た目より広い判定を持たせている */
+.board-hit { pointer-events: all; }
 
-.board-order-bg { fill: #0B1116; stroke: var(--gold); stroke-width: .6; }
+.board-order-bg { fill: #0B1116; stroke: var(--gold); stroke-width: .45; }
 .board-order {
   font-family: var(--font-display);
-  font-size: 3.2px;
+  font-size: 2.4px;
   font-weight: 700;
   text-anchor: middle;
   fill: var(--gold);
@@ -1694,7 +1696,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 .board-route {
   fill: none;
-  stroke-width: 1.5;
+  stroke-width: 1.1;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: .9;
@@ -1786,7 +1788,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 /* =========================================================
    BOARD EDITOR MODAL
    ========================================================= */
-.modal-wide { width: min(1180px, 100%); }
+.modal-wide { width: min(1480px, 100%); }
 .board-tactic-name {
   margin-left: 14px;
   font-size: 12px;
@@ -1798,16 +1800,16 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 .board-layout {
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr) 236px;
-  gap: 16px;
+  grid-template-columns: 208px minmax(0, 1fr) 208px;
+  gap: 14px;
   align-items: start;
 }
 
 .board-palette {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 62vh;
+  gap: 8px;
+  max-height: 70vh;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -1820,6 +1822,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   padding: 8px;
 }
 .pal-agent {
+  touch-action: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1838,9 +1841,10 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .pal-agent:hover { border-color: var(--line-hot); background: rgba(255, 255, 255, .04); }
 .pal-agent.is-armed { border-color: var(--cyan); background: rgba(53, 198, 232, .14); }
 
-.pal-abilities { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 7px; }
+.pal-abilities { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; }
 .pal-ability {
   position: relative;
+  touch-action: none;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1859,12 +1863,14 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .pal-ability.is-armed { border-color: var(--cyan); background: rgba(53, 198, 232, .14); color: #fff; }
 .pal-ability b { font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; }
 .pal-ability span {
-  font-size: 9.5px;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 9px;
+  line-height: 1.25;
   max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
 .pal-ability em {
   position: absolute;
@@ -1897,7 +1903,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   color: var(--text-mute);
   text-align: center;
   line-height: 1.6;
-  max-width: 460px;
+  max-width: 620px;
 }
 
 /* --- 決着バナーの「新しいマッチを始める」 --- */
@@ -1933,8 +1939,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 /* ドラッグ中のマーク */
 .board-mark.is-dragging { opacity: .85; }
-.board-mark.is-dragging circle:first-child,
-.board-mark.is-dragging rect { stroke: #fff; stroke-width: 1.1; }
+.board-mark.is-dragging rect,
+.board-mark.is-dragging > circle:nth-of-type(2) { stroke: #fff; stroke-width: .8; }
 
 /* 戦術カードから配置盤を開くボタン */
 .tcard-board {
@@ -1955,6 +1961,39 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   background: rgba(139, 123, 255, .16);
 }
 .tcard-hasboard { color: var(--violet); font-size: 12px; }
+
+/* =========================================================
+   パレットからのドラッグ＆ドロップ
+   ========================================================= */
+.pal-agent, .pal-ability { cursor: grab; }
+.pal-agent:active, .pal-ability:active { cursor: grabbing; }
+.pal-agent.is-dragging, .pal-ability.is-dragging { opacity: .4; }
+
+/* 掴んでいる間、ポインタに追従する見た目 */
+.place-ghost {
+  position: fixed;
+  z-index: 200;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--cyan);
+  background: rgba(13, 21, 27, .96);
+  color: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .6);
+  clip-path: var(--clip-sm);
+}
+.place-ghost img { width: 18px; height: 18px; object-fit: contain; }
+
+/* 落とせる場所に来たときの盤面 */
+.board-svg.is-drop-target {
+  outline: 2px dashed var(--cyan);
+  outline-offset: -3px;
+}
 </style>
 </head>
 <body>
@@ -2815,8 +2854,8 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.route': 'ルートを描く',
   'board.routeDone': 'ルート確定',
   'board.routeCancel': '取り消し',
-  'board.hintPlace': 'パレットの項目を選んでからマップをタップすると置けます。置いたものはドラッグで動かせます。',
-  'board.hintRoute': 'マップを順にタップして進行ルートを引き、「ルート確定」を押してください。',
+  'board.hintPlace': 'パレットから盤面へドラッグして置きます。置いたものはドラッグで移動、クリックで選択、Delete キーで削除できます。',
+  'board.hintRoute': 'マップを順にクリックして進行ルートを引き、「ルート確定」を押してください。',
   'board.hintSelected': '{name} を選択中。順番の入れ替えと削除ができます。',
   'board.orderUp': '順番を早く',
   'board.orderDown': '順番を遅く',
@@ -2824,7 +2863,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.confirmClear': 'この戦術の配置をすべて消去します。よろしいですか？',
   'board.armed': '{name} を配置します。マップをタップしてください。',
   'board.charges': '同時展開 {n}',
-  'board.orderNote': 'スキルには使用順の番号が自動で付きます。番号は入れ替えられます。',
+  'board.orderNote': 'スキルには使用順の番号がエージェントごとに自動で付きます。',
   'banner.nextMatch': '新しいマッチを始める',
   'tactic.limitReached': '登録できる戦術の上限（{n} 件）に達しました。',
   'board.disarm': '選択を解除',
@@ -3144,8 +3183,8 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'board.route': 'Draw route',
   'board.routeDone': 'Finish route',
   'board.routeCancel': 'Cancel',
-  'board.hintPlace': 'Pick a palette item, then tap the map to place it. Drag anything placed to move it.',
-  'board.hintRoute': 'Tap the map in order to trace the push, then press Finish route.',
+  'board.hintPlace': 'Drag from the palette onto the board. Drag a placed item to move it, click to select, Delete to remove.',
+  'board.hintRoute': 'Click the map in order to trace the push, then press Finish route.',
   'board.hintSelected': '{name} selected. You can reorder or delete it.',
   'board.orderUp': 'Earlier',
   'board.orderDown': 'Later',
@@ -3153,7 +3192,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'board.confirmClear': 'This clears every placement on this tactic. Continue?',
   'board.armed': 'Placing {name}. Tap the map.',
   'board.charges': '{n} at once',
-  'board.orderNote': 'Abilities are numbered in usage order automatically. The order can be swapped.',
+  'board.orderNote': 'Abilities are numbered per agent in usage order, automatically.',
   'banner.nextMatch': 'Start a new match',
   'tactic.limitReached': 'You have reached the limit of {n} saved tactics.',
   'board.disarm': 'Cancel selection',
@@ -3473,8 +3512,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'board.route': '경로 그리기',
   'board.routeDone': '경로 확정',
   'board.routeCancel': '취소',
-  'board.hintPlace': '팔레트 항목을 고른 뒤 맵을 탭하면 배치됩니다. 놓은 것은 드래그로 옮길 수 있습니다.',
-  'board.hintRoute': '맵을 순서대로 탭해 진입 경로를 그리고 "경로 확정"을 누르세요.',
+  'board.hintPlace': '팔레트에서 보드로 끌어다 놓습니다. 놓은 것은 드래그로 이동, 클릭으로 선택, Delete 키로 삭제합니다.',
+  'board.hintRoute': '맵을 순서대로 클릭해 진입 경로를 그리고 "경로 확정"을 누르세요.',
   'board.hintSelected': '{name} 선택 중. 순서 변경과 삭제가 가능합니다.',
   'board.orderUp': '순서 앞으로',
   'board.orderDown': '순서 뒤로',
@@ -3482,7 +3521,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'board.confirmClear': '이 전술의 배치를 모두 지웁니다. 계속할까요?',
   'board.armed': '{name}을(를) 배치합니다. 맵을 탭하세요.',
   'board.charges': '동시 {n}개',
-  'board.orderNote': '스킬에는 사용 순서 번호가 자동으로 붙습니다. 순서는 바꿀 수 있습니다.',
+  'board.orderNote': '스킬에는 요원별로 사용 순서 번호가 자동으로 붙습니다.',
   'banner.nextMatch': '새 매치 시작',
   'tactic.limitReached': '등록 가능한 전술 상한({n}개)에 도달했습니다.',
   'board.disarm': '선택 해제',
@@ -5591,16 +5630,17 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     /* 公式ポートレートがあれば円形に切り抜いて使い、無ければ略号を出す */
     const face = portrait
-      ? '<clipPath id="' + clipId + '"><circle r="3.7" /></clipPath>' +
-        '<circle r="3.7" fill="' + color + '" />' +
-        '<image href="' + portrait + '" x="-3.7" y="-4.2" width="7.4" height="7.4" ' +
+      ? '<clipPath id="' + clipId + '"><circle r="2.5" /></clipPath>' +
+        '<circle r="2.5" fill="' + color + '" />' +
+        '<image href="' + portrait + '" x="-2.5" y="-2.9" width="5" height="5" ' +
           'clip-path="url(#' + clipId + ')" preserveAspectRatio="xMidYMid slice" />'
-      : '<circle r="3.7" fill="' + color + '" />' +
-        '<text class="board-mark-label" y="1.3">' + esc(agent ? agent.abbr : '?') + '</text>';
+      : '<circle r="2.5" fill="' + color + '" />' +
+        '<text class="board-mark-label" y="0.9">' + esc(agent ? agent.abbr : '?') + '</text>';
 
     return '<g class="board-mark board-mark-agent' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle r="4.7" fill="' + ring + '" opacity="0.92" />' +
+             '<circle class="board-hit" r="3.2" fill="transparent" />' +
+             '<circle r="3.2" fill="' + ring + '" opacity="0.92" />' +
              face +
            '</g>';
   }
@@ -5614,17 +5654,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     /* 公式アイコンがあればそれを、無ければスロット文字を出す */
     const face = icon
-      ? '<image href="' + icon + '" x="-3" y="-3" width="6" height="6" preserveAspectRatio="xMidYMid meet" />'
-      : '<text class="board-mark-slot" y="1.2">' + esc(slot) + '</text>';
+      ? '<image href="' + icon + '" x="-2" y="-2" width="4" height="4" preserveAspectRatio="xMidYMid meet" />'
+      : '<text class="board-mark-slot" y="0.9">' + esc(slot) + '</text>';
 
     return '<g class="board-mark board-mark-ability' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<rect x="-3.9" y="-3.9" width="7.8" height="7.8" rx="1.4" ' +
-               'fill="' + color + '" fill-opacity="0.3" stroke="' + color + '" stroke-width="0.7" />' +
+             '<circle class="board-hit" r="2.7" fill="transparent" />' +
+             '<rect x="-2.6" y="-2.6" width="5.2" height="5.2" rx="1" ' +
+               'fill="' + color + '" fill-opacity="0.34" stroke="' + color + '" stroke-width="0.55" />' +
              face +
              (mark.order
-               ? '<circle class="board-order-bg" cx="4.1" cy="-4.1" r="2.5" />' +
-                 '<text class="board-order" x="4.1" y="-3.2">' + mark.order + '</text>'
+               ? '<circle class="board-order-bg" cx="2.9" cy="-2.9" r="1.9" />' +
+                 '<text class="board-order" x="2.9" y="-2.25">' + mark.order + '</text>'
                : '') +
            '</g>';
   }
@@ -6574,7 +6615,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /* 表示サイズ。localStorage に覚えさせる */
-  const SIZE_STEPS = [320, 400, 480, 580, 700];
+  const SIZE_STEPS = [420, 540, 660, 780, 900];
   const SIZE_KEY = 'vct.boardSize';
 
   function boardSize(mode) {
@@ -6585,7 +6626,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     } catch (e) { /* 使えなくても既定値で動く */ }
     const base = SIZE_STEPS[idx];
     /* ライブボードは横に凡例を並べるので少し小さめにする */
-    return mode === 'view' ? Math.round(base * 0.85) : base;
+    return mode === 'view' ? Math.round(base * 0.8) : base;
   }
 
   function setBoardSizeIndex(idx) {
@@ -7281,24 +7322,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   function bindBoardEditor() {
-    /* パレット: 押すと「これから置くもの」を選択する */
-    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
-      $(id).addEventListener('click', function (e) {
-        const btn = e.target.closest('[data-place-kind]');
-        if (!btn) return;
-        const next = {
-          kind: btn.dataset.placeKind,
-          ref: btn.dataset.placeRef,
-          team: btn.dataset.placeTeam
-        };
-        /* トグルにすると、同じスキルを 2 つ置きたいとき
-           2 回目の選択が解除になってしまう（オーメンのスモークなど）。
-           選択は常に上書きし、解除は専用ボタンで行う。 */
-        ui.armed = next;
-        ui.selectedMarkId = null;
-        refreshBoard();
-      });
-    });
+    bindPaletteDrag();
 
     /* ツールバー */
     $('board-tools').addEventListener('click', function (e) {
@@ -7350,6 +7374,120 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
 
     bindBoardCanvas();
+  }
+
+  /**
+   * パレットからマップへのドラッグ＆ドロップ。
+   *
+   * 掴んで運ぶ操作が一番直感的なので、これを主にする。
+   * ただしタッチ環境や、同じものを続けて置きたい場合のために、
+   * 「動かさずに離す＝選択」という従来の方法も残している。
+   */
+  function bindPaletteDrag() {
+    const THRESHOLD = 5;
+    let drag = null;
+
+    function makeGhost(btn) {
+      const ghost = document.createElement('div');
+      ghost.className = 'place-ghost';
+      const img = btn.querySelector('img');
+      const label = btn.querySelector('span');
+      ghost.innerHTML = (img ? '<img src="' + img.src + '" alt="" />' : '') +
+                        '<span>' + (label ? label.textContent : '') + '</span>';
+      document.body.appendChild(ghost);
+      return ghost;
+    }
+
+    function moveGhost(ghost, e) {
+      ghost.style.left = e.clientX + 'px';
+      ghost.style.top = e.clientY + 'px';
+    }
+
+    /** ポインタの真下が盤面なら、その盤面を返す */
+    function boardUnder(e) {
+      if (drag && drag.ghost) drag.ghost.style.display = 'none';
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (drag && drag.ghost) drag.ghost.style.display = '';
+      return el ? el.closest('svg[data-board]') : null;
+    }
+
+    function cleanup() {
+      if (drag && drag.ghost) drag.ghost.remove();
+      if (drag && drag.btn) drag.btn.classList.remove('is-dragging');
+      drag = null;
+      const svg = $('board-canvas').querySelector('svg[data-board]');
+      if (svg) svg.classList.remove('is-drop-target');
+    }
+
+    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
+      const pal = $(id);
+
+      pal.addEventListener('pointerdown', function (e) {
+        const btn = e.target.closest('[data-place-kind]');
+        if (!btn) return;
+        drag = {
+          btn: btn,
+          kind: btn.dataset.placeKind,
+          ref: btn.dataset.placeRef,
+          team: btn.dataset.placeTeam,
+          startX: e.clientX,
+          startY: e.clientY,
+          moved: false,
+          ghost: null,
+          pointerId: e.pointerId
+        };
+        try { btn.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
+        e.preventDefault();
+      });
+
+      pal.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        if (!drag.moved) {
+          const dx = e.clientX - drag.startX;
+          const dy = e.clientY - drag.startY;
+          if (Math.sqrt(dx * dx + dy * dy) < THRESHOLD) return;
+          drag.moved = true;
+          drag.ghost = makeGhost(drag.btn);
+          drag.btn.classList.add('is-dragging');
+        }
+        moveGhost(drag.ghost, e);
+
+        /* 落とせる場所に来たら盤面を光らせる */
+        const svg = $('board-canvas').querySelector('svg[data-board]');
+        if (svg) svg.classList.toggle('is-drop-target', !!boardUnder(e));
+        e.preventDefault();
+      });
+
+      pal.addEventListener('pointerup', function (e) {
+        if (!drag) return;
+        const current = drag;
+
+        if (current.moved) {
+          const svg = boardUnder(e);
+          if (svg) {
+            const p = BOARD.toBoardPoint(svg, e);
+            BOARD.addMark(ui.boardTactic, {
+              kind: current.kind, ref: current.ref, team: current.team, x: p.x, y: p.y
+            });
+            commitBoard();
+          }
+          cleanup();
+          refreshBoard();
+          return;
+        }
+
+        /* 動かさずに離した = 選択。タップして置く方法も残す */
+        cleanup();
+        ui.armed = { kind: current.kind, ref: current.ref, team: current.team };
+        ui.selectedMarkId = null;
+        refreshBoard();
+      });
+
+      pal.addEventListener('pointercancel', function () {
+        cleanup();
+        refreshBoard();
+      });
+    });
   }
 
   /**
@@ -7968,6 +8106,17 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
           return;
         }
         closeAllModals();
+        return;
+      }
+
+      /* 配置盤で選択中のマークは Delete で消せる */
+      if (!$('modal-board').hidden && ui.selectedMarkId &&
+          (e.key === 'Delete' || e.key === 'Backspace')) {
+        BOARD.removeMark(ui.boardTactic, ui.selectedMarkId);
+        ui.selectedMarkId = null;
+        commitBoard();
+        refreshBoard();
+        e.preventDefault();
         return;
       }
 

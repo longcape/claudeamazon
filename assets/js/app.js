@@ -235,24 +235,7 @@
   }
 
   function bindBoardEditor() {
-    /* パレット: 押すと「これから置くもの」を選択する */
-    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
-      $(id).addEventListener('click', function (e) {
-        const btn = e.target.closest('[data-place-kind]');
-        if (!btn) return;
-        const next = {
-          kind: btn.dataset.placeKind,
-          ref: btn.dataset.placeRef,
-          team: btn.dataset.placeTeam
-        };
-        /* トグルにすると、同じスキルを 2 つ置きたいとき
-           2 回目の選択が解除になってしまう（オーメンのスモークなど）。
-           選択は常に上書きし、解除は専用ボタンで行う。 */
-        ui.armed = next;
-        ui.selectedMarkId = null;
-        refreshBoard();
-      });
-    });
+    bindPaletteDrag();
 
     /* ツールバー */
     $('board-tools').addEventListener('click', function (e) {
@@ -304,6 +287,120 @@
     });
 
     bindBoardCanvas();
+  }
+
+  /**
+   * パレットからマップへのドラッグ＆ドロップ。
+   *
+   * 掴んで運ぶ操作が一番直感的なので、これを主にする。
+   * ただしタッチ環境や、同じものを続けて置きたい場合のために、
+   * 「動かさずに離す＝選択」という従来の方法も残している。
+   */
+  function bindPaletteDrag() {
+    const THRESHOLD = 5;
+    let drag = null;
+
+    function makeGhost(btn) {
+      const ghost = document.createElement('div');
+      ghost.className = 'place-ghost';
+      const img = btn.querySelector('img');
+      const label = btn.querySelector('span');
+      ghost.innerHTML = (img ? '<img src="' + img.src + '" alt="" />' : '') +
+                        '<span>' + (label ? label.textContent : '') + '</span>';
+      document.body.appendChild(ghost);
+      return ghost;
+    }
+
+    function moveGhost(ghost, e) {
+      ghost.style.left = e.clientX + 'px';
+      ghost.style.top = e.clientY + 'px';
+    }
+
+    /** ポインタの真下が盤面なら、その盤面を返す */
+    function boardUnder(e) {
+      if (drag && drag.ghost) drag.ghost.style.display = 'none';
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (drag && drag.ghost) drag.ghost.style.display = '';
+      return el ? el.closest('svg[data-board]') : null;
+    }
+
+    function cleanup() {
+      if (drag && drag.ghost) drag.ghost.remove();
+      if (drag && drag.btn) drag.btn.classList.remove('is-dragging');
+      drag = null;
+      const svg = $('board-canvas').querySelector('svg[data-board]');
+      if (svg) svg.classList.remove('is-drop-target');
+    }
+
+    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
+      const pal = $(id);
+
+      pal.addEventListener('pointerdown', function (e) {
+        const btn = e.target.closest('[data-place-kind]');
+        if (!btn) return;
+        drag = {
+          btn: btn,
+          kind: btn.dataset.placeKind,
+          ref: btn.dataset.placeRef,
+          team: btn.dataset.placeTeam,
+          startX: e.clientX,
+          startY: e.clientY,
+          moved: false,
+          ghost: null,
+          pointerId: e.pointerId
+        };
+        try { btn.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
+        e.preventDefault();
+      });
+
+      pal.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        if (!drag.moved) {
+          const dx = e.clientX - drag.startX;
+          const dy = e.clientY - drag.startY;
+          if (Math.sqrt(dx * dx + dy * dy) < THRESHOLD) return;
+          drag.moved = true;
+          drag.ghost = makeGhost(drag.btn);
+          drag.btn.classList.add('is-dragging');
+        }
+        moveGhost(drag.ghost, e);
+
+        /* 落とせる場所に来たら盤面を光らせる */
+        const svg = $('board-canvas').querySelector('svg[data-board]');
+        if (svg) svg.classList.toggle('is-drop-target', !!boardUnder(e));
+        e.preventDefault();
+      });
+
+      pal.addEventListener('pointerup', function (e) {
+        if (!drag) return;
+        const current = drag;
+
+        if (current.moved) {
+          const svg = boardUnder(e);
+          if (svg) {
+            const p = BOARD.toBoardPoint(svg, e);
+            BOARD.addMark(ui.boardTactic, {
+              kind: current.kind, ref: current.ref, team: current.team, x: p.x, y: p.y
+            });
+            commitBoard();
+          }
+          cleanup();
+          refreshBoard();
+          return;
+        }
+
+        /* 動かさずに離した = 選択。タップして置く方法も残す */
+        cleanup();
+        ui.armed = { kind: current.kind, ref: current.ref, team: current.team };
+        ui.selectedMarkId = null;
+        refreshBoard();
+      });
+
+      pal.addEventListener('pointercancel', function () {
+        cleanup();
+        refreshBoard();
+      });
+    });
   }
 
   /**
@@ -922,6 +1019,17 @@
           return;
         }
         closeAllModals();
+        return;
+      }
+
+      /* 配置盤で選択中のマークは Delete で消せる */
+      if (!$('modal-board').hidden && ui.selectedMarkId &&
+          (e.key === 'Delete' || e.key === 'Backspace')) {
+        BOARD.removeMark(ui.boardTactic, ui.selectedMarkId);
+        ui.selectedMarkId = null;
+        commitBoard();
+        refreshBoard();
+        e.preventDefault();
         return;
       }
 

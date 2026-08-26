@@ -230,16 +230,17 @@
 
     /* 公式ポートレートがあれば円形に切り抜いて使い、無ければ略号を出す */
     const face = portrait
-      ? '<clipPath id="' + clipId + '"><circle r="3.7" /></clipPath>' +
-        '<circle r="3.7" fill="' + color + '" />' +
-        '<image href="' + portrait + '" x="-3.7" y="-4.2" width="7.4" height="7.4" ' +
+      ? '<clipPath id="' + clipId + '"><circle r="2.5" /></clipPath>' +
+        '<circle r="2.5" fill="' + color + '" />' +
+        '<image href="' + portrait + '" x="-2.5" y="-2.9" width="5" height="5" ' +
           'clip-path="url(#' + clipId + ')" preserveAspectRatio="xMidYMid slice" />'
-      : '<circle r="3.7" fill="' + color + '" />' +
-        '<text class="board-mark-label" y="1.3">' + esc(agent ? agent.abbr : '?') + '</text>';
+      : '<circle r="2.5" fill="' + color + '" />' +
+        '<text class="board-mark-label" y="0.9">' + esc(agent ? agent.abbr : '?') + '</text>';
 
     return '<g class="board-mark board-mark-agent' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle r="4.7" fill="' + ring + '" opacity="0.92" />' +
+             '<circle class="board-hit" r="3.2" fill="transparent" />' +
+             '<circle r="3.2" fill="' + ring + '" opacity="0.92" />' +
              face +
            '</g>';
   }
@@ -253,17 +254,18 @@
 
     /* 公式アイコンがあればそれを、無ければスロット文字を出す */
     const face = icon
-      ? '<image href="' + icon + '" x="-3" y="-3" width="6" height="6" preserveAspectRatio="xMidYMid meet" />'
-      : '<text class="board-mark-slot" y="1.2">' + esc(slot) + '</text>';
+      ? '<image href="' + icon + '" x="-2" y="-2" width="4" height="4" preserveAspectRatio="xMidYMid meet" />'
+      : '<text class="board-mark-slot" y="0.9">' + esc(slot) + '</text>';
 
     return '<g class="board-mark board-mark-ability' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<rect x="-3.9" y="-3.9" width="7.8" height="7.8" rx="1.4" ' +
-               'fill="' + color + '" fill-opacity="0.3" stroke="' + color + '" stroke-width="0.7" />' +
+             '<circle class="board-hit" r="2.7" fill="transparent" />' +
+             '<rect x="-2.6" y="-2.6" width="5.2" height="5.2" rx="1" ' +
+               'fill="' + color + '" fill-opacity="0.34" stroke="' + color + '" stroke-width="0.55" />' +
              face +
              (mark.order
-               ? '<circle class="board-order-bg" cx="4.1" cy="-4.1" r="2.5" />' +
-                 '<text class="board-order" x="4.1" y="-3.2">' + mark.order + '</text>'
+               ? '<circle class="board-order-bg" cx="2.9" cy="-2.9" r="1.9" />' +
+                 '<text class="board-order" x="2.9" y="-2.25">' + mark.order + '</text>'
                : '') +
            '</g>';
   }
