@@ -42,6 +42,13 @@ const API = 'https://valorant-api.com/v1';
 const INLINE = process.argv.includes('--inline');
 
 const AGENT_DIR = path.join(ROOT, 'assets/img/agents');
+const ABILITY_DIR = path.join(ROOT, 'assets/img/abilities');
+
+/* API のスロット名 → アプリのキー割り当て */
+const SLOT_MAP = { Grenade: 'C', Ability2: 'Q', Ability1: 'E', Ultimate: 'X' };
+
+/* アビリティ名を取り込む言語。locales/ にある言語に合わせる */
+const NAME_LANGS = { ja: 'ja-JP', en: 'en-US', ko: 'ko-KR' };
 const MAP_DIR = path.join(ROOT, 'assets/img/maps');
 const OUT_FILE = path.join(ROOT, 'assets/js/official-assets.js');
 
@@ -127,6 +134,8 @@ async function main() {
 
   const agentEntries = {};
   const mapEntries = {};
+  const abilityIcons = {};
+  const abilityNames = {};
   const missing = [];
 
   /* ---------- エージェント ---------- */
@@ -146,6 +155,44 @@ async function main() {
       ? `data:image/png;base64,${buf.toString('base64')}`
       : `assets/img/agents/${want.id}.png`;
     console.log(`  agent  ${want.id.padEnd(10)} ${(buf.length / 1024).toFixed(0)} KB`);
+
+    /* アビリティのアイコン */
+    for (const ability of found.abilities ?? []) {
+      const slot = SLOT_MAP[ability.slot];
+      if (!slot || !ability.displayIcon) continue;
+      const key = `${want.id}:${slot}`;
+      const iconDest = path.join(ABILITY_DIR, `${want.id}_${slot}.png`);
+      try {
+        const iconBuf = await download(ability.displayIcon, iconDest, 96);
+        abilityIcons[key] = INLINE
+          ? `data:image/png;base64,${iconBuf.toString('base64')}`
+          : `assets/img/abilities/${want.id}_${slot}.png`;
+      } catch {
+        missing.push(`ability-icon:${key}`);
+      }
+    }
+  }
+
+  /* アビリティ名を言語ごとに取り込む */
+  for (const [appLang, apiLang] of Object.entries(NAME_LANGS)) {
+    try {
+      const res = await getJSON(`${API}/agents?isPlayableCharacter=true&language=${apiLang}`);
+      const byId = new Map(res.data.map((a) => [a.uuid, a]));
+      abilityNames[appLang] = {};
+      for (const want of wanted) {
+        const base = byName.get(normalize(want.name)) || byName.get(normalize(want.id));
+        const localized = base ? byId.get(base.uuid) : null;
+        if (!localized) continue;
+        for (const ability of localized.abilities ?? []) {
+          const slot = SLOT_MAP[ability.slot];
+          if (!slot || !ability.displayName) continue;
+          abilityNames[appLang][`${want.id}:${slot}`] = ability.displayName;
+        }
+      }
+      console.log(`  names  ${appLang.padEnd(10)} ${Object.keys(abilityNames[appLang]).length} 件`);
+    } catch (err) {
+      console.log(`  ! ${appLang} のアビリティ名を取得できませんでした: ${err.message}`);
+    }
   }
 
   /* API 側にあってアプリに無いエージェントを知らせる（新エージェント検出） */
@@ -192,14 +239,21 @@ async function main() {
   'use strict';
   const AGENTS = ${JSON.stringify(agentEntries, null, 2)};
   const MAPS = ${JSON.stringify(mapEntries, null, 2)};
+  const ABILITY_ICONS = ${JSON.stringify(abilityIcons, null, 2)};
+  const ABILITY_NAMES = ${JSON.stringify(abilityNames, null, 2)};
 
   if (global.VCT_PORTRAITS) Object.assign(global.VCT_PORTRAITS.OFFICIAL, AGENTS);
   if (global.VCT_MAPS) Object.assign(global.VCT_MAPS.MINIMAP, MAPS);
+  if (global.VCT_ABILITIES) {
+    Object.assign(global.VCT_ABILITIES.OFFICIAL_ICONS, ABILITY_ICONS);
+    Object.assign(global.VCT_ABILITIES.OFFICIAL_NAMES, ABILITY_NAMES);
+  }
 })(window);
 `;
   fs.writeFileSync(OUT_FILE, out);
 
-  console.log(`\n✓ ${Object.keys(agentEntries).length} 体のアイコンと ${Object.keys(mapEntries).length} 枚のミニマップを取り込みました`);
+  console.log(`\n✓ ${Object.keys(agentEntries).length} 体のアイコン / ${Object.keys(mapEntries).length} 枚のミニマップ / ` +
+              `${Object.keys(abilityIcons).length} 個のスキルアイコンを取り込みました`);
   console.log(`  → ${path.relative(ROOT, OUT_FILE)}`);
   if (missing.length) console.log('  取得できなかったもの:', missing.join(', '));
   if (oversized) {

@@ -15,6 +15,9 @@
   /* fetch-assets.mjs が { 'jett:C': '雲隠れ', ... } を書き込む */
   const OFFICIAL_NAMES = {};
 
+  /* 同じく、スロットごとの公式アイコンのパスを書き込む */
+  const OFFICIAL_ICONS = {};
+
   /* スロットの表示順。X はアルティメット */
   const SLOTS = ['C', 'Q', 'E', 'X'];
 
@@ -98,12 +101,30 @@
     return ABILITIES[agentId] || null;
   }
 
-  /** 表示名。公式名が取得済みならそちらを優先する */
+  /**
+   * 表示名。公式名が取得済みならそちらを優先する。
+   * OFFICIAL_NAMES は { ja: { 'jett:C': '...' }, en: {...} } の形。
+   * 表示中の言語 → 英語 → 内蔵の既定値、の順に解決する。
+   */
   function nameOf(agentId, slot) {
     const key = agentId + ':' + slot;
-    if (OFFICIAL_NAMES[key]) return OFFICIAL_NAMES[key];
+    const lang = global.VCT_I18N ? global.VCT_I18N.get() : 'en';
+
+    const table = OFFICIAL_NAMES[lang] || OFFICIAL_NAMES[String(lang).split('-')[0]];
+    if (table && table[key]) return table[key];
+    if (OFFICIAL_NAMES.en && OFFICIAL_NAMES.en[key]) return OFFICIAL_NAMES.en[key];
+
     const set = ABILITIES[agentId];
     return set ? (set[slot] || slot) : slot;
+  }
+
+  /** 公式のアビリティアイコン。取得前は null */
+  function iconOf(agentId, slot) {
+    return OFFICIAL_ICONS[agentId + ':' + slot] || null;
+  }
+
+  function hasIcons() {
+    return Object.keys(OFFICIAL_ICONS).length > 0;
   }
 
   function chargesOf(agentId, slot) {
@@ -119,6 +140,7 @@
         slot: slot,
         ref: agentId + ':' + slot,
         name: nameOf(agentId, slot),
+        icon: iconOf(agentId, slot),
         charges: chargesOf(agentId, slot),
         ultimate: slot === 'X'
       };
@@ -130,6 +152,9 @@
     ABILITIES: ABILITIES,
     CHARGES: CHARGES,
     OFFICIAL_NAMES: OFFICIAL_NAMES,
+    OFFICIAL_ICONS: OFFICIAL_ICONS,
+    iconOf: iconOf,
+    hasIcons: hasIcons,
     forAgent: forAgent,
     nameOf: nameOf,
     chargesOf: chargesOf,

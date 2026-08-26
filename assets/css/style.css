@@ -1693,51 +1693,85 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .board-route-enemy { stroke: var(--red); }
 .board-route.is-draft { stroke-dasharray: 2 2; opacity: .7; }
 
-/* --- 凡例（使用順） --- */
+/* --- 凡例: エージェントごとの使用順 --- */
 .board-legend {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 220px;
+  gap: 8px;
+  min-width: 260px;
   flex: 1;
 }
-.board-legend-item {
+.board-legend-row {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 11px;
+  gap: 12px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
-  border-left: 3px solid var(--gold);
+  border-left: 3px solid var(--sig, var(--gold));
   background: rgba(9, 14, 18, .5);
-  font-size: 12px;
+  flex-wrap: wrap;
 }
-.board-legend-order {
+.legend-agent { display: flex; align-items: center; gap: 8px; min-width: 118px; }
+.legend-agent b {
   font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--gold);
-  min-width: 14px;
-  text-align: center;
+  font-size: 12px;
+  letter-spacing: .08em;
 }
-.board-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.board-legend-agent { font-family: var(--font-display); font-size: 11.5px; letter-spacing: .06em; }
-.board-legend-slot {
+.legend-steps { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.legend-step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 4px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03);
+  font-size: 11.5px;
+}
+.legend-num {
+  display: grid;
+  place-items: center;
+  width: 17px; height: 17px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #0B1116;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.legend-icon { width: 17px; height: 17px; object-fit: contain; flex-shrink: 0; }
+.legend-slot {
   font-family: var(--font-display);
   font-size: 10px;
-  padding: 0 6px;
+  color: var(--text-dim);
   border: 1px solid var(--line-hot);
-  color: var(--text-dim);
+  padding: 0 4px;
+  flex-shrink: 0;
 }
-.board-legend-name {
-  color: var(--text-dim);
-  font-size: 11.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.legend-name { color: var(--text); white-space: nowrap; }
+
+/* --- 表示サイズの切り替え --- */
+.board-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
 }
+.board-size b {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 34px;
+  text-align: center;
+}
+.board-size .btn { padding: 4px 11px; }
+.board-size .btn[disabled] { opacity: .35; cursor: not-allowed; }
+
+/* パレットの公式スキルアイコン */
+.pal-icon { width: 18px; height: 18px; object-fit: contain; }
 
 /* =========================================================
    BOARD EDITOR MODAL

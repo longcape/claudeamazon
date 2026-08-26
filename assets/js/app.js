@@ -276,6 +276,9 @@
         ui.draftRoute = [];
       } else if (act === 'disarm') {
         ui.armed = null;
+      } else if (act === 'size-up' || act === 'size-down') {
+        U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
+        if (ui.view === 'live') renderLive();
       } else if (act === 'order-up' || act === 'order-down') {
         BOARD.bumpOrder(ui.boardTactic, ui.selectedMarkId, act === 'order-up' ? -1 : 1);
         commitBoard();
@@ -311,8 +314,10 @@
       const svg = canvas.querySelector('svg[data-board]');
       if (!svg) return;
 
+      /* 配置するものを選んでいる間は、既存のマークの上でも「置く」を優先する。
+         掴んでしまうと、近い位置に 2 個目を置けない */
       const markEl = e.target.closest('.board-mark');
-      if (markEl && !ui.routeTeam) {
+      if (markEl && !ui.routeTeam && !ui.armed) {
         dragging = { markId: markEl.dataset.mark, moved: false };
         svg.setPointerCapture(e.pointerId);
         e.preventDefault();

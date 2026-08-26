@@ -321,5 +321,6 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'board.orderNote': '스킬에는 사용 순서 번호가 자동으로 붙습니다. 순서는 바꿀 수 있습니다.',
   'banner.nextMatch': '새 매치 시작',
   'tactic.limitReached': '등록 가능한 전술 상한({n}개)에 도달했습니다.',
-  'board.disarm': '선택 해제'
+  'board.disarm': '선택 해제',
+  'board.size': '표시 크기'
 });

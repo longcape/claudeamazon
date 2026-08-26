@@ -359,7 +359,7 @@
             map: S.state.match.map,
             side: side,
             highlight: tactic.site,
-            size: 360,
+            size: boardSize('view'),
             interactive: false
           }) +
           boardLegendHTML(tactic) +
@@ -375,28 +375,48 @@
            '</article>';
   }
 
-  /** 使用順に並べたスキルの一覧。実戦ではこれを読み上げる */
+  /** エージェントごとにまとめたスキルの使用順。実戦ではこれを読み上げる */
   function boardLegendHTML(tactic) {
     const board = B.ensure(tactic);
-    const abilities = board.marks
-      .filter(function (m) { return m.kind === 'ability' && m.team === 'ally'; })
-      .sort(function (a, b) { return (a.order || 99) - (b.order || 99); });
-
+    const abilities = board.marks.filter(function (m) {
+      return m.kind === 'ability' && m.team === 'ally';
+    });
     if (!abilities.length) return '';
 
-    return '<ol class="board-legend">' + abilities.map(function (m) {
-      const parts = String(m.ref).split(':');
-      const agent = D.agentById(parts[0]);
-      const slot = parts[1] || '?';
-      const color = agent ? P.signature(agent.id) : '#6B7F8C';
-      return '<li class="board-legend-item">' +
-               '<span class="board-legend-order">' + (m.order || '-') + '</span>' +
-               '<span class="board-legend-dot" style="background:' + color + '"></span>' +
-               '<span class="board-legend-agent">' + esc(agent ? agent.name : parts[0]) + '</span>' +
-               '<span class="board-legend-slot">' + esc(slot) + '</span>' +
-               '<span class="board-legend-name">' + esc(AB.nameOf(parts[0], slot)) + '</span>' +
+    /* エージェント単位にまとめ、各エージェントの中で使用順に並べる */
+    const order = [];
+    const groups = {};
+    abilities.forEach(function (m) {
+      const id = B.agentOf(m);
+      if (!groups[id]) { groups[id] = []; order.push(id); }
+      groups[id].push(m);
+    });
+
+    return '<ul class="board-legend">' + order.map(function (id) {
+      const agent = D.agentById(id);
+      const color = agent ? P.signature(id) : '#6B7F8C';
+      const steps = groups[id]
+        .sort(function (a, b) { return (a.order || 99) - (b.order || 99); })
+        .map(function (m) {
+          const slot = String(m.ref).split(':')[1] || '?';
+          const icon = AB.iconOf(id, slot);
+          return '<span class="legend-step">' +
+                   '<span class="legend-num">' + (m.order || '-') + '</span>' +
+                   (icon
+                     ? '<img class="legend-icon" src="' + icon + '" alt="" />'
+                     : '<span class="legend-slot">' + esc(slot) + '</span>') +
+                   '<span class="legend-name">' + esc(AB.nameOf(id, slot)) + '</span>' +
+                 '</span>';
+        }).join('');
+
+      return '<li class="board-legend-row" style="--sig:' + color + '">' +
+               '<span class="legend-agent">' +
+                 avatarHTML(id, 'avatar-sm') +
+                 '<b>' + esc(agent ? agent.name : id) + '</b>' +
+               '</span>' +
+               '<span class="legend-steps">' + steps + '</span>' +
              '</li>';
-    }).join('') + '</ol>';
+    }).join('') + '</ul>';
   }
 
   /* --- 配置盤エディタ --- */
@@ -426,7 +446,9 @@
                  ' data-place-kind="ability" data-place-ref="' + esc(ab.ref) + '" data-place-team="' + team + '"' +
                  ' title="' + esc(ab.name) + (ab.charges > 1 ? ' / ' + t('board.charges', { n: ab.charges }) : '') + '"' +
                  ' style="--sig:' + color + '">' +
-                 '<b>' + esc(ab.slot) + '</b>' +
+                 (ab.icon
+                   ? '<img class="pal-icon" src="' + ab.icon + '" alt="" />'
+                   : '<b>' + esc(ab.slot) + '</b>') +
                  '<span>' + esc(ab.name) + '</span>' +
                  (ab.charges > 1 ? '<em>x' + ab.charges + '</em>' : '') +
                '</button>';
@@ -467,6 +489,15 @@
                   esc(armedLabel(uiState.armed)) + '</button>';
       }
     }
+    const idx = boardSizeIndex();
+    html += '<span class="board-size">' +
+              '<span class="lc-label">' + t('board.size') + '</span>' +
+              '<button class="btn btn-ghost btn-sm" data-board-act="size-down"' +
+                (idx <= 0 ? ' disabled' : '') + '>−</button>' +
+              '<b>' + SIZE_STEPS[idx] + '</b>' +
+              '<button class="btn btn-ghost btn-sm" data-board-act="size-up"' +
+                (idx >= SIZE_STEPS.length - 1 ? ' disabled' : '') + '>＋</button>' +
+            '</span>';
     html += '</div>';
 
     if (selected) {
@@ -482,13 +513,42 @@
     $('board-tools').innerHTML = html;
   }
 
+  /* 表示サイズ。localStorage に覚えさせる */
+  const SIZE_STEPS = [320, 400, 480, 580, 700];
+  const SIZE_KEY = 'vct.boardSize';
+
+  function boardSize(mode) {
+    let idx = 2;
+    try {
+      const saved = parseInt(localStorage.getItem(SIZE_KEY), 10);
+      if (Number.isFinite(saved)) idx = Math.max(0, Math.min(SIZE_STEPS.length - 1, saved));
+    } catch (e) { /* 使えなくても既定値で動く */ }
+    const base = SIZE_STEPS[idx];
+    /* ライブボードは横に凡例を並べるので少し小さめにする */
+    return mode === 'view' ? Math.round(base * 0.85) : base;
+  }
+
+  function setBoardSizeIndex(idx) {
+    const clamped = Math.max(0, Math.min(SIZE_STEPS.length - 1, idx));
+    try { localStorage.setItem(SIZE_KEY, String(clamped)); } catch (e) { /* noop */ }
+    return clamped;
+  }
+
+  function boardSizeIndex() {
+    try {
+      const saved = parseInt(localStorage.getItem(SIZE_KEY), 10);
+      if (Number.isFinite(saved)) return Math.max(0, Math.min(SIZE_STEPS.length - 1, saved));
+    } catch (e) { /* noop */ }
+    return 2;
+  }
+
   function renderBoardCanvas(uiState) {
     $('board-canvas').innerHTML = B.render({
       tactic: uiState.boardTactic,
       map: S.state.match.map,
       side: uiState.boardSide,
       highlight: uiState.boardTactic.site,
-      size: 460,
+      size: boardSize('edit'),
       interactive: true,
       selectedId: uiState.selectedMarkId,
       draftRoute: uiState.draftRoute,
@@ -896,6 +956,9 @@
     renderAgentGrid: renderAgentGrid,
     renderKindSelect: renderKindSelect,
     renderSiteSeg: renderSiteSeg,
+    boardSize: boardSize,
+    boardSizeIndex: boardSizeIndex,
+    setBoardSizeIndex: setBoardSizeIndex,
     setSegActive: setSegActive,
     segValue: segValue,
     toast: toast

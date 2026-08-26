@@ -321,5 +321,6 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'board.orderNote': 'Abilities are numbered in usage order automatically. The order can be swapped.',
   'banner.nextMatch': 'Start a new match',
   'tactic.limitReached': 'You have reached the limit of {n} saved tactics.',
-  'board.disarm': 'Cancel selection'
+  'board.disarm': 'Cancel selection',
+  'board.size': 'Size'
 });

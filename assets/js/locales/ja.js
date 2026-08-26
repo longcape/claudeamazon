@@ -331,5 +331,6 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.orderNote': 'スキルには使用順の番号が自動で付きます。番号は入れ替えられます。',
   'banner.nextMatch': '新しいマッチを始める',
   'tactic.limitReached': '登録できる戦術の上限（{n} 件）に達しました。',
-  'board.disarm': '選択を解除'
+  'board.disarm': '選択を解除',
+  'board.size': '表示サイズ'
 });

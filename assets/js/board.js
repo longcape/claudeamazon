@@ -56,15 +56,23 @@
       y: clamp(mark.y),
       order: null
     };
-    /* アビリティは使用順が意味を持つので自動で採番する */
-    if (entry.kind === 'ability') entry.order = nextOrder(b, entry.team);
+    /* アビリティは使用順が意味を持つので自動で採番する。
+       番号はエージェントごとに 1 から振る（ジェットの 1 個目 / 2 個目、という読み方をするため） */
+    if (entry.kind === 'ability') entry.order = nextOrder(b, entry.team, agentOf(entry));
     b.marks.push(entry);
     return entry;
   }
 
-  function nextOrder(board, team) {
+  /** マークが属するエージェント id。'jett:C' → 'jett' */
+  function agentOf(mark) {
+    return String(mark.ref).split(':')[0];
+  }
+
+  function nextOrder(board, team, agentId) {
     const used = board.marks
-      .filter(function (m) { return m.kind === 'ability' && m.team === team && m.order; })
+      .filter(function (m) {
+        return m.kind === 'ability' && m.team === team && agentOf(m) === agentId && m.order;
+      })
       .map(function (m) { return m.order; });
     return used.length ? Math.max.apply(null, used) + 1 : 1;
   }
@@ -82,12 +90,17 @@
     renumber(b);
   }
 
-  /** 削除や並び替えのあとに 1 から振り直す */
+  /** 削除や並び替えのあとに、エージェントごとに 1 から振り直す */
   function renumber(board) {
-    ['ally', 'enemy'].forEach(function (team) {
-      board.marks
-        .filter(function (m) { return m.kind === 'ability' && m.team === team && m.order; })
-        .sort(function (a, b) { return a.order - b.order; })
+    const groups = {};
+    board.marks.forEach(function (m) {
+      if (m.kind !== 'ability') return;
+      const key = m.team + '/' + agentOf(m);
+      (groups[key] = groups[key] || []).push(m);
+    });
+    Object.keys(groups).forEach(function (key) {
+      groups[key]
+        .sort(function (a, b) { return (a.order || 99) - (b.order || 99); })
         .forEach(function (m, i) { m.order = i + 1; });
     });
   }
@@ -98,7 +111,9 @@
     if (!target || target.kind !== 'ability') return;
 
     const peers = b.marks
-      .filter(function (m) { return m.kind === 'ability' && m.team === target.team; })
+      .filter(function (m) {
+        return m.kind === 'ability' && m.team === target.team && agentOf(m) === agentOf(target);
+      })
       .sort(function (a, b2) { return a.order - b2.order; });
 
     const idx = peers.indexOf(target);
@@ -225,15 +240,21 @@
     const agent = D.agentById(parts[0]);
     const slot = parts[1] || '?';
     const color = agent ? P.signature(agent.id) : '#6B7F8C';
+    const icon = AB.iconOf(parts[0], slot);
+
+    /* 公式アイコンがあればそれを、無ければスロット文字を出す */
+    const face = icon
+      ? '<image href="' + icon + '" x="-3" y="-3" width="6" height="6" preserveAspectRatio="xMidYMid meet" />'
+      : '<text class="board-mark-slot" y="1.2">' + esc(slot) + '</text>';
 
     return '<g class="board-mark board-mark-ability' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<rect x="-3.6" y="-3.6" width="7.2" height="7.2" rx="1.4" ' +
-               'fill="' + color + '" fill-opacity="0.28" stroke="' + color + '" stroke-width="0.7" />' +
-             '<text class="board-mark-slot" y="1.2">' + esc(slot) + '</text>' +
+             '<rect x="-3.9" y="-3.9" width="7.8" height="7.8" rx="1.4" ' +
+               'fill="' + color + '" fill-opacity="0.3" stroke="' + color + '" stroke-width="0.7" />' +
+             face +
              (mark.order
-               ? '<circle class="board-order-bg" cx="3.8" cy="-3.8" r="2.4" />' +
-                 '<text class="board-order" x="3.8" y="-3">' + mark.order + '</text>'
+               ? '<circle class="board-order-bg" cx="4.1" cy="-4.1" r="2.5" />' +
+                 '<text class="board-order" x="4.1" y="-3.2">' + mark.order + '</text>'
                : '') +
            '</g>';
   }
@@ -263,6 +284,7 @@
     clearBoard: clearBoard,
     render: render,
     toBoardPoint: toBoardPoint,
-    renumber: renumber
+    renumber: renumber,
+    agentOf: agentOf
   };
 })(window);

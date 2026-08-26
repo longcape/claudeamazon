@@ -6,6 +6,8 @@
    ========================================================= */
 (function (global) {
   'use strict';
+  const ABILITY_ICONS = {};
+  const ABILITY_NAMES = {};
   const AGENTS = {
   "jett": "assets/img/agents/jett.png",
   "phoenix": "assets/img/agents/phoenix.png",
@@ -54,4 +56,8 @@
 
   if (global.VCT_PORTRAITS) Object.assign(global.VCT_PORTRAITS.OFFICIAL, AGENTS);
   if (global.VCT_MAPS) Object.assign(global.VCT_MAPS.MINIMAP, MAPS);
+  if (global.VCT_ABILITIES) {
+    Object.assign(global.VCT_ABILITIES.OFFICIAL_ICONS, ABILITY_ICONS);
+    Object.assign(global.VCT_ABILITIES.OFFICIAL_NAMES, ABILITY_NAMES);
+  }
 })(window);
