@@ -455,7 +455,21 @@ def command_sandbox(args: argparse.Namespace, config: ConfigManager) -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
-    session = SandboxSession.create(seed=args.seed, recorder=recorder)
+    dispatcher = None
+    if args.notify:
+        from notify.dispatcher import NotificationDispatcher
+        from notify.notifier import ConsoleNotifier, build_notifier
+
+        notifier = (
+            build_notifier(True, str(config.get("discord.webhook_url")))
+            if config.get("discord.enabled")
+            else ConsoleNotifier()
+        )
+        dispatcher = NotificationDispatcher(notifier)
+
+    session = SandboxSession.create(
+        seed=args.seed, recorder=recorder, dispatcher=dispatcher
+    )
     session.bootstrap()
 
     area, _, number = args.map.partition("-")
@@ -670,6 +684,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     sandbox.add_argument(
         "--step", action="store_true", help="1 イベントごとに止める"
+    )
+    sandbox.add_argument(
+        "--notify",
+        action="store_true",
+        help="重要イベントを通知する（discord.enabled が false なら標準出力）",
     )
 
     review = subparsers.add_parser("review", help="記録したタイムラインを再生する")

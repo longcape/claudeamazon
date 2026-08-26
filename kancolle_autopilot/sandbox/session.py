@@ -25,11 +25,13 @@ from automation.keyboard_controller import KeyboardController, VirtualKeyboard
 from automation.mouse_controller import MouseController
 from automation.screen_detector import ScreenDetector
 from monitor.api_parser import APIParser, Event, EventType
+from notify.dispatcher import NotificationDispatcher
 from recording.recorder import SessionRecorder
 from recording.timeline import EventKind
 from monitor.game_state import GameState
 from safety.lock_guard import Blacklist, DismantlePolicy, LockGuard
 from safety.safety_manager import SafetyManager
+from safety.verdict import SafetyVerdict
 from sandbox.environment import SandboxEnvironment, SandboxPointer
 from sandbox.game import SandboxGame
 from sandbox.scenario import new_game
@@ -56,7 +58,10 @@ class SandboxSession:
     parser: APIParser = field(default_factory=APIParser)
     #: 記録係。``None`` なら何も記録しない。
     recorder: SessionRecorder | None = None
+    #: 通知係。``None`` なら何も通知しない。
+    dispatcher: NotificationDispatcher | None = None
     _cursor_offset: int = field(default=0, init=False)
+    _task_counter: int = field(default=0, init=False)
 
     @classmethod
     def create(
@@ -65,6 +70,7 @@ class SandboxSession:
         blacklist: Blacklist | None = None,
         safety: SafetyManager | None = None,
         recorder: SessionRecorder | None = None,
+        dispatcher: NotificationDispatcher | None = None,
     ) -> "SandboxSession":
         """既定の初期状態で一式を組み立てる。
 
@@ -74,6 +80,7 @@ class SandboxSession:
                 ものを使う（サンドボックスには保護対象の実艦がいない）。
             safety: 差し替える SafetyManager。
             recorder: 記録係。渡すと操作・判断・状態が記録される。
+            dispatcher: 通知係。渡すと重要イベントが通知される。
 
         Returns:
             組み立て済みのセッション。
@@ -101,6 +108,7 @@ class SandboxSession:
             game_state=state,
             safety=manager,
             recorder=recorder,
+            dispatcher=dispatcher,
         )
 
     # ------------------------------------------------------------------
@@ -124,7 +132,20 @@ class SandboxSession:
                 "派生イベント: %s", [event.type.value for event in derived]
             )
         self._record_sync(before, derived)
+        self._notify_sync(derived)
         return derived
+
+    def _notify_sync(self, derived: Sequence[Event]) -> None:
+        """同期で分かったことを通知する。"""
+        if self.dispatcher is None:
+            return
+        for event in derived:
+            if event.type is EventType.UNKNOWN_SHIP_DROPPED:
+                self.dispatcher.drop_protected(
+                    event.payload.get("name"),
+                    event.payload.get("master_id"),
+                    locked=False,
+                )
 
     def _record_sync(self, before, derived: Sequence[Event]) -> None:
         """同期で分かったことをタイムラインへ残す。"""
@@ -243,12 +264,17 @@ class SandboxSession:
     # 記録
     # ------------------------------------------------------------------
 
-    def _start_recording(self, task: BaseTask, ctx: TaskContext) -> str | None:
-        """タスク開始を記録し、判断とスナップショットを残す。"""
-        if self.recorder is None:
-            return None
+    def _start_recording(self, task: BaseTask, ctx: TaskContext) -> str:
+        """タスク開始を記録し、判断とスナップショットを残す。
 
-        task_id = f"{task.name}-{len(self.recorder.timeline)}"
+        タスク ID は記録の有無と無関係に振る。記録を切っていても通知は
+        タスクを識別できる必要があるため。
+        """
+        self._task_counter += 1
+        task_id = f"{task.name}-{self._task_counter}"
+        if self.recorder is None:
+            return task_id
+
         self.recorder.record(
             EventKind.TASK_START,
             task.name,
@@ -267,7 +293,7 @@ class SandboxSession:
         self._cursor_offset = len(self.interface.mouse.trace)
         return task_id
 
-    def _record_steps(self, ctx: TaskContext, task_id: str | None) -> None:
+    def _record_steps(self, ctx: TaskContext, task_id: str) -> None:
         """操作とカーソル軌跡を記録する。"""
         if self.recorder is None:
             return
@@ -277,11 +303,18 @@ class SandboxSession:
         )
         self._cursor_offset = len(self.interface.mouse.trace)
 
-    def _finish_recording(
-        self, task_id: str | None, result: TaskResult
-    ) -> TaskResult:
-        """タスク終了を記録し、判断の実際の結果を書き込む。"""
-        if self.recorder is None or task_id is None:
+    def _finish_recording(self, task_id: str, result: TaskResult) -> TaskResult:
+        """タスク終了を記録・通知し、判断の実際の結果を書き込む。"""
+        if self.dispatcher is not None:
+            self.dispatcher.task_finished(
+                task_id.rsplit("-", 1)[0], result.ok, result.message
+            )
+            if self.safety.is_stopped:
+                self.dispatcher.safety_stop(
+                    SafetyVerdict.stop(list(self.safety.latched_reasons))
+                )
+
+        if self.recorder is None:
             return result
 
         decision = self.recorder.decisions.latest(task_id)
@@ -332,15 +365,18 @@ class SandboxSession:
             self.environment.records.extend(records)
             self.sync()
 
+            # 記録と通知は独立させる。片方だけ有効でも成り立つように。
+            newly_damaged = sorted(self._heavily_damaged_ids() - damaged_before)
             if self.recorder is not None:
                 self.recorder.record(EventKind.BATTLE_END, rank)
-                newly_damaged = self._heavily_damaged_ids() - damaged_before
                 if newly_damaged:
                     self.recorder.record(
                         EventKind.DAMAGE,
-                        f"大破: {sorted(newly_damaged)}",
-                        detail={"ship_ids": sorted(newly_damaged)},
+                        f"大破: {newly_damaged}",
+                        detail={"ship_ids": newly_damaged},
                     )
+            if newly_damaged and self.dispatcher is not None:
+                self.dispatcher.damage_detected(newly_damaged)
 
             target = self.game.maps[self.game.sortie.map_key]
             if self.game.at_boss or self.game.sortie.cell >= target.cells:

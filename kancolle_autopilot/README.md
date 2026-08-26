@@ -2,9 +2,9 @@
 
 「艦これ Auto-Pilot 開発指示書」に基づく運用補助システム。
 
-現在の到達点は **記録とリプレイ**（追加指示書 §12〜§18）。AI が艦これ風の
-仮想環境を自律操作し、その全操作・判断・状態変化を記録して後から再生
-できる。**実ゲームには接続しない。**
+現在の到達点は **Phase 6（通知）**。AI が艦これ風の仮想環境を自律操作し、
+その全操作・判断・状態変化を記録・再生でき、重要イベントを通知する。
+**実ゲームには接続しない。**
 
 ## 現時点でできること / できないこと
 
@@ -36,6 +36,9 @@
 - 重要イベントごとに状態のスナップショットを取る
 - ブレークポイントとステップ実行で任意の地点で止める
 - 記録を保存し、速度・ジャンプ・ステップ付きで再生する
+- SAFETY STOP / RESOURCE LOW / DAMAGE DETECTED / NEW DROP PROTECTED /
+  TASK COMPLETED / TASK FAILED を Discord Webhook（または標準出力）へ送る
+- status / stop / resume / queue / cancel の管理コマンドを受け付ける
 - 保存ログの再生・ライブ監視・予約操作・シミュレーション・サンドボックス
   周回・記録の再生を CLI で確認する
 
@@ -45,6 +48,9 @@
 - 画像認識による画面判別（サンドボックスは環境自身が画面を教える）
 - GUI（Game View / AI Decision View などの画面表示）。記録と再生は
   テキストのみ
+- 常駐デーモン。管理コマンドを受け取る口（Discord bot 本体）は未実装で、
+  `CommandHandler` を呼ぶ側がいない
+- LLM による自然言語 → タスクの変換
 - 進撃・補給・入渠のタスク化（サンドボックスでは直接呼んでいる）
 - 通知連携、LLM によるタスク解釈
 
@@ -81,6 +87,9 @@ python main.py sandbox --seed 7 --cycles 2 --record ./rec --break on_battle_end,
 # 記録を再生する（10 倍速、カーソルの MOVE は除く）
 python main.py review --dir ./rec --speed 10
 python main.py review --dir ./rec --summary
+
+# 通知しながら周回する（discord.enabled が false なら標準出力へ）
+python main.py sandbox --seed 3 --cycles 2 --notify
 
 # 未来タスクの予約
 python main.py schedule add --at "2026-08-27T10:52+09:00" --tasks daily,expedition,sortie --name "朝の周回"
@@ -132,6 +141,11 @@ kancolle_autopilot/
 │  ├─ keyboard_controller.py  キー入力とキルスイッチ
 │  ├─ navigator.py            画面遷移の経路探索
 │  └─ controller.py           §15 の検証付き GameInterface 実装
+├─ notify/
+│  ├─ message.py              通知の中身
+│  ├─ notifier.py             Webhook / 標準出力 / 無効
+│  ├─ dispatcher.py           出来事 → 通知（連投抑止つき）
+│  └─ commands.py             status / stop / resume / queue / cancel
 ├─ recording/
 │  ├─ timeline.py             操作タイムラインとブレークポイント
 │  ├─ decision_log.py         AI Decision Log
@@ -157,7 +171,7 @@ kancolle_autopilot/
 └─ tests/                     unit test と kcsapi フィクスチャ
 ```
 
-未作成（今後の Phase）: GUI での可視化、`notify/`、`llm/`。
+未作成（今後の Phase）: GUI での可視化、常駐デーモン、`llm/`。
 
 ## 使う前に設定が要るもの
 
@@ -339,6 +353,39 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
 `SessionRecorder.on_pause` に委ねる。CLI なら入力待ち、テストなら
 記録するだけ。
 
+### 通知の失敗で稼働を止めない
+
+`WebhookNotifier.send` は例外を外へ出さず `False` を返す。通知は運用の
+補助であって、送れないことがゲームの安全に影響するわけではない。逆に
+通知の失敗で本体が落ちると、止まってほしくない場面で止まる。送信に
+失敗したものは冷却に入れないので、次の機会に再試行される。
+
+### 同じ通知を連投しない
+
+資材の下限割れは判定のたびに起きるので、そのまま送ると数秒おきに同じ
+通知が飛ぶ。種類と対象の組ごとに冷却時間（既定 5 分）を設ける。抑止した
+件数は `NotificationDispatcher.suppressed` に残るので、気づかないうちに
+握り潰されていた、という状態にはならない。
+
+### 自然言語をコマンドとして実行しない
+
+`parse_command` は既知の語彙以外を `CommandError` にする（§17）。自然言語
+からタスクを組み立てる経路は Phase 7 の parser が担い、そこでも
+構造化 → 検証 → SafetyManager → TaskQueue の順を通す。ここで
+「それらしい文字列」を解釈し始めると、その順序が崩れる。
+
+### `resume` は保護待ちを解除しない
+
+緊急停止は解除するが、未所持艦のロックが未確認なら実行は止まったまま。
+人の一声で消せてしまうと、保護のために止めた意味が無くなる。解除時の
+返答にその旨を含める。
+
+### 通知と記録は互いに独立
+
+片方だけ有効にしても成り立つ。実装中、タスク ID を記録係が採番していた
+ため、記録を切ると通知もタスクを識別できなくなっていた。ID の採番を
+セッション側へ移して分離した。
+
 ### 起動時に過去ログを読まない
 
 `LogMonitor` は既定で既存ファイルを末尾まで読み飛ばす。古いログを
@@ -413,13 +460,19 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
     まだ無い。
 22. **`--step` は tty のときだけ入力待ちする**。パイプ越しでは止まらず
     表示だけして進む。
+23. **管理コマンドを受け取る口が無い**。`CommandHandler` は実装済みだが、
+    Discord からメッセージを受ける常駐部分（bot 本体）は未実装。
+24. **通知の冷却は起動ごとにリセットされる**。プロセスをまたいで
+    抑止状態は持ち越さない。
+25. **画像添付は multipart で送る**。ファイルが見つからない場合は
+    embed から画像参照を外してテキストのみで送る。
 
 ## 次の Phase
 
-Phase 6（通知）。`notify/` に Webhook 送信を置き、SAFETY STOP・
-RESOURCE LOW・DAMAGE DETECTED・NEW DROP PROTECTED・TASK COMPLETED /
-FAILED を送る。通知の材料は既に `SafetyManager` と `SessionRecorder` に
-揃っている。
+Phase 7（LLM によるタスク解釈）。開発指示書 §18 のとおり、用途は
+**自然言語 → 構造化されたタスク** への変換に限定する。LLM に Python や
+shell を実行させない。出力は必ずスキーマ検証を通し、そのうえで
+`Validation → SafetyManager → TaskQueue` の順に流す。
 
-その後に Phase 7（LLM によるタスク解釈）。自然言語 → 構造化タスクへの
-変換に限定し、スキーマ検証を通す。
+追加指示書 §8 の制約条件（大破進撃禁止 / 資源節約重視 / 捨て艦戦法許可）も
+ここで構造化する。
