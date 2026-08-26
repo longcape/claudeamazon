@@ -24,6 +24,10 @@ from typing import Any, Iterator, Sequence
 
 from core.config_manager import ConfigError, ConfigManager
 from core.persistence import PersistenceError
+from automation.controller import ControlledInterface
+from automation.keyboard_controller import KeyboardController, VirtualKeyboard
+from automation.mouse_controller import MouseController
+from automation.screen_detector import ScreenDetector
 from automation.simulation import SimulationInterface, build_interface
 from core.scheduler import Scheduler, TaskSpec
 from core.task_queue import TaskPriority
@@ -348,6 +352,24 @@ def build_task(args: argparse.Namespace) -> Any:
     return DismantleTask(ships)
 
 
+def build_sandbox_interface(state: Any) -> tuple[Any, Any]:
+    """サンドボックス環境を組み立てて、操作層と繋ぐ。
+
+    論理名 → 座標 → 当たり判定 → 画面遷移 まで通るので、論理名のまま
+    記録するシミュレーションでは分からない座標解決の間違いが表に出る。
+    """
+    from sandbox.environment import SandboxEnvironment, SandboxPointer
+
+    # 解体画面の並び順は所有 ID 順とする。
+    environment = SandboxEnvironment(ship_order=sorted(state.ships))
+    interface = ControlledInterface(
+        detector=ScreenDetector(environment, dynamic=environment),
+        mouse=MouseController(SandboxPointer(environment)),
+        keyboard=KeyboardController(VirtualKeyboard()),
+    )
+    return interface, environment
+
+
 def command_simulate(args: argparse.Namespace, config: ConfigManager) -> int:
     """保存ログから状態を組み立て、タスクをシミュレーション実行する。
 
@@ -376,7 +398,12 @@ def command_simulate(args: argparse.Namespace, config: ConfigManager) -> int:
 
     manager = build_manager(config)
     state, _ = replay(log_path, manager)
-    interface = build_interface(True)
+
+    environment = None
+    if args.backend == "sandbox":
+        interface, environment = build_sandbox_interface(state)
+    else:
+        interface = build_interface(True)
 
     ctx = TaskContext(
         game_state=state, safety=manager, interface=interface, now=state.clock()
@@ -393,6 +420,16 @@ def command_simulate(args: argparse.Namespace, config: ConfigManager) -> int:
         print("== 実行した操作 ==")
         for action in result.actions:
             print(f"  {action.describe()}")
+    if environment is not None:
+        print("== サンドボックスが受け取った操作 ==")
+        for target in environment.pressed_targets:
+            print(f"  {target}")
+        print(f"  最終画面: {environment.screen.value}")
+        if environment.misses:
+            print(f"  当たらなかった座標: {environment.misses}")
+        print("== カーソル軌跡（末尾 5 点）==")
+        for line in interface.mouse.describe_trace(5):
+            print(f"  {line}")
     if manager.is_stopped:
         print("== 緊急停止 ==")
         for reason in manager.latched_reasons:
@@ -441,6 +478,12 @@ def main(argv: list[str] | None = None) -> int:
     simulate.add_argument("--quests", default="", help="追跡するデイリー任務 ID")
     simulate.add_argument("--ships", default="", help="解体候補の所有 ID")
     simulate.add_argument("--recipe", default="", help="建造レシピ（例 30/30/30/30）")
+    simulate.add_argument(
+        "--backend",
+        choices=("logical", "sandbox"),
+        default="logical",
+        help="logical: 論理名のまま記録 / sandbox: 座標まで解決して仮想環境を叩く",
+    )
 
     schedule = subparsers.add_parser("schedule", help="未来タスクの予約を操作する")
     schedule.add_argument(

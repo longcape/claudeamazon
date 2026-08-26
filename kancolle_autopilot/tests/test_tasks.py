@@ -101,7 +101,7 @@ def test_sortie_success(sortie_interface: SimulationInterface) -> None:
     assert sortie_interface.action_targets == [
         Screen.SORTIE_SELECT.value,
         "area_1",
-        "map_1-5",
+        "map_5",
         "sortie_decide",
         "fleet_2",
         "sortie_start",

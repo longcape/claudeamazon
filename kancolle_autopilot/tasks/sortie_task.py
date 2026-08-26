@@ -69,10 +69,12 @@ class SortieTask(BaseTask):
                 f"area_{self.map_area}", Screen.SORTIE_SELECT, f"{self.map_area}海域"
             ),
         )
+        # 海域はエリアを選んだ後の番号で指す。"map_1-5" のような表記は
+        # 画面上の一意な位置に対応しないため、座標へ落とせない。
         self.step(
             ctx,
             interface.click(
-                f"map_{self.map_label}", Screen.SORTIE_SELECT, f"{self.map_label}を選択"
+                f"map_{self.map_no}", Screen.SORTIE_SELECT, f"{self.map_label}を選択"
             ),
         )
         self.step(ctx, interface.click("sortie_decide", Screen.SORTIE_SELECT, "決定"))
