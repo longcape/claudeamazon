@@ -24,6 +24,7 @@ from typing import Any, Iterator, Sequence
 
 from core.config_manager import ConfigError, ConfigManager
 from core.persistence import PersistenceError
+from automation.simulation import SimulationInterface, build_interface
 from core.scheduler import Scheduler, TaskSpec
 from core.task_queue import TaskPriority
 from monitor.api_parser import APIParser, Event, EventType
@@ -309,6 +310,96 @@ def command_schedule(args: argparse.Namespace, config: ConfigManager) -> int:
     return 0
 
 
+def build_task(args: argparse.Namespace) -> Any:
+    """``--task`` の指定から Task オブジェクトを組み立てる。
+
+    Raises:
+        ValueError: 引数が足りない、または解釈できない場合。
+    """
+    from tasks.construction_task import ConstructionTask, Recipe
+    from tasks.daily_task import DailyTask
+    from tasks.dismantle_task import DismantleTask
+    from tasks.expedition_task import ExpeditionTask
+    from tasks.sortie_task import SortieTask
+
+    if args.task == "sortie":
+        if not args.map:
+            raise ValueError("sortie には --map が必要です（例 1-5）")
+        area, _, number = args.map.partition("-")
+        if not number:
+            raise ValueError(f"海域の指定が不正です: {args.map}")
+        return SortieTask(args.fleet, int(area), int(number))
+
+    if args.task == "expedition":
+        if args.mission is None:
+            raise ValueError("expedition には --mission が必要です")
+        return ExpeditionTask(args.fleet, args.mission)
+
+    if args.task == "daily":
+        quests = [int(q) for q in args.quests.split(",") if q.strip()]
+        return DailyTask(quests)
+
+    if args.task == "construction":
+        values = [int(v) for v in args.recipe.split("/")] if args.recipe else []
+        recipe = Recipe(*values) if values else Recipe()
+        return ConstructionTask(recipe)
+
+    ships = [int(s) for s in args.ships.split(",") if s.strip()]
+    return DismantleTask(ships)
+
+
+def command_simulate(args: argparse.Namespace, config: ConfigManager) -> int:
+    """保存ログから状態を組み立て、タスクをシミュレーション実行する。
+
+    実際のクリックは行わない。何をしようとしたかがログに出る。
+    """
+    from tasks.base_task import TaskContext
+
+    log_path = Path(args.log)
+    if not log_path.exists():
+        print(f"ログが見つかりません: {log_path}", file=sys.stderr)
+        return 1
+
+    if not config.get("automation.simulation_mode"):
+        print(
+            "automation.simulation_mode が false です。"
+            "実 GUI 操作は未実装のため実行できません。",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        task = build_task(args)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    manager = build_manager(config)
+    state, _ = replay(log_path, manager)
+    interface = build_interface(True)
+
+    ctx = TaskContext(
+        game_state=state, safety=manager, interface=interface, now=state.clock()
+    )
+    result = task.execute(ctx)
+
+    print(f"== タスク: {task.name} ==")
+    print(f"  結果: {'成功' if result.ok else '失敗'}")
+    if result.message:
+        print(f"  {result.message}")
+    for key, value in result.details.items():
+        print(f"  {key}: {value}")
+    if result.actions:
+        print("== 実行した操作 ==")
+        for action in result.actions:
+            print(f"  {action.describe()}")
+    if manager.is_stopped:
+        print("== 緊急停止 ==")
+        for reason in manager.latched_reasons:
+            print(f"  {reason}")
+    return 0 if result.ok else 2
+
+
 def main(argv: list[str] | None = None) -> int:
     """エントリポイント。
 
@@ -333,6 +424,23 @@ def main(argv: list[str] | None = None) -> int:
         sub.add_argument(
             "--fleet", type=int, default=None, help="損傷判定の対象とする艦隊 ID"
         )
+
+    simulate = subparsers.add_parser(
+        "simulate", help="タスクをシミュレーション実行する（クリックしない）"
+    )
+    simulate.add_argument("--log", required=True, help="状態を組み立てる kcsapi ログ")
+    simulate.add_argument(
+        "--task",
+        required=True,
+        choices=("sortie", "expedition", "daily", "construction", "dismantle"),
+        help="実行するタスク",
+    )
+    simulate.add_argument("--fleet", type=int, default=2, help="対象の艦隊 ID")
+    simulate.add_argument("--map", default="", help="出撃先（例 1-5）")
+    simulate.add_argument("--mission", type=int, default=None, help="遠征番号")
+    simulate.add_argument("--quests", default="", help="追跡するデイリー任務 ID")
+    simulate.add_argument("--ships", default="", help="解体候補の所有 ID")
+    simulate.add_argument("--recipe", default="", help="建造レシピ（例 30/30/30/30）")
 
     schedule = subparsers.add_parser("schedule", help="未来タスクの予約を操作する")
     schedule.add_argument(
@@ -377,6 +485,8 @@ def main(argv: list[str] | None = None) -> int:
         return command_watch(args, config)
     if args.command == "schedule":
         return command_schedule(args, config)
+    if args.command == "simulate":
+        return command_simulate(args, config)
     return command_replay(args, config)
 
 

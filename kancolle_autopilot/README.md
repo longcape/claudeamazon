@@ -2,9 +2,9 @@
 
 「艦これ Auto-Pilot 開発指示書」に基づく運用補助システム。
 
-現在の到達点は **Phase 3**。保存済み／稼働中の kcsapi ログを読み込んで
-ゲームの現在状態を再構築し、安全判定を返し、優先度付きタスクキュー・
-ステートマシン・未来タスクの予約まで揃ったところ。まだ何も実行しない。
+現在の到達点は **Phase 4**。保存済み／稼働中の kcsapi ログを読み込んで
+状態を再構築し、安全判定を通し、タスクをシミュレーション実行できる
+ところまで。**実際のクリックは一度も行わない。**
 
 ## 現時点でできること / できないこと
 
@@ -20,12 +20,16 @@
 - 優先度付きキューでタスクの実行順を決める（同一優先度は FIFO）
 - 明示的な状態遷移を管理し、不正な遷移で停止する
 - 未来タスクを予約し、PC 再起動をまたいで復元する
-- 保存ログの再生・ライブ監視・予約操作を CLI で確認する
+- ゲーム日付（JST 05:00 境界）で「今日の分」を判定する
+- 出撃・遠征・デイリー確認・建造・解体の各タスクを、実際には
+  クリックせずにシミュレーション実行する
+- 保存ログの再生・ライブ監視・予約操作・シミュレーションを CLI で確認する
 
 できないこと（未実装）
 
-- 実ゲームへの接続、GUI 操作、自動出撃・自動解体・自動建造
-- タスクの実行そのもの（Task 実装とシミュレーションモード）
+- 実ゲームへの接続と GUI 操作（`build_interface(False)` は
+  `NotImplementedError` を投げる）
+- 画面認識、操作対象の座標解決
 - 通知連携、LLM によるタスク解釈
 
 開発指示書 §2 のとおり、**自動化検知の回避を目的とした機能は実装しない**。
@@ -43,6 +47,11 @@ python main.py replay --log data/fixtures/scenario_unknown_drop.jsonl
 
 # ログディレクトリを監視して、更新のたびに状態を表示（読み取り専用）
 python main.py watch --log "C:/poi/kcsapi" --fleet 1
+
+# タスクをシミュレーション実行する（クリックしない）
+python main.py simulate --log data/fixtures/scenario_ready.jsonl --task sortie --fleet 2 --map 1-5
+python main.py simulate --log data/fixtures/scenario_ready.jsonl --task construction
+python main.py simulate --log data/fixtures/scenario_ready.jsonl --task daily --quests 201,303
 
 # 未来タスクの予約
 python main.py schedule add --at "2026-08-27T10:52+09:00" --tasks daily,expedition,sortie --name "朝の周回"
@@ -74,7 +83,8 @@ kancolle_autopilot/
 │  ├─ state.py                ドメインモデル（艦・艦隊・資材・任務…）
 │  ├─ task_queue.py           優先度付きキュー
 │  ├─ state_machine.py        状態と遷移の定義
-│  └─ scheduler.py            未来タスクの予約と復元
+│  ├─ scheduler.py            未来タスクの予約と復元
+│  └─ gametime.py             JST 05:00 のゲーム日付境界
 ├─ monitor/
 │  ├─ api_parser.py           kcsapi 応答 → イベント（状態を持たない）
 │  ├─ game_state.py           イベント → 現在状態（派生イベントを返す）
@@ -85,6 +95,16 @@ kancolle_autopilot/
 │  ├─ damage_guard.py         大破・状態不明・疲労
 │  ├─ lock_guard.py           破棄の可否とブラックリスト
 │  └─ safety_manager.py       集約・ラッチ・保護待ちの管理
+├─ automation/
+│  ├─ interface.py            GameInterface（操作対象は論理名で指す）
+│  └─ simulation.py           クリックしない実装
+├─ tasks/
+│  ├─ base_task.py            安全判定 → 事前条件 → 手順 → 照合
+│  ├─ expedition_task.py      遠征
+│  ├─ sortie_task.py          出撃
+│  ├─ daily_task.py           デイリー進捗の確認
+│  ├─ construction_task.py    建造（最低値 30/30/30/30 が既定）
+│  └─ dismantle_task.py       解体（承認された艦のみ）
 ├─ data/
 │  ├─ blacklist.json          破棄禁止の艦種（**要設定**）
 │  ├─ schedule.json           予約状態（実行時に生成、git 管理外）
@@ -92,7 +112,8 @@ kancolle_autopilot/
 └─ tests/                     unit test と kcsapi フィクスチャ
 ```
 
-未作成（今後の Phase）: `core/gametime.py`, `automation/`, `tasks/`,
+未作成（今後の Phase）: `automation/mouse_controller.py`,
+`automation/screen_detector.py`, `automation/navigator.py`,
 `notify/`, `llm/`。
 
 ## 使う前に設定が要るもの
@@ -169,6 +190,32 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
 予約は変更のたびに atomic に書き出すので、発火済みの予約が再起動後に
 二重発火することもない。
 
+### 操作対象は論理名で指す
+
+タスクは `click("sortie_start")` のように論理名を渡す。座標へ落とすのは
+実装側（Phase 5 の `screen_detector`）の仕事。タスクにピクセル座標を
+持たせると、解像度が変わるたびにタスクを書き直すことになるうえ、
+判断とクリックが混ざる。
+
+### 実操作モードは黙って代替しない
+
+`build_interface(False)` は `NotImplementedError` を投げる。実 GUI 操作は
+未実装なので、ここで黙ってシミュレーションへ落とすと「実行したつもりで
+何も起きていない」状態になる。
+
+### 建造は「使った後」で閾値を判定する
+
+実行前の残量だけを見ると、建造直後に資材が閾値を割って緊急停止する。
+止まるのは正しいが、止まる前に資材を使ってしまっては意味がない。
+`ConstructionTask` はレシピの消費量を引いた残量で判定する。
+
+### 操作に失敗したら即座に緊急停止する
+
+`BaseTask.execute` は、手順の失敗と結果照合の失敗のどちらでも
+`SafetyManager.trigger_emergency_stop()` を呼ぶ。操作したのに結果を
+確認できていない状態は、次の操作を積み重ねてよい状態ではない。
+一方、事前条件で止まるのは正常系なので緊急停止はしない。
+
 ### 起動時に過去ログを読まない
 
 `LogMonitor` は既定で既存ファイルを末尾まで読み飛ばす。古いログを
@@ -209,12 +256,21 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
    順序を指定した場合はキューの順序が勝つ。
 9. **`schedule add` の時刻でオフセットを省略するとローカル時刻扱い**。
    採用したオフセットを表示するが、明示するほうが確実。
+10. **任務の周期区分（`api_type`）をコードに埋め込んでいない**。どの
+    数値がデイリー／ウィークリーに対応するかは推測になるため、
+    `DailyTask` は追跡する任務 ID を呼び出し側から受け取る。取り違えると
+    「終わっていない任務を終わったことにする」向きの誤りが起きうる。
+11. **シミュレーションの画面遷移は `DEFAULT_TRANSITIONS` に書いた分だけ**。
+    実ゲームの遷移を網羅していないので、タスクを増やすときはここも足す。
+12. **建造レシピの入力を 1 操作として抽象化している**。実際には数値の
+    入力操作が要る。その分解は Phase 5 の担当。
 
 ## 次の Phase
 
-Phase 4: シミュレーションモードと `tasks/`。
+Phase 5: Automation Layer（`mouse_controller`, `screen_detector`,
+`navigator`）。
 
-`simulation_mode=true` のとき、実際にクリックせず
-`SIMULATION: would click sortie button` としてログ出力する層を先に作り、
-その上に遠征・出撃・デイリー・建造・解体の Task を載せる。
-`core/gametime.py`（JST 05:00 のゲーム日付境界）もここで実装する。
+論理名 → 画面上の位置の解決と、`GameInterface` の実装をもう 1 つ作る。
+`SimulationInterface` と同じインターフェースを満たすので、タスク側は
+書き換えない。§15 の必須事項（目的画面確認・操作対象確認・タイムアウト・
+操作結果確認・連続操作回数制限・キルスイッチ）はこの層に入る。
