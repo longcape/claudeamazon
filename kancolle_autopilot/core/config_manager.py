@@ -50,6 +50,8 @@ class Field:
     default: Any
     minimum: float | None = None
     exclusive_minimum: bool = False
+    #: ``type`` が ``list`` のときの要素の型。
+    item_type: type | None = None
 
 
 #: 設定スキーマ。ここに無いキーは受け付けない。
@@ -92,6 +94,11 @@ SCHEMA: Mapping[str, Mapping[str, Field]] = {
     "discord": {
         "enabled": Field(bool, False),
         "webhook_url": Field(str, ""),
+        # bot として常駐し、管理コマンドを受ける場合に使う。
+        "bot_token": Field(str, ""),
+        "channel_id": Field(str, ""),
+        # コマンドを受け付けるユーザー ID。**空なら誰からも受け付けない。**
+        "allowed_user_ids": Field(list, [], item_type=str),
     },
     "logging": {
         "level": Field(str, "INFO"),
@@ -126,6 +133,11 @@ def _check_type(path: str, value: Any, expected: type) -> Any:
 
     if isinstance(value, bool):
         raise ConfigError(f"{path}: {expected.__name__} が必要ですが bool でした")
+
+    if expected is list:
+        if not isinstance(value, list):
+            raise ConfigError(f"{path}: 配列が必要ですが {type(value).__name__} でした")
+        return list(value)
 
     if expected is float:
         # JSON の 1 は int になるため、float 項目では受け入れて変換する。
@@ -184,6 +196,13 @@ def validate(raw: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
                 continue
 
             value = _check_type(path, raw_section[name], field.type)
+            if field.type is list and field.item_type is not None:
+                for index, item in enumerate(value):
+                    if not isinstance(item, field.item_type):
+                        raise ConfigError(
+                            f"{path}[{index}]: {field.item_type.__name__} が"
+                            f"必要ですが {type(item).__name__} でした"
+                        )
             if field.minimum is not None:
                 too_small = (
                     value <= field.minimum

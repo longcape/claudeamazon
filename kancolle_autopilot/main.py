@@ -757,8 +757,32 @@ def command_run(args: argparse.Namespace, config: ConfigManager) -> int:
     )
 
     stop = threading.Event()
-    if args.commands:
+    bot = None
+    if args.discord:
+        from notify.bot import CommandBot
+
+        try:
+            bot = CommandBot.from_config(config.as_dict()["discord"])
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        if not bot.has_allowlist:
+            print(
+                "discord.allowed_user_ids が空です。コマンドはすべて拒否されます。",
+                file=sys.stderr,
+            )
+        try:
+            bot.start()
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        orchestrator.command_source = bot.drain
+        orchestrator.command_sink = bot.channel.reply
+        print("== Discord からコマンドを受け付けます ==")
+    elif args.commands:
         orchestrator.command_source = stdin_command_source()
+
+    if args.discord or args.commands:
         print("== 管理コマンド ==")
         for line in available_commands():
             print(f"  {line}")
@@ -778,6 +802,9 @@ def command_run(args: argparse.Namespace, config: ConfigManager) -> int:
     except KeyboardInterrupt:
         stop.set()
         orchestrator.shutdown("割り込み")
+    finally:
+        if bot is not None:
+            bot.stop()
 
     print("\n== 最終状態 ==")
     for key, value in session.summary().items():
@@ -888,6 +915,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     run_parser.add_argument("--step", action="store_true", help="1 イベントごとに止める")
     run_parser.add_argument("--notify", action="store_true", help="重要イベントを通知する")
+    run_parser.add_argument(
+        "--discord",
+        action="store_true",
+        help="Discord から管理コマンドを受ける（bot_token / channel_id / "
+        "allowed_user_ids の設定が要る）",
+    )
 
     plan_parser = subparsers.add_parser(
         "plan", help="自然言語を構造化タスクへ変換する"

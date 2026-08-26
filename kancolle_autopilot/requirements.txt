@@ -6,3 +6,6 @@ pytest>=8.0
 
 # LLM によるタスク解釈を使う場合のみ（main.py plan --text）
 # anthropic>=1.0
+
+# Discord から管理コマンドを受ける場合のみ（main.py run --discord）
+# discord.py>=2.3

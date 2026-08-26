@@ -39,7 +39,8 @@
 - 記録を保存し、速度・ジャンプ・ステップ付きで再生する
 - SAFETY STOP / RESOURCE LOW / DAMAGE DETECTED / NEW DROP PROTECTED /
   TASK COMPLETED / TASK FAILED を Discord Webhook（または標準出力）へ送る
-- status / stop / resume / queue / cancel の管理コマンドを受け付ける
+- status / stop / resume / queue / cancel の管理コマンドを、標準入力
+  または Discord から受け付ける
 - 自然言語の指示を構造化タスクへ変換し、スキーマ検証を通してから
   予約・投入する（LLM に Python や shell は実行させない）
 - 上記すべてを 1 プロセスで回し続ける（予約の発火 → 安全判定 →
@@ -57,8 +58,6 @@
 - 画像認識による画面判別（サンドボックスは環境自身が画面を教える）
 - GUI（Game View / AI Decision View などの画面表示）。記録と再生は
   テキストのみ
-- Discord bot 本体。管理コマンドの入口は標準入力のみ
-  （`CommandHandler` へ文字列を渡す形は同じ）
 - GUI（Game View / AI Decision View などの画面表示）。記録と再生は
   テキストのみ
 - 進撃・補給・入渠のタスク化（サンドボックスでは直接呼んでいる）
@@ -101,6 +100,10 @@ python main.py review --dir ./rec --summary
 # 常駐運用する（予約を拾い、安全判定を通し、実行し続ける）
 python main.py run --interval 2 --notify --commands
 #   標準入力から status / stop / resume / queue / cancel を受け付ける
+
+# Discord から管理コマンドを受ける
+python main.py run --interval 2 --notify --discord
+#   config.json の discord.bot_token / channel_id / allowed_user_ids が要る
 
 # 計画を投入してから常駐に拾わせる
 python main.py plan --json '{"tasks":[{"name":"construction"}]}' --apply
@@ -171,6 +174,7 @@ kancolle_autopilot/
 │  ├─ parser.py               自然言語 → JSON（Claude API）
 │  └─ task_planner.py         計画 → 予約・キュー
 ├─ notify/
+│  ├─ bot.py                  Discord からコマンドを受ける
 │  ├─ message.py              通知の中身
 │  ├─ notifier.py             Webhook / 標準出力 / 無効
 │  ├─ dispatcher.py           出来事 → 通知（連投抑止つき）
@@ -401,6 +405,17 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
 通知が飛ぶ。種類と対象の組ごとに冷却時間（既定 5 分）を設ける。抑止した
 件数は `NotificationDispatcher.suppressed` に残るので、気づかないうちに
 握り潰されていた、という状態にはならない。
+
+### コマンドは許可した相手からしか受けない
+
+`discord.allowed_user_ids` が空なら誰からも受け付けない。停止・再開・
+タスク取り消しが誰でも押せる状態を、設定漏れで作らないため。指定した
+チャンネル以外のメッセージも無視する。別の場所で偶然同じ語を書いた人が
+システムを止められては困る。
+
+入口が Discord に変わっても、受け取った文字列は `CommandHandler` へ渡す
+だけで、`bot.py` では解釈しない。自然言語をそのまま実行しない方針は
+入口が変わっても同じ。
 
 ### 自然言語をコマンドとして実行しない
 
@@ -644,8 +659,10 @@ payload が足りずタスクを組み立てられなかった場合、そのタ
 29. **`plan --apply` は時刻指定が無くても予約として残す**。CLI はキューを
     持たないので、その場で投入しても常駐プロセスには届かない。発火時刻を
     「いま」にして次の周で拾わせている。
-30. **管理コマンドの入口は標準入力のみ**。Discord から受ける場合も、
-    同じ `CommandHandler` へ文字列を渡せばよい。
+30. **`DiscordPyGateway` は実接続で未検証**。この環境に `discord.py` が
+    無く、通信もしていないため、確認はループバック実装でのみ行っている。
+    `message_content` は特権インテントなので、開発者ポータルで有効に
+    しないと本文が空で届く。
 31. **常駐は 1 周に 1 タスクしか実行しない**。並行実行はしない。
     艦隊が競合する操作を同時に走らせないため。
 32. **時間の経過は同期のたびに反映される**。`SandboxGame.settle` が
@@ -660,7 +677,7 @@ payload が足りずタスクを組み立てられなかった場合、そのタ
 
 開発指示書 §22 の Phase 1〜8 と、追加指示書のサンドボックス・記録・
 リプレイ、そして全部品を回す常駐ループまでが実装済み。
-全 698 件のテストが通る。
+全 713 件のテストが通る。
 
     kcsapi ログ / サンドボックス
         ↓ APIParser
@@ -696,7 +713,6 @@ payload が足りずタスクを組み立てられなかった場合、そのタ
 
 ## 残っているもの
 
-1. **Discord bot 本体**。コマンドの入口は標準入力のみ。
-2. **GUI での可視化**（追加指示書 §9・§14・§16）。記録と再生はテキストのみ。
-3. **実ゲーム接続**。追加指示書 §22 のとおり Sandbox 完成後に別途検討する
+1. **GUI での可視化**（追加指示書 §9・§14・§16）。記録と再生はテキストのみ。
+2. **実ゲーム接続**。追加指示書 §22 のとおり Sandbox 完成後に別途検討する
    としており、本リポジトリでは扱わない。

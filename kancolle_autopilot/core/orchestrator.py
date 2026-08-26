@@ -111,6 +111,8 @@ class Orchestrator:
     clock: Callable[[], datetime] | None = None
     #: 外部から届いた管理コマンドを取り出す関数。
     command_source: Callable[[], Sequence[str]] | None = None
+    #: コマンドへの返答を送る関数。``None`` ならログに残すだけ。
+    command_sink: Callable[[str], None] | None = None
     _started: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
@@ -135,16 +137,26 @@ class Orchestrator:
         )
 
     def handle_commands(self) -> list[str]:
-        """溜まっているコマンドを処理して、返答を返す。"""
+        """溜まっているコマンドを処理して、返答を返す。
+
+        返答は :attr:`command_sink` があればそちらへも送る。送信に失敗しても
+        常駐は止めない。
+        """
         if self.command_source is None:
             return []
         handler = self.commands
         replies: list[str] = []
         for line in self.command_source():
             try:
-                replies.append(handler.handle_text(line))
+                reply = handler.handle_text(line)
             except CommandError as exc:
-                replies.append(str(exc))
+                reply = str(exc)
+            replies.append(reply)
+            if self.command_sink is not None:
+                try:
+                    self.command_sink(reply)
+                except Exception:  # noqa: BLE001 - 返答の失敗で止めない
+                    logger.exception("コマンドの返答を送れませんでした")
         return replies
 
     # ------------------------------------------------------------------
