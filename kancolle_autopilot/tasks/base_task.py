@@ -92,8 +92,13 @@ class TaskContext:
 
     @property
     def simulated(self) -> bool:
-        """シミュレーション実行なら ``True``。"""
+        """OS の入力に触れない実行なら ``True``。"""
         return self.interface.simulated
+
+    @property
+    def verifiable(self) -> bool:
+        """操作の結果をゲーム状態で照合できるなら ``True``。"""
+        return self.interface.affects_game_state
 
 
 class BaseTask(ABC):
@@ -135,11 +140,12 @@ class BaseTask(ABC):
     def verify(self, ctx: TaskContext) -> TaskResult:
         """操作後の結果を照合する。
 
-        既定ではシミュレーション時に照合を省略する。実際には何も
-        起きていないので、API 側の状態が変わるはずがないため。
+        操作がゲーム状態を動かさない実行では照合を省略する。実際には
+        何も起きていないので、状態が変わるはずがないため。判断基準は
+        「OS の入力に触れたか」ではなく「ゲームが動いたか」。
         """
-        if ctx.simulated:
-            return TaskResult.succeeded("シミュレーションのため結果照合を省略しました")
+        if not ctx.verifiable:
+            return TaskResult.succeeded("結果照合を省略しました（状態が変化しない実行）")
         return TaskResult.succeeded()
 
     # ------------------------------------------------------------------

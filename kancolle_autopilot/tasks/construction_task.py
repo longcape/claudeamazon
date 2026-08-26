@@ -169,7 +169,7 @@ class ConstructionTask(BaseTask):
 
     def verify(self, ctx: TaskContext) -> TaskResult:
         """ドックが建造中になったかを確認する。"""
-        if ctx.simulated:
+        if not ctx.verifiable:
             return super().verify(ctx)
 
         busy = [

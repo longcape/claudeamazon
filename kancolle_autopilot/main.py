@@ -437,6 +437,63 @@ def command_simulate(args: argparse.Namespace, config: ConfigManager) -> int:
     return 0 if result.ok else 2
 
 
+def command_sandbox(args: argparse.Namespace, config: ConfigManager) -> int:
+    """サンドボックスで AI の判断ループを一周させる。
+
+    実ゲームには接続しない。ゲーム・環境・AI Core を組み立て、
+    出撃 → 戦闘 → 帰投 → 遠征 を回して結果を表示する。
+    """
+    from sandbox.session import SandboxSession
+    from tasks.expedition_task import ExpeditionTask
+    from tasks.sortie_task import SortieTask
+
+    session = SandboxSession.create(seed=args.seed)
+    session.bootstrap()
+
+    area, _, number = args.map.partition("-")
+    if not number:
+        print(f"海域の指定が不正です: {args.map}", file=sys.stderr)
+        return 1
+
+    print("== 初期状態 ==")
+    for key, value in session.summary().items():
+        print(f"  {key}: {value}")
+
+    for cycle in range(1, args.cycles + 1):
+        print(f"\n== 周回 {cycle} ==")
+        result = session.run(SortieTask(args.fleet, int(area), int(number)))
+        print(f"  出撃: {'成功' if result.ok else '失敗'} — {result.message}")
+        if not result.ok:
+            break
+        ranks = session.fight_through()
+        print(f"  戦闘: {' '.join(ranks)}")
+        if session.safety.pending_protections:
+            names = [
+                pending.name or str(pending.master_id)
+                for pending in session.safety.pending_protections
+            ]
+            print(f"  ! 未所持艦を検出しました: {names}")
+            print("    保護（ロック）が確認できるまで周回を止めます")
+            break
+
+    if args.expedition is not None:
+        result = session.run(ExpeditionTask(args.expedition_fleet, args.expedition))
+        print(f"\n== 遠征 ==\n  {'成功' if result.ok else '失敗'} — {result.message}")
+        if result.ok:
+            session.complete_all_expeditions()
+            print("  帰投しました")
+
+    print("\n== 最終状態 ==")
+    for key, value in session.summary().items():
+        print(f"  {key}: {value}")
+    if session.safety.is_stopped:
+        print("== 緊急停止 ==")
+        for reason in session.safety.latched_reasons:
+            print(f"  {reason}")
+        return 2
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """エントリポイント。
 
@@ -485,6 +542,24 @@ def main(argv: list[str] | None = None) -> int:
         help="logical: 論理名のまま記録 / sandbox: 座標まで解決して仮想環境を叩く",
     )
 
+    sandbox = subparsers.add_parser(
+        "sandbox", help="サンドボックスで判断ループを回す（実ゲームに接続しない）"
+    )
+    sandbox.add_argument("--seed", type=int, default=0, help="戦闘乱数の種")
+    sandbox.add_argument("--map", default="1-5", help="周回する海域（例 1-5）")
+    sandbox.add_argument("--fleet", type=int, default=1, help="出撃する艦隊 ID")
+    sandbox.add_argument("--cycles", type=int, default=3, help="周回する回数")
+    sandbox.add_argument(
+        "--expedition", type=int, default=None, help="周回後に出す遠征番号"
+    )
+    sandbox.add_argument(
+        "--expedition-fleet",
+        dest="expedition_fleet",
+        type=int,
+        default=2,
+        help="遠征に出す艦隊 ID",
+    )
+
     schedule = subparsers.add_parser("schedule", help="未来タスクの予約を操作する")
     schedule.add_argument(
         "action", choices=("list", "add", "cancel"), help="操作の種類"
@@ -530,6 +605,8 @@ def main(argv: list[str] | None = None) -> int:
         return command_schedule(args, config)
     if args.command == "simulate":
         return command_simulate(args, config)
+    if args.command == "sandbox":
+        return command_sandbox(args, config)
     return command_replay(args, config)
 
 

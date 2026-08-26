@@ -95,7 +95,7 @@ class SortieTask(BaseTask):
 
     def verify(self, ctx: TaskContext) -> TaskResult:
         """API 側でも出撃が始まっているかを確認する。"""
-        if ctx.simulated:
+        if not ctx.verifiable:
             return super().verify(ctx)
 
         sortie = ctx.game_state.sortie

@@ -92,7 +92,7 @@ class DismantleTask(BaseTask):
 
     def verify(self, ctx: TaskContext) -> TaskResult:
         """消えた艦が承認した艦と一致するかを照合する。"""
-        if ctx.simulated:
+        if not ctx.verifiable:
             return super().verify(ctx)
         if self._before is None:
             return TaskResult.failure("実行前の状態を記録できていません")

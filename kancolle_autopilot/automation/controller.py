@@ -66,6 +66,8 @@ class ControlledInterface(GameInterface):
     navigator: Navigator = field(default_factory=Navigator)
     action_budget: int = DEFAULT_ACTION_BUDGET
     poll_interval: float = DEFAULT_POLL_INTERVAL
+    #: 押した結果がゲーム状態へ反映されるなら True（結果照合を行う）。
+    affects_game_state: bool = False
     clock: Callable[[], float] = field(default=None)  # type: ignore[assignment]
     sleep: Callable[[float], None] = field(default=None)  # type: ignore[assignment]
     #: 実行した操作の記録。

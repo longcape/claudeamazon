@@ -83,7 +83,7 @@ class ExpeditionTask(BaseTask):
 
     def verify(self, ctx: TaskContext) -> TaskResult:
         """API 側でも遠征中になっているかを確認する。"""
-        if ctx.simulated:
+        if not ctx.verifiable:
             return super().verify(ctx)
 
         fleet = ctx.game_state.fleets.get(self.fleet_id)

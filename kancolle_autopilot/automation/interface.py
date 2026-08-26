@@ -132,7 +132,17 @@ class GameInterface(ABC):
     @property
     @abstractmethod
     def simulated(self) -> bool:
-        """実際には操作しない実装なら ``True``。"""
+        """OS の入力に触れない実装なら ``True``。"""
+
+    @property
+    def affects_game_state(self) -> bool:
+        """操作がゲーム状態を実際に変えるなら ``True``。
+
+        :attr:`simulated` とは別の軸であることに注意。サンドボックスは
+        OS の入力には触れない（``simulated`` は ``True``）が、押せば
+        ゲームの状態は動く。結果照合を省いてよいかはこちらで決める。
+        """
+        return False
 
     @abstractmethod
     def get_state(self) -> Screen:

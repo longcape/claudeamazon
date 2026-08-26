@@ -30,6 +30,7 @@ from automation.screen_detector import (
     Region,
     StaticTarget,
 )
+from sandbox.game import SandboxGame
 
 logger = logging.getLogger(__name__)
 
@@ -51,18 +52,36 @@ class SandboxEnvironment(DynamicResolver):
     """画面と当たり判定を持つ仮想ゲーム。
 
     Attributes:
-        ship_order: 解体画面に並ぶ艦の所有 ID（表示順）。
+        game: 背後のゲーム。与えると、押下がゲーム状態を実際に動かし、
+            kcsapi 形式のレコードが :attr:`records` に積まれる。
+        ship_order: 解体画面に並ぶ艦の所有 ID（表示順）。``game`` があれば
+            所有艦から自動で決まる。
+        selection: 画面上で選択中の項目（海域・艦隊・遠征・ドック・艦）。
+        records: ゲームが吐いた kcsapi 形式のレコード。
+        errors: ゲーム側が拒否した操作の理由。
         pressed_targets: 押されたウィジェットの論理名の記録。
         misses: どのウィジェットにも当たらなかった座標の記録。
     """
 
     screen: Screen = Screen.HOME
+    game: SandboxGame | None = None
     ship_order: Sequence[int] = ()
     layout: Mapping[tuple[Screen, str], StaticTarget | IndexedTarget] = field(
         default_factory=lambda: LAYOUT
     )
     pressed_targets: list[str] = field(default_factory=list)
     misses: list[Point] = field(default_factory=list)
+    selection: dict[str, object] = field(default_factory=dict)
+    records: list[dict] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    #: 建造レシピ。1 回のクリックでは数値を運べないため、環境側に置く。
+    recipe: Mapping[str, int] = field(
+        default_factory=lambda: {"fuel": 30, "ammo": 30, "steel": 30, "bauxite": 30}
+    )
+
+    def __post_init__(self) -> None:
+        if self.game is not None and not self.ship_order:
+            self.ship_order = sorted(self.game.ships)
 
     # -- ScreenSource ---------------------------------------------------
 
@@ -133,6 +152,7 @@ class SandboxEnvironment(DynamicResolver):
             return None
 
         self.pressed_targets.append(target)
+        self._apply(target)
         destination = self._transition_for(target)
         if destination is not None:
             logger.debug(
@@ -146,6 +166,82 @@ class SandboxEnvironment(DynamicResolver):
         self.screen = screen
         self.pressed_targets.clear()
         self.misses.clear()
+        self.selection.clear()
+        self.records.clear()
+        self.errors.clear()
+
+    def drain_records(self) -> list[dict]:
+        """溜まった kcsapi レコードを取り出して空にする。"""
+        drained = list(self.records)
+        self.records.clear()
+        return drained
+
+    # -- ゲームへの反映 --------------------------------------------------
+
+    def _apply(self, target: str) -> None:
+        """押されたウィジェットをゲーム操作へ変換する。
+
+        選択系のウィジェットは :attr:`selection` を更新するだけ。
+        確定系のウィジェットで実際にゲームを動かす。ゲームが拒否した
+        場合は :attr:`errors` に理由を残し、状態は変えない（実ゲームで
+        エラーダイアログが出るのに相当する）。
+        """
+        if self.game is None:
+            return
+
+        prefix, _, suffix = target.rpartition("_")
+        if suffix.isdigit() and prefix in ("area", "map", "fleet", "mission", "dock"):
+            self.selection[prefix] = int(suffix)
+            return
+        if target.startswith("ship_"):
+            selected = self.selection.setdefault("ships", [])
+            assert isinstance(selected, list)
+            selected.append(int(target[len("ship_") :]))
+            return
+
+        try:
+            self.records.extend(self._commit(target))
+        except ValueError as exc:
+            logger.warning("ゲームが操作を拒否しました: %s: %s", target, exc)
+            self.errors.append(f"{target}: {exc}")
+
+    def _commit(self, target: str) -> list[dict]:
+        """確定系のウィジェットを処理する。"""
+        assert self.game is not None
+        game = self.game
+
+        if target == "sortie_start":
+            area = self.selection.get("area")
+            number = self.selection.get("map")
+            fleet = self.selection.get("fleet")
+            if area is None or number is None or fleet is None:
+                raise ValueError("海域または艦隊が選ばれていません")
+            return game.start_sortie(int(fleet), f"{area}-{number}")
+
+        if target == "mission_start":
+            mission = self.selection.get("mission")
+            fleet = self.selection.get("fleet")
+            if mission is None or fleet is None:
+                raise ValueError("遠征または艦隊が選ばれていません")
+            return game.start_expedition(int(fleet), int(mission))
+
+        if target == "build_start":
+            dock = self.selection.get("dock")
+            if dock is None:
+                raise ValueError("ドックが選ばれていません")
+            return game.build(int(dock), self.recipe)
+
+        if target == "dismantle_confirm":
+            ships = self.selection.get("ships") or []
+            assert isinstance(ships, list)
+            if not ships:
+                raise ValueError("艦が選ばれていません")
+            records = game.destroy_ships(ships)
+            self.selection["ships"] = []
+            self.ship_order = sorted(game.ships)
+            return records
+
+        return []
 
     def _transition_for(self, target: str) -> Screen | None:
         """押されたウィジェットによる遷移先を返す。"""
