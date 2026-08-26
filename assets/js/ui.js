@@ -194,7 +194,9 @@
             (st.used
               ? '<span>' + st.win + 'W ' + st.loss + 'L</span><span>/</span><span>' + st.winRate + '%</span>'
               : '<span>' + t('common.unused') + '</span>') +
-            '<span style="margin-left:auto">' + t('deck.edit') + '</span>' +
+            (B.isEmpty(tac) ? '' : '<span class="tcard-hasboard">▣</span>') +
+            '<button type="button" class="tcard-board" data-board-for="' + tac.id + '">' +
+              '▣ ' + t('board.edit') + '</button>' +
           '</div>' +
         '</article>';
     }).join('');
@@ -445,13 +447,12 @@
         const isArmed = armed && armed.kind === 'ability' && armed.ref === ab.ref && armed.team === team;
         return '<button type="button" class="pal-ability' + (isArmed ? ' is-armed' : '') + '"' +
                  ' data-place-kind="ability" data-place-ref="' + esc(ab.ref) + '" data-place-team="' + team + '"' +
-                 ' title="' + esc(ab.name) + (ab.charges > 1 ? ' / ' + t('board.charges', { n: ab.charges }) : '') + '"' +
+                 ' title="' + esc(ab.name) + '"' +
                  ' style="--sig:' + color + '">' +
                  (ab.icon
                    ? '<img class="pal-icon" src="' + ab.icon + '" alt="" />'
                    : '<b>' + esc(ab.slot) + '</b>') +
                  '<span>' + esc(ab.name) + '</span>' +
-                 (ab.charges > 1 ? '<em>x' + ab.charges + '</em>' : '') +
                '</button>';
       }).join('');
 

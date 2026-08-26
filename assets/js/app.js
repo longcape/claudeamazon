@@ -231,6 +231,7 @@
   function commitBoard() {
     S.save();
     if (ui.view === 'live') renderLive();
+    else if (ui.view === 'setup') U.renderDeck(ui.deckFilter);
   }
 
   function bindBoardEditor() {
@@ -491,6 +492,13 @@
     });
 
     $('deck-grid').addEventListener('click', function (e) {
+      /* 配置盤ボタンが先。押した場所によって開くものが変わる */
+      const boardBtn = e.target.closest('[data-board-for]');
+      if (boardBtn) {
+        e.stopPropagation();
+        openBoardEditor(S.tacticById(boardBtn.dataset.boardFor));
+        return;
+      }
       const card = e.target.closest('.tcard');
       if (card) openTacticModal(card.dataset.id);
     });
@@ -828,6 +836,13 @@
       ui.analysis = null;
       closeModal('modal-tactic');
       renderAll();
+    });
+
+    $('btn-tactic-board').addEventListener('click', function () {
+      const tac = ui.editingTacticId ? S.tacticById(ui.editingTacticId) : null;
+      if (!tac) return;
+      closeModal('modal-tactic');
+      openBoardEditor(tac);
     });
 
     $('btn-delete-tactic').addEventListener('click', function () {

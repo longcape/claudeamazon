@@ -224,14 +224,23 @@
   function agentMarkHTML(mark, selected) {
     const agent = D.agentById(mark.ref);
     const color = agent ? P.signature(agent.id) : '#6B7F8C';
-    const label = agent ? agent.abbr : '?';
     const ring = mark.team === 'enemy' ? '#FF4655' : '#35C6E8';
+    const portrait = agent ? P.official(agent.id) : null;
+    const clipId = 'clip_' + mark.id;
+
+    /* 公式ポートレートがあれば円形に切り抜いて使い、無ければ略号を出す */
+    const face = portrait
+      ? '<clipPath id="' + clipId + '"><circle r="3.7" /></clipPath>' +
+        '<circle r="3.7" fill="' + color + '" />' +
+        '<image href="' + portrait + '" x="-3.7" y="-4.2" width="7.4" height="7.4" ' +
+          'clip-path="url(#' + clipId + ')" preserveAspectRatio="xMidYMid slice" />'
+      : '<circle r="3.7" fill="' + color + '" />' +
+        '<text class="board-mark-label" y="1.3">' + esc(agent ? agent.abbr : '?') + '</text>';
 
     return '<g class="board-mark board-mark-agent' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle r="4.6" fill="' + ring + '" opacity="0.9" />' +
-             '<circle r="3.6" fill="' + color + '" />' +
-             '<text class="board-mark-label" y="1.3">' + esc(label) + '</text>' +
+             '<circle r="4.7" fill="' + ring + '" opacity="0.92" />' +
+             face +
            '</g>';
   }
 

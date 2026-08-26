@@ -60,42 +60,12 @@
     veto:      { C: 'Crosscut', Q: 'Chokehold', E: 'Interceptor', X: 'Evolution' }
   };
 
-  /**
-   * 同時に置ける数の上限。
-   * オーメンのスモークのように「1 つずつしか出せない」ものは、
-   * 配置盤で順番を意識する必要があるため上限を持たせる。
-   * 未指定は 1（順番を気にせず置ける）。
-   */
-  const CHARGES = {
-    'jett:C': 2, 'jett:Q': 2, 'jett:E': 3,
-    'phoenix:C': 1, 'phoenix:Q': 2,
-    'raze:Q': 2,
-    'reyna:C': 2, 'reyna:Q': 4, 'reyna:E': 2,
-    'yoru:C': 2, 'yoru:Q': 2,
-    'neon:Q': 2,
-    'iso:Q': 2,
-    'sova:Q': 2, 'sova:E': 2,
-    'breach:C': 2, 'breach:Q': 2,
-    'skye:Q': 1, 'skye:E': 2,
-    'kayo:C': 2, 'kayo:Q': 2,
-    'fade:C': 2,
-    'gekko:C': 1, 'gekko:Q': 1, 'gekko:E': 1,
-    'brimstone:Q': 1, 'brimstone:E': 3,
-    /* オーメンのスモークは 1 つずつしか展開できない */
-    'omen:E': 1, 'omen:C': 2, 'omen:Q': 1,
-    'viper:C': 2,
-    'astra:E': 4,
-    'harbor:C': 2, 'harbor:Q': 1,
-    'clove:E': 2,
-    'miks:E': 2,
-    'killjoy:C': 2,
-    'cypher:C': 2, 'cypher:Q': 2,
-    'sage:C': 1, 'sage:Q': 2,
-    'chamber:Q': 1,
-    'deadlock:C': 1, 'deadlock:Q': 2,
-    'vyse:Q': 1,
-    'veto:C': 1
-  };
+  /*
+     同時展開数（チャージ）はパッチごとに変わるうえ、公式 API では
+     配信されていない。手書きで持つと必ず古くなり、
+     ネオンのリレーボルトのように誤った数を表示してしまう。
+     配置盤では置いた数と使用順で意図が伝わるため、表示自体をやめている。
+  */
 
   function forAgent(agentId) {
     return ABILITIES[agentId] || null;
@@ -127,10 +97,6 @@
     return Object.keys(OFFICIAL_ICONS).length > 0;
   }
 
-  function chargesOf(agentId, slot) {
-    return CHARGES[agentId + ':' + slot] || 1;
-  }
-
   /** 配置盤の左右パレットに並べる一覧 */
   function listFor(agentId) {
     const set = ABILITIES[agentId];
@@ -141,7 +107,6 @@
         ref: agentId + ':' + slot,
         name: nameOf(agentId, slot),
         icon: iconOf(agentId, slot),
-        charges: chargesOf(agentId, slot),
         ultimate: slot === 'X'
       };
     });
@@ -150,14 +115,12 @@
   global.VCT_ABILITIES = {
     SLOTS: SLOTS,
     ABILITIES: ABILITIES,
-    CHARGES: CHARGES,
     OFFICIAL_NAMES: OFFICIAL_NAMES,
     OFFICIAL_ICONS: OFFICIAL_ICONS,
     iconOf: iconOf,
     hasIcons: hasIcons,
     forAgent: forAgent,
     nameOf: nameOf,
-    chargesOf: chargesOf,
     listFor: listFor
   };
 })(window);

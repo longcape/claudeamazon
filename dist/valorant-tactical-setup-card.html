@@ -1935,6 +1935,26 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .board-mark.is-dragging { opacity: .85; }
 .board-mark.is-dragging circle:first-child,
 .board-mark.is-dragging rect { stroke: #fff; stroke-width: 1.1; }
+
+/* 戦術カードから配置盤を開くボタン */
+.tcard-board {
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--line-hot);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .1em;
+  cursor: pointer;
+  transition: all .15s;
+}
+.tcard-board:hover {
+  color: #fff;
+  border-color: var(--violet);
+  background: rgba(139, 123, 255, .16);
+}
+.tcard-hasboard { color: var(--violet); font-size: 12px; }
 </style>
 </head>
 <body>
@@ -2237,6 +2257,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
       </div>
       <footer class="modal-foot">
         <button type="button" class="btn btn-ghost btn-danger" id="btn-delete-tactic" data-i18n="btn.delete" hidden></button>
+        <button type="button" class="btn btn-ghost" id="btn-tactic-board" data-i18n="board.edit"></button>
         <span class="spacer"></span>
         <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
         <button type="submit" class="btn btn-primary" data-i18n="btn.save"></button>
@@ -3764,42 +3785,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     veto:      { C: 'Crosscut', Q: 'Chokehold', E: 'Interceptor', X: 'Evolution' }
   };
 
-  /**
-   * 同時に置ける数の上限。
-   * オーメンのスモークのように「1 つずつしか出せない」ものは、
-   * 配置盤で順番を意識する必要があるため上限を持たせる。
-   * 未指定は 1（順番を気にせず置ける）。
-   */
-  const CHARGES = {
-    'jett:C': 2, 'jett:Q': 2, 'jett:E': 3,
-    'phoenix:C': 1, 'phoenix:Q': 2,
-    'raze:Q': 2,
-    'reyna:C': 2, 'reyna:Q': 4, 'reyna:E': 2,
-    'yoru:C': 2, 'yoru:Q': 2,
-    'neon:Q': 2,
-    'iso:Q': 2,
-    'sova:Q': 2, 'sova:E': 2,
-    'breach:C': 2, 'breach:Q': 2,
-    'skye:Q': 1, 'skye:E': 2,
-    'kayo:C': 2, 'kayo:Q': 2,
-    'fade:C': 2,
-    'gekko:C': 1, 'gekko:Q': 1, 'gekko:E': 1,
-    'brimstone:Q': 1, 'brimstone:E': 3,
-    /* オーメンのスモークは 1 つずつしか展開できない */
-    'omen:E': 1, 'omen:C': 2, 'omen:Q': 1,
-    'viper:C': 2,
-    'astra:E': 4,
-    'harbor:C': 2, 'harbor:Q': 1,
-    'clove:E': 2,
-    'miks:E': 2,
-    'killjoy:C': 2,
-    'cypher:C': 2, 'cypher:Q': 2,
-    'sage:C': 1, 'sage:Q': 2,
-    'chamber:Q': 1,
-    'deadlock:C': 1, 'deadlock:Q': 2,
-    'vyse:Q': 1,
-    'veto:C': 1
-  };
+  /*
+     同時展開数（チャージ）はパッチごとに変わるうえ、公式 API では
+     配信されていない。手書きで持つと必ず古くなり、
+     ネオンのリレーボルトのように誤った数を表示してしまう。
+     配置盤では置いた数と使用順で意図が伝わるため、表示自体をやめている。
+  */
 
   function forAgent(agentId) {
     return ABILITIES[agentId] || null;
@@ -3831,10 +3822,6 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     return Object.keys(OFFICIAL_ICONS).length > 0;
   }
 
-  function chargesOf(agentId, slot) {
-    return CHARGES[agentId + ':' + slot] || 1;
-  }
-
   /** 配置盤の左右パレットに並べる一覧 */
   function listFor(agentId) {
     const set = ABILITIES[agentId];
@@ -3845,7 +3832,6 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         ref: agentId + ':' + slot,
         name: nameOf(agentId, slot),
         icon: iconOf(agentId, slot),
-        charges: chargesOf(agentId, slot),
         ultimate: slot === 'X'
       };
     });
@@ -3854,14 +3840,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   global.VCT_ABILITIES = {
     SLOTS: SLOTS,
     ABILITIES: ABILITIES,
-    CHARGES: CHARGES,
     OFFICIAL_NAMES: OFFICIAL_NAMES,
     OFFICIAL_ICONS: OFFICIAL_ICONS,
     iconOf: iconOf,
     hasIcons: hasIcons,
     forAgent: forAgent,
     nameOf: nameOf,
-    chargesOf: chargesOf,
     listFor: listFor
   };
 })(window);
@@ -5601,14 +5585,23 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function agentMarkHTML(mark, selected) {
     const agent = D.agentById(mark.ref);
     const color = agent ? P.signature(agent.id) : '#6B7F8C';
-    const label = agent ? agent.abbr : '?';
     const ring = mark.team === 'enemy' ? '#FF4655' : '#35C6E8';
+    const portrait = agent ? P.official(agent.id) : null;
+    const clipId = 'clip_' + mark.id;
+
+    /* 公式ポートレートがあれば円形に切り抜いて使い、無ければ略号を出す */
+    const face = portrait
+      ? '<clipPath id="' + clipId + '"><circle r="3.7" /></clipPath>' +
+        '<circle r="3.7" fill="' + color + '" />' +
+        '<image href="' + portrait + '" x="-3.7" y="-4.2" width="7.4" height="7.4" ' +
+          'clip-path="url(#' + clipId + ')" preserveAspectRatio="xMidYMid slice" />'
+      : '<circle r="3.7" fill="' + color + '" />' +
+        '<text class="board-mark-label" y="1.3">' + esc(agent ? agent.abbr : '?') + '</text>';
 
     return '<g class="board-mark board-mark-agent' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle r="4.6" fill="' + ring + '" opacity="0.9" />' +
-             '<circle r="3.6" fill="' + color + '" />' +
-             '<text class="board-mark-label" y="1.3">' + esc(label) + '</text>' +
+             '<circle r="4.7" fill="' + ring + '" opacity="0.92" />' +
+             face +
            '</g>';
   }
 
@@ -6267,7 +6260,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
             (st.used
               ? '<span>' + st.win + 'W ' + st.loss + 'L</span><span>/</span><span>' + st.winRate + '%</span>'
               : '<span>' + t('common.unused') + '</span>') +
-            '<span style="margin-left:auto">' + t('deck.edit') + '</span>' +
+            (B.isEmpty(tac) ? '' : '<span class="tcard-hasboard">▣</span>') +
+            '<button type="button" class="tcard-board" data-board-for="' + tac.id + '">' +
+              '▣ ' + t('board.edit') + '</button>' +
           '</div>' +
         '</article>';
     }).join('');
@@ -6518,13 +6513,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         const isArmed = armed && armed.kind === 'ability' && armed.ref === ab.ref && armed.team === team;
         return '<button type="button" class="pal-ability' + (isArmed ? ' is-armed' : '') + '"' +
                  ' data-place-kind="ability" data-place-ref="' + esc(ab.ref) + '" data-place-team="' + team + '"' +
-                 ' title="' + esc(ab.name) + (ab.charges > 1 ? ' / ' + t('board.charges', { n: ab.charges }) : '') + '"' +
+                 ' title="' + esc(ab.name) + '"' +
                  ' style="--sig:' + color + '">' +
                  (ab.icon
                    ? '<img class="pal-icon" src="' + ab.icon + '" alt="" />'
                    : '<b>' + esc(ab.slot) + '</b>') +
                  '<span>' + esc(ab.name) + '</span>' +
-                 (ab.charges > 1 ? '<em>x' + ab.charges + '</em>' : '') +
                '</button>';
       }).join('');
 
@@ -7283,6 +7277,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function commitBoard() {
     S.save();
     if (ui.view === 'live') renderLive();
+    else if (ui.view === 'setup') U.renderDeck(ui.deckFilter);
   }
 
   function bindBoardEditor() {
@@ -7543,6 +7538,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
 
     $('deck-grid').addEventListener('click', function (e) {
+      /* 配置盤ボタンが先。押した場所によって開くものが変わる */
+      const boardBtn = e.target.closest('[data-board-for]');
+      if (boardBtn) {
+        e.stopPropagation();
+        openBoardEditor(S.tacticById(boardBtn.dataset.boardFor));
+        return;
+      }
       const card = e.target.closest('.tcard');
       if (card) openTacticModal(card.dataset.id);
     });
@@ -7880,6 +7882,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       ui.analysis = null;
       closeModal('modal-tactic');
       renderAll();
+    });
+
+    $('btn-tactic-board').addEventListener('click', function () {
+      const tac = ui.editingTacticId ? S.tacticById(ui.editingTacticId) : null;
+      if (!tac) return;
+      closeModal('modal-tactic');
+      openBoardEditor(tac);
     });
 
     $('btn-delete-tactic').addEventListener('click', function () {
