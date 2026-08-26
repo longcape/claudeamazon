@@ -3,3 +3,6 @@
 
 # 開発・テスト用
 pytest>=8.0
+
+# LLM によるタスク解釈を使う場合のみ（main.py plan --text）
+# anthropic>=1.0

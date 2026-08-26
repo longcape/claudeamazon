@@ -40,6 +40,10 @@ class TaskPriority(IntEnum):
     BACKGROUND = 100
 
 
+#: タスク名と優先度の対応。予約・LLM 由来の計画・CLI がここを共有する。
+PRIORITY_BY_TASK_NAME: Mapping[str, "TaskPriority"] = {}
+
+
 class TaskStatus(str, Enum):
     """タスクの状態。"""
 
@@ -53,6 +57,24 @@ class TaskStatus(str, Enum):
     def is_terminal(self) -> bool:
         """これ以上遷移しない状態なら ``True``。"""
         return self in (TaskStatus.DONE, TaskStatus.FAILED, TaskStatus.CANCELLED)
+
+
+PRIORITY_BY_TASK_NAME = {
+    "daily": TaskPriority.DAILY_TASK,
+    "construction": TaskPriority.DAILY_TASK,
+    "expedition": TaskPriority.EXPEDITION,
+    "sortie": TaskPriority.SORTIE,
+    "dismantle": TaskPriority.BACKGROUND,
+}
+
+
+def priority_for(name: str) -> TaskPriority:
+    """タスク名から優先度を引く。
+
+    未知の名前は :attr:`TaskPriority.BACKGROUND` にする。名前の妥当性は
+    :mod:`llm.schema` が先に弾くので、ここは保険。
+    """
+    return PRIORITY_BY_TASK_NAME.get(name, TaskPriority.BACKGROUND)
 
 
 def _new_task_id() -> str:

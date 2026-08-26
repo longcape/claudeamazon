@@ -2,8 +2,9 @@
 
 「艦これ Auto-Pilot 開発指示書」に基づく運用補助システム。
 
-現在の到達点は **Phase 6（通知）**。AI が艦これ風の仮想環境を自律操作し、
-その全操作・判断・状態変化を記録・再生でき、重要イベントを通知する。
+現在の到達点は **Phase 7（LLM によるタスク解釈）**。開発指示書の全 Phase が
+ひととおり実装済み。AI が艦これ風の仮想環境を自律操作し、記録・再生・
+通知し、自然言語の指示を構造化タスクへ変換して予約・投入できる。
 **実ゲームには接続しない。**
 
 ## 現時点でできること / できないこと
@@ -39,6 +40,8 @@
 - SAFETY STOP / RESOURCE LOW / DAMAGE DETECTED / NEW DROP PROTECTED /
   TASK COMPLETED / TASK FAILED を Discord Webhook（または標準出力）へ送る
 - status / stop / resume / queue / cancel の管理コマンドを受け付ける
+- 自然言語の指示を構造化タスクへ変換し、スキーマ検証を通してから
+  予約・投入する（LLM に Python や shell は実行させない）
 - 保存ログの再生・ライブ監視・予約操作・シミュレーション・サンドボックス
   周回・記録の再生を CLI で確認する
 
@@ -50,7 +53,8 @@
   テキストのみ
 - 常駐デーモン。管理コマンドを受け取る口（Discord bot 本体）は未実装で、
   `CommandHandler` を呼ぶ側がいない
-- LLM による自然言語 → タスクの変換
+- 制約（`advance_with_heavy_damage` など）を実際に読んで振る舞いを変える
+  タスク実装。payload までは届いているが、参照しているタスクはまだ無い
 - 進撃・補給・入渠のタスク化（サンドボックスでは直接呼んでいる）
 - 通知連携、LLM によるタスク解釈
 
@@ -90,6 +94,12 @@ python main.py review --dir ./rec --summary
 
 # 通知しながら周回する（discord.enabled が false なら標準出力へ）
 python main.py sandbox --seed 3 --cycles 2 --notify
+
+# 自然言語を構造化タスクへ変換する（LLM を使う。要 API キー）
+python main.py plan --text "明日の10:52からデイリー、その後遠征、最後に戦果周回"
+
+# 同じ検証・適用の経路を LLM 抜きで確かめる
+python main.py plan --json '{"tasks":[],"goal":{"map":"5-5","objective":"destroy_gauge"}}' --apply
 
 # 未来タスクの予約
 python main.py schedule add --at "2026-08-27T10:52+09:00" --tasks daily,expedition,sortie --name "朝の周回"
@@ -141,6 +151,10 @@ kancolle_autopilot/
 │  ├─ keyboard_controller.py  キー入力とキルスイッチ
 │  ├─ navigator.py            画面遷移の経路探索
 │  └─ controller.py           §15 の検証付き GameInterface 実装
+├─ llm/
+│  ├─ schema.py               構造化タスクのスキーマと検証
+│  ├─ parser.py               自然言語 → JSON（Claude API）
+│  └─ task_planner.py         計画 → 予約・キュー
 ├─ notify/
 │  ├─ message.py              通知の中身
 │  ├─ notifier.py             Webhook / 標準出力 / 無効
@@ -171,7 +185,7 @@ kancolle_autopilot/
 └─ tests/                     unit test と kcsapi フィクスチャ
 ```
 
-未作成（今後の Phase）: GUI での可視化、常駐デーモン、`llm/`。
+未作成: GUI での可視化、常駐デーモン。
 
 ## 使う前に設定が要るもの
 
@@ -386,6 +400,32 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
 ため、記録を切ると通知もタスクを識別できなくなっていた。ID の採番を
 セッション側へ移して分離した。
 
+### LLM は変換だけ。実行の判断はさせない
+
+`llm/` が返すのは `TaskPlan` という**値**であって、実行の手続きではない。
+語彙は列挙で固定してあり、`run_shell` のような名前は `SchemaError` に
+なる。API 側の `output_config.format` でも JSON Schema を渡すが、
+**それを信頼の根拠にしない** —— 受け取った側で `validate_plan` を必ず
+通す。二重に見えるが、モデルが約束を守ったかどうかをこちら側で
+確かめられる形にしておきたい。
+
+### 予約は安全判定を待たない。いま投入するものは待つ
+
+予約はその時点では何も起こさず、実行時に改めて安全判定を通る。だから
+緊急停止中でも登録できる。一方、いますぐキューへ入れるタスクは
+`SafetyManager` が `STOP` なら 1 件も入れない。
+
+### 制約はタスクの payload に載せる
+
+「大破進撃は禁止」を上位で保持していても、実行するタスクが読めなければ
+意味がない。`constraints` / `resource_efficiency` /
+`disposable_ship_strategy` は全タスクの payload に入れて渡す。
+
+### 目標だけの計画には出撃を補う
+
+「5-5 のゲージを割って」にはタスク名が無い。目標を持ったまま何も実行
+しない状態にしないため、`expand_tasks` が出撃タスクを 1 件補う。
+
 ### 起動時に過去ログを読まない
 
 `LogMonitor` は既定で既存ファイルを末尾まで読み飛ばす。古いログを
@@ -466,13 +506,40 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
     抑止状態は持ち越さない。
 25. **画像添付は multipart で送る**。ファイルが見つからない場合は
     embed から画像参照を外してテキストのみで送る。
+26. **`AnthropicClient` は実 API に対して未検証**。この環境から API を
+    叩いていないため、動作確認はスタブ経由のみ。スキーマ・検証・適用の
+    経路はテスト済みだが、SDK 呼び出しそのものは初回実行時に確認が要る。
+    サーバ側フォールバック（`fallbacks="default"`）と `stop_reason ==
+    "refusal"` の扱いは入れてある。
+27. **制約を読むタスクがまだ無い**。`advance_with_heavy_damage` は
+    payload まで届くが、それを見て振る舞いを変えるタスク実装は未着手。
+    現状は `DamageGuard` が大破を無条件で止めている。
+28. **`anthropic` は任意依存**。`requirements.txt` にコメントで置いてある。
+    `plan --text` を使うときだけ入れればよい。
 
-## 次の Phase
+## ここまでで揃ったもの
 
-Phase 7（LLM によるタスク解釈）。開発指示書 §18 のとおり、用途は
-**自然言語 → 構造化されたタスク** への変換に限定する。LLM に Python や
-shell を実行させない。出力は必ずスキーマ検証を通し、そのうえで
-`Validation → SafetyManager → TaskQueue` の順に流す。
+開発指示書 §22 の Phase 1〜8 と、追加指示書のサンドボックス・記録・
+リプレイまでが実装済み。全 581 件のテストが通る。
 
-追加指示書 §8 の制約条件（大破進撃禁止 / 資源節約重視 / 捨て艦戦法許可）も
-ここで構造化する。
+    kcsapi ログ / サンドボックス
+        ↓ APIParser
+    GameState
+        ↓
+    SafetyManager（資材・損傷・ロック保護・緊急停止のラッチ）
+        ↓
+    TaskQueue ← Scheduler ← TaskPlanner ← 検証 ← LLM Parser
+        ↓
+    StateMachine → Task → GameInterface → 座標 → サンドボックス
+        ↓
+    SessionRecorder（タイムライン・判断・スナップショット）
+    NotificationDispatcher（Discord / 標準出力）
+
+## 残っているもの
+
+1. **常駐デーモン**。各部品は揃っているが、これらを 1 つのプロセスとして
+   回し続ける入口が無い。`main.py` のサブコマンドは単発実行。
+2. **制約を読むタスク実装**。payload には届いている。
+3. **GUI での可視化**（追加指示書 §9・§14・§16）。記録と再生はテキストのみ。
+4. **実ゲーム接続**。追加指示書 §22 のとおり Sandbox 完成後に別途検討する
+   としており、本リポジトリでは扱わない。

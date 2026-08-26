@@ -30,7 +30,7 @@ from automation.mouse_controller import MouseController
 from automation.screen_detector import ScreenDetector
 from automation.simulation import SimulationInterface, build_interface
 from core.scheduler import Scheduler, TaskSpec
-from core.task_queue import TaskPriority
+from core.task_queue import PRIORITY_BY_TASK_NAME
 from monitor.api_parser import APIParser, Event, EventType
 from monitor.game_state import GameState
 from monitor.log_monitor import LogMonitor
@@ -43,13 +43,7 @@ logger = logging.getLogger("kancolle_autopilot")
 _QUIET_EVENTS = frozenset({EventType.PORT_REFRESHED})
 
 #: ``schedule add`` で使えるタスク名と優先度。
-TASK_PRIORITIES: dict[str, TaskPriority] = {
-    "daily": TaskPriority.DAILY_TASK,
-    "construction": TaskPriority.DAILY_TASK,
-    "expedition": TaskPriority.EXPEDITION,
-    "sortie": TaskPriority.SORTIE,
-    "dismantle": TaskPriority.BACKGROUND,
-}
+TASK_PRIORITIES = PRIORITY_BY_TASK_NAME
 
 #: 安全判定レベルごとの終了コード。
 _EXIT_CODE_BY_LEVEL = {
@@ -610,6 +604,67 @@ def command_review(args: argparse.Namespace, config: ConfigManager) -> int:
     return 0
 
 
+def command_plan(args: argparse.Namespace, config: ConfigManager) -> int:
+    """自然言語または JSON を構造化タスクへ変換し、必要なら適用する。
+
+    ``--text`` は LLM を呼ぶので API キーが要る。``--json`` は同じ検証・
+    適用の経路を、LLM 抜きで確かめるための入口。
+    """
+    from core.task_queue import TaskQueue
+    from llm.parser import AnthropicClient, ParseError, TaskParser
+    from llm.schema import SchemaError, validate_plan
+    from llm.task_planner import TaskPlanner
+
+    try:
+        if args.json:
+            source = Path(args.json)
+            raw = json.loads(
+                source.read_text(encoding="utf-8")
+                if source.exists()
+                else args.json
+            )
+            plan = validate_plan(raw)
+        else:
+            parser = TaskParser(AnthropicClient(effort=args.effort))
+            plan = parser.parse(args.text)
+    except (ParseError, SchemaError) as exc:
+        print(f"変換できません: {exc}", file=sys.stderr)
+        return 1
+    except json.JSONDecodeError as exc:
+        print(f"JSON として読めません: {exc}", file=sys.stderr)
+        return 1
+
+    print("== 構造化タスク ==")
+    for line in plan.describe().splitlines():
+        print(f"  {line}")
+
+    if not args.apply:
+        print("\n（--apply を付けると予約・投入まで行います）")
+        return 0
+
+    manager = build_manager(config)
+    state = GameState()
+    if args.log:
+        log_path = Path(args.log)
+        if not log_path.exists():
+            print(f"ログが見つかりません: {log_path}", file=sys.stderr)
+            return 1
+        state, _ = replay(log_path, manager)
+
+    planner = TaskPlanner(
+        scheduler=open_scheduler(config),
+        queue=TaskQueue(),
+        safety=manager,
+        game_state=state,
+    )
+    result = planner.apply(plan)
+
+    print("\n== 適用結果 ==")
+    for line in result.describe().splitlines():
+        print(f"  {line}")
+    return 0 if result.accepted else 2
+
+
 def main(argv: list[str] | None = None) -> int:
     """エントリポイント。
 
@@ -691,6 +746,23 @@ def main(argv: list[str] | None = None) -> int:
         help="重要イベントを通知する（discord.enabled が false なら標準出力）",
     )
 
+    plan_parser = subparsers.add_parser(
+        "plan", help="自然言語を構造化タスクへ変換する"
+    )
+    plan_parser.add_argument("--text", default="", help="変換する指示（LLM を使う）")
+    plan_parser.add_argument(
+        "--json", default="", help="検証する計画の JSON（ファイルまたは文字列）"
+    )
+    plan_parser.add_argument(
+        "--apply", action="store_true", help="予約・投入まで行う"
+    )
+    plan_parser.add_argument(
+        "--log", default="", help="安全判定に使う kcsapi ログ（--apply 時）"
+    )
+    plan_parser.add_argument(
+        "--effort", default="low", help="LLM の思考の深さ（low/medium/high）"
+    )
+
     review = subparsers.add_parser("review", help="記録したタイムラインを再生する")
     review.add_argument("--dir", required=True, help="記録の保存先ディレクトリ")
     review.add_argument(
@@ -752,6 +824,10 @@ def main(argv: list[str] | None = None) -> int:
         return command_sandbox(args, config)
     if args.command == "review":
         return command_review(args, config)
+    if args.command == "plan":
+        if not (args.text or args.json):
+            parser.error("plan には --text か --json が必要です")
+        return command_plan(args, config)
     return command_replay(args, config)
 
 
