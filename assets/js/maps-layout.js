@@ -170,8 +170,44 @@
            '</svg>';
   }
 
+  /* ---------------------------------------------------------
+     公式ミニマップの向き
+     ---------------------------------------------------------
+     公式画像はマップごとに向きがばらばらで、縦に長いものも
+     横に長いものもある。戦術を読むときに毎回向きを考え直すのは
+     負担なので、ディフェンダースポーンが上・アタッカースポーンが下に
+     なるよう、マップごとに時計回りの回転角を持たせて揃える。
+
+     角度は画像から機械的に求めた。ボムサイトは必ずディフェンダー
+     スポーン寄りにあるため、サイト（画像上で黄土色に塗られた領域）の
+     重心から画像全体の重心へ向かう向きが、そのままアタッカー側を指す。
+     その向きが真下になる角度を 90 度単位に丸めている。
+
+     フラクチャーだけは例外。アタッカーが南北の両側から攻めるため
+     「アタッカー側が下」に揃えようがなく、見慣れた向きのままにしている。
+     --------------------------------------------------------- */
+  const ROTATION = {
+    abyss: 90,
+    ascent: 90,
+    bind: 0,
+    breeze: 0,
+    corrode: 90,
+    fracture: 0,
+    haven: 90,
+    icebox: 270,
+    lotus: 0,
+    pearl: 0,
+    split: 90,
+    summit: 0,
+    sunset: 0
+  };
+
   function minimap(mapId) { return MINIMAP[mapId] || null; }
+  function rotation(mapId) { return ROTATION[mapId] || 0; }
   function has(mapId) { return !!LAYOUTS[mapId]; }
 
-  global.VCT_MAPS = { render: render, minimap: minimap, has: has, LAYOUTS: LAYOUTS, MINIMAP: MINIMAP };
+  global.VCT_MAPS = {
+    render: render, minimap: minimap, rotation: rotation, has: has,
+    LAYOUTS: LAYOUTS, MINIMAP: MINIMAP, ROTATION: ROTATION
+  };
 })(window);

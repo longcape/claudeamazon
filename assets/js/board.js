@@ -179,9 +179,15 @@
     const interactive = !!opts.interactive;
 
     /* 下地はマップ簡易図（公式ミニマップがあればそちら） */
+    /* 公式ミニマップは向きがマップごとに違うので、
+       ディフェンダー側が上に来るよう回してから敷く。
+       置いたマークは回さない（回転後の見た目の上に置いているため）。 */
     const shot = M.minimap(opts.map);
+    const spin = M.rotation(opts.map);
     const base = shot
-      ? '<image href="' + shot + '" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" opacity="0.75" />'
+      ? '<image href="' + shot + '" x="0" y="0" width="100" height="100" ' +
+          (spin ? 'transform="rotate(' + spin + ' 50 50)" ' : '') +
+          'preserveAspectRatio="xMidYMid slice" opacity="0.75" />'
       : baseLayerHTML(opts.map, opts.highlight, opts.side);
 
     const routes = board.routes.map(function (r) { return routeHTML(r); }).join('');

@@ -125,8 +125,10 @@
     if (!M.has(opts.map)) return '';
 
     const shot = M.minimap(opts.map);
+    const spin = M.rotation(opts.map);
     const body = shot
-      ? '<img class="map-shot" src="' + shot + '" alt="' + esc(opts.map) + '" style="width:' + opts.size + 'px" />'
+      ? '<img class="map-shot" src="' + shot + '" alt="' + esc(opts.map) + '" ' +
+          'style="width:' + opts.size + 'px' + (spin ? ';transform:rotate(' + spin + 'deg)' : '') + '" />'
       : M.render({ map: opts.map, highlight: opts.highlight, side: opts.side, size: opts.size });
 
     return '<figure class="map-fig-wrap">' + body +
