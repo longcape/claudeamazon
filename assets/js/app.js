@@ -305,8 +305,10 @@
       ghost.className = 'place-ghost';
       const img = btn.querySelector('img');
       const label = btn.querySelector('span');
+      /* パレットはアイコンのみなので、名前は title 属性から取る */
+      const name = label ? label.textContent : (btn.getAttribute('title') || '').trim();
       ghost.innerHTML = (img ? '<img src="' + img.src + '" alt="" />' : '') +
-                        '<span>' + (label ? label.textContent : '') + '</span>';
+                        '<span>' + name + '</span>';
       document.body.appendChild(ghost);
       return ghost;
     }

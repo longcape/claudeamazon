@@ -1666,22 +1666,21 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .board-mark-label,
 .board-mark-slot {
   font-family: var(--font-display);
-  font-size: 2.4px;
+  font-size: 2px;
   font-weight: 700;
   text-anchor: middle;
   fill: #06111a;
   pointer-events: none;
 }
-.board-mark-slot { fill: #fff; font-size: 3px; }
-.board-mark.is-selected rect,
-.board-mark.is-selected > circle:nth-of-type(2) { stroke: #fff; stroke-width: .8; }
+.board-mark-slot { fill: #fff; font-size: 2.4px; }
+.board-mark.is-selected .board-ring { stroke: #fff; stroke-width: .7; }
 /* 掴みやすいよう、見た目より広い判定を持たせている */
 .board-hit { pointer-events: all; }
 
-.board-order-bg { fill: #0B1116; stroke: var(--gold); stroke-width: .45; }
+.board-order-bg { fill: #0B1116; stroke: var(--gold); stroke-width: .35; }
 .board-order {
   font-family: var(--font-display);
-  font-size: 2.4px;
+  font-size: 2px;
   font-weight: 700;
   text-anchor: middle;
   fill: var(--gold);
@@ -1782,7 +1781,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 /* =========================================================
    BOARD EDITOR MODAL
    ========================================================= */
-.modal-wide { width: min(1480px, 100%); }
+.modal-wide { width: min(1600px, 100%); }
 .board-tactic-name {
   margin-left: 14px;
   font-size: 12px;
@@ -1794,7 +1793,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 .board-layout {
   display: grid;
-  grid-template-columns: 208px minmax(0, 1fr) 208px;
+  grid-template-columns: 172px minmax(0, 1fr) 172px;
   gap: 14px;
   align-items: start;
 }
@@ -1813,66 +1812,79 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   border: 1px solid var(--line);
   background: rgba(9, 14, 18, .5);
   clip-path: var(--clip-sm);
-  padding: 8px;
+  padding: 6px 7px 7px;
 }
 .pal-agent {
   touch-action: none;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
-  padding: 5px 6px;
+  padding: 3px 4px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text);
   font-family: var(--font-display);
-  font-size: 12px;
-  letter-spacing: .06em;
-  cursor: pointer;
+  font-size: 11.5px;
+  letter-spacing: .05em;
+  cursor: grab;
   text-align: left;
   transition: all .14s;
 }
 .pal-agent:hover { border-color: var(--line-hot); background: rgba(255, 255, 255, .04); }
 .pal-agent.is-armed { border-color: var(--cyan); background: rgba(53, 198, 232, .14); }
+.pal-agent .avatar { width: 26px !important; height: 26px !important; }
 
-.pal-abilities { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; }
+/* スキルはアイコンのみの正方形。名前は hover と、掴んだときの表示に出す */
+.pal-abilities {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 5px;
+}
 .pal-ability {
   position: relative;
   touch-action: none;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  padding: 5px 7px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border: 1px solid var(--line);
-  border-left: 3px solid var(--sig, var(--line-hot));
+  border-bottom: 2px solid var(--sig, var(--line-hot));
   background: rgba(9, 14, 18, .6);
   color: var(--text-dim);
-  cursor: pointer;
-  text-align: left;
+  cursor: grab;
   transition: all .14s;
-  min-width: 0;
 }
-.pal-ability:hover { color: var(--text); border-color: var(--line-hot); border-left-color: var(--sig); }
-.pal-ability.is-armed { border-color: var(--cyan); background: rgba(53, 198, 232, .14); color: #fff; }
-.pal-ability b { font-family: var(--font-display); font-size: 11px; letter-spacing: .1em; }
-.pal-ability span {
-  font-size: 9px;
-  line-height: 1.25;
-  max-width: 100%;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-word;
+.pal-ability:hover {
+  border-color: var(--line-hot);
+  border-bottom-color: var(--sig);
+  background: rgba(255, 255, 255, .06);
+  transform: translateY(-1px);
 }
-.pal-ability em {
+.pal-ability.is-armed {
+  border-color: var(--cyan);
+  background: rgba(53, 198, 232, .16);
+}
+.pal-ability b {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .06em;
+  color: var(--text);
+}
+/* 隅に出すスロット文字 */
+.pal-ability i {
   position: absolute;
-  top: 4px; right: 5px;
+  left: 2px; bottom: 1px;
   font-style: normal;
-  font-size: 8.5px;
-  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: .04em;
+  color: var(--text-mute);
+  pointer-events: none;
 }
+.pal-ability:hover i { color: var(--text-dim); }
+.pal-icon { width: 76%; height: 76%; object-fit: contain; }
 
 .board-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .board-tools { display: flex; flex-direction: column; gap: 8px; width: 100%; }
@@ -1933,8 +1945,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 /* ドラッグ中のマーク */
 .board-mark.is-dragging { opacity: .85; }
-.board-mark.is-dragging rect,
-.board-mark.is-dragging > circle:nth-of-type(2) { stroke: #fff; stroke-width: .8; }
+.board-mark.is-dragging .board-ring { stroke: #fff; stroke-width: .7; }
 
 /* 戦術カードから配置盤を開くボタン */
 .tcard-board {
@@ -5620,20 +5631,21 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     const portrait = agent ? P.official(agent.id) : null;
     const clipId = 'clip_' + mark.id;
 
-    /* 公式ポートレートがあれば円形に切り抜いて使い、無ければ略号を出す */
+    /* 縁は塗りつぶした円ではなく細い線にする。
+       太い縁はマップを隠すうえ、隣のマークと干渉しやすい。 */
     const face = portrait
-      ? '<clipPath id="' + clipId + '"><circle r="2.5" /></clipPath>' +
-        '<circle r="2.5" fill="' + color + '" />' +
-        '<image href="' + portrait + '" x="-2.5" y="-2.9" width="5" height="5" ' +
+      ? '<clipPath id="' + clipId + '"><circle r="2.4" /></clipPath>' +
+        '<circle r="2.4" fill="' + color + '" />' +
+        '<image href="' + portrait + '" x="-2.4" y="-2.8" width="4.8" height="4.8" ' +
           'clip-path="url(#' + clipId + ')" preserveAspectRatio="xMidYMid slice" />'
-      : '<circle r="2.5" fill="' + color + '" />' +
-        '<text class="board-mark-label" y="0.9">' + esc(agent ? agent.abbr : '?') + '</text>';
+      : '<circle r="2.4" fill="' + color + '" />' +
+        '<text class="board-mark-label" y="0.85">' + esc(agent ? agent.abbr : '?') + '</text>';
 
     return '<g class="board-mark board-mark-agent' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle class="board-hit" r="3.2" fill="transparent" />' +
-             '<circle r="3.2" fill="' + ring + '" opacity="0.92" />' +
+             '<circle class="board-hit" r="2.7" fill="transparent" />' +
              face +
+             '<circle class="board-ring" r="2.55" fill="none" stroke="' + ring + '" stroke-width="0.45" />' +
            '</g>';
   }
 
@@ -5644,20 +5656,19 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     const color = agent ? P.signature(agent.id) : '#6B7F8C';
     const icon = AB.iconOf(parts[0], slot);
 
-    /* 公式アイコンがあればそれを、無ければスロット文字を出す */
     const face = icon
-      ? '<image href="' + icon + '" x="-2" y="-2" width="4" height="4" preserveAspectRatio="xMidYMid meet" />'
-      : '<text class="board-mark-slot" y="0.9">' + esc(slot) + '</text>';
+      ? '<image href="' + icon + '" x="-1.7" y="-1.7" width="3.4" height="3.4" preserveAspectRatio="xMidYMid meet" />'
+      : '<text class="board-mark-slot" y="0.8">' + esc(slot) + '</text>';
 
     return '<g class="board-mark board-mark-ability' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle class="board-hit" r="2.7" fill="transparent" />' +
-             '<rect x="-2.6" y="-2.6" width="5.2" height="5.2" rx="1" ' +
-               'fill="' + color + '" fill-opacity="0.34" stroke="' + color + '" stroke-width="0.55" />' +
+             '<circle class="board-hit" r="2.4" fill="transparent" />' +
+             '<rect class="board-ring" x="-2.2" y="-2.2" width="4.4" height="4.4" rx="0.9" ' +
+               'fill="' + color + '" fill-opacity="0.32" stroke="' + color + '" stroke-width="0.4" />' +
              face +
              (mark.order
-               ? '<circle class="board-order-bg" cx="2.9" cy="-2.9" r="1.9" />' +
-                 '<text class="board-order" x="2.9" y="-2.25">' + mark.order + '</text>'
+               ? '<circle class="board-order-bg" cx="2.4" cy="-2.4" r="1.55" />' +
+                 '<text class="board-order" x="2.4" y="-1.85">' + mark.order + '</text>'
                : '') +
            '</g>';
   }
@@ -6546,12 +6557,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         const isArmed = armed && armed.kind === 'ability' && armed.ref === ab.ref && armed.team === team;
         return '<button type="button" class="pal-ability' + (isArmed ? ' is-armed' : '') + '"' +
                  ' data-place-kind="ability" data-place-ref="' + esc(ab.ref) + '" data-place-team="' + team + '"' +
-                 ' title="' + esc(ab.name) + '"' +
+                 ' title="' + esc(ab.slot + '  ' + ab.name) + '"' +
                  ' style="--sig:' + color + '">' +
                  (ab.icon
-                   ? '<img class="pal-icon" src="' + ab.icon + '" alt="" />'
+                   ? '<img class="pal-icon" src="' + ab.icon + '" alt="' + esc(ab.name) + '" />'
                    : '<b>' + esc(ab.slot) + '</b>') +
-                 '<span>' + esc(ab.name) + '</span>' +
+                 '<i>' + esc(ab.slot) + '</i>' +
                '</button>';
       }).join('');
 
@@ -6607,7 +6618,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /* 表示サイズ。localStorage に覚えさせる */
-  const SIZE_STEPS = [420, 540, 660, 780, 900];
+  const SIZE_STEPS = [520, 660, 800, 940, 1080];
   const SIZE_KEY = 'vct.boardSize';
 
   function boardSize(mode) {
@@ -7384,8 +7395,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       ghost.className = 'place-ghost';
       const img = btn.querySelector('img');
       const label = btn.querySelector('span');
+      /* パレットはアイコンのみなので、名前は title 属性から取る */
+      const name = label ? label.textContent : (btn.getAttribute('title') || '').trim();
       ghost.innerHTML = (img ? '<img src="' + img.src + '" alt="" />' : '') +
-                        '<span>' + (label ? label.textContent : '') + '</span>';
+                        '<span>' + name + '</span>';
       document.body.appendChild(ghost);
       return ghost;
     }

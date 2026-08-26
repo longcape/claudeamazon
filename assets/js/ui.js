@@ -447,12 +447,12 @@
         const isArmed = armed && armed.kind === 'ability' && armed.ref === ab.ref && armed.team === team;
         return '<button type="button" class="pal-ability' + (isArmed ? ' is-armed' : '') + '"' +
                  ' data-place-kind="ability" data-place-ref="' + esc(ab.ref) + '" data-place-team="' + team + '"' +
-                 ' title="' + esc(ab.name) + '"' +
+                 ' title="' + esc(ab.slot + '  ' + ab.name) + '"' +
                  ' style="--sig:' + color + '">' +
                  (ab.icon
-                   ? '<img class="pal-icon" src="' + ab.icon + '" alt="" />'
+                   ? '<img class="pal-icon" src="' + ab.icon + '" alt="' + esc(ab.name) + '" />'
                    : '<b>' + esc(ab.slot) + '</b>') +
-                 '<span>' + esc(ab.name) + '</span>' +
+                 '<i>' + esc(ab.slot) + '</i>' +
                '</button>';
       }).join('');
 
@@ -508,7 +508,7 @@
   }
 
   /* 表示サイズ。localStorage に覚えさせる */
-  const SIZE_STEPS = [420, 540, 660, 780, 900];
+  const SIZE_STEPS = [520, 660, 800, 940, 1080];
   const SIZE_KEY = 'vct.boardSize';
 
   function boardSize(mode) {

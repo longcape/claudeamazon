@@ -228,20 +228,21 @@
     const portrait = agent ? P.official(agent.id) : null;
     const clipId = 'clip_' + mark.id;
 
-    /* 公式ポートレートがあれば円形に切り抜いて使い、無ければ略号を出す */
+    /* 縁は塗りつぶした円ではなく細い線にする。
+       太い縁はマップを隠すうえ、隣のマークと干渉しやすい。 */
     const face = portrait
-      ? '<clipPath id="' + clipId + '"><circle r="2.5" /></clipPath>' +
-        '<circle r="2.5" fill="' + color + '" />' +
-        '<image href="' + portrait + '" x="-2.5" y="-2.9" width="5" height="5" ' +
+      ? '<clipPath id="' + clipId + '"><circle r="2.4" /></clipPath>' +
+        '<circle r="2.4" fill="' + color + '" />' +
+        '<image href="' + portrait + '" x="-2.4" y="-2.8" width="4.8" height="4.8" ' +
           'clip-path="url(#' + clipId + ')" preserveAspectRatio="xMidYMid slice" />'
-      : '<circle r="2.5" fill="' + color + '" />' +
-        '<text class="board-mark-label" y="0.9">' + esc(agent ? agent.abbr : '?') + '</text>';
+      : '<circle r="2.4" fill="' + color + '" />' +
+        '<text class="board-mark-label" y="0.85">' + esc(agent ? agent.abbr : '?') + '</text>';
 
     return '<g class="board-mark board-mark-agent' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle class="board-hit" r="3.2" fill="transparent" />' +
-             '<circle r="3.2" fill="' + ring + '" opacity="0.92" />' +
+             '<circle class="board-hit" r="2.7" fill="transparent" />' +
              face +
+             '<circle class="board-ring" r="2.55" fill="none" stroke="' + ring + '" stroke-width="0.45" />' +
            '</g>';
   }
 
@@ -252,20 +253,19 @@
     const color = agent ? P.signature(agent.id) : '#6B7F8C';
     const icon = AB.iconOf(parts[0], slot);
 
-    /* 公式アイコンがあればそれを、無ければスロット文字を出す */
     const face = icon
-      ? '<image href="' + icon + '" x="-2" y="-2" width="4" height="4" preserveAspectRatio="xMidYMid meet" />'
-      : '<text class="board-mark-slot" y="0.9">' + esc(slot) + '</text>';
+      ? '<image href="' + icon + '" x="-1.7" y="-1.7" width="3.4" height="3.4" preserveAspectRatio="xMidYMid meet" />'
+      : '<text class="board-mark-slot" y="0.8">' + esc(slot) + '</text>';
 
     return '<g class="board-mark board-mark-ability' + (selected ? ' is-selected' : '') + '" ' +
              'data-mark="' + esc(mark.id) + '" transform="translate(' + mark.x + ',' + mark.y + ')">' +
-             '<circle class="board-hit" r="2.7" fill="transparent" />' +
-             '<rect x="-2.6" y="-2.6" width="5.2" height="5.2" rx="1" ' +
-               'fill="' + color + '" fill-opacity="0.34" stroke="' + color + '" stroke-width="0.55" />' +
+             '<circle class="board-hit" r="2.4" fill="transparent" />' +
+             '<rect class="board-ring" x="-2.2" y="-2.2" width="4.4" height="4.4" rx="0.9" ' +
+               'fill="' + color + '" fill-opacity="0.32" stroke="' + color + '" stroke-width="0.4" />' +
              face +
              (mark.order
-               ? '<circle class="board-order-bg" cx="2.9" cy="-2.9" r="1.9" />' +
-                 '<text class="board-order" x="2.9" y="-2.25">' + mark.order + '</text>'
+               ? '<circle class="board-order-bg" cx="2.4" cy="-2.4" r="1.55" />' +
+                 '<text class="board-order" x="2.4" y="-1.85">' + mark.order + '</text>'
                : '') +
            '</g>';
   }
