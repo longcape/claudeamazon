@@ -24,13 +24,13 @@
   const ABILITIES = {
     /* --- DUELIST --- */
     jett:      { C: 'Cloudburst',      Q: 'Updraft',        E: 'Tailwind',       X: 'Blade Storm' },
-    phoenix:   { C: 'Blaze',           Q: 'Curveball',      E: 'Hot Hands',      X: 'Run It Back' },
+    phoenix:   { C: 'Blaze', Q: 'Hot Hands', E: 'Curveball', X: 'Run it Back' },
     raze:      { C: 'Boom Bot',        Q: 'Blast Pack',     E: 'Paint Shells',   X: 'Showstopper' },
     reyna:     { C: 'Leer',            Q: 'Devour',         E: 'Dismiss',        X: 'Empress' },
-    yoru:      { C: 'Fakeout',         Q: 'Blindside',      E: 'Gatecrash',      X: 'Dimensional Drift' },
+    yoru:      { C: 'FAKEOUT', Q: 'BLINDSIDE', E: 'GATECRASH', X: 'DIMENSIONAL DRIFT' },
     neon:      { C: 'Fast Lane',       Q: 'Relay Bolt',     E: 'High Gear',      X: 'Overdrive' },
     iso:       { C: 'Contingency',     Q: 'Undercut',       E: 'Double Tap',     X: 'Kill Contract' },
-    waylay:    { C: 'Refract',         Q: 'Lightspeed',     E: 'Saturate',       X: 'Convergent Paths' },
+    waylay:    { C: 'Saturate', Q: 'Lightspeed', E: 'Refract', X: 'Convergent Paths' },
 
     /* --- INITIATOR --- */
     sova:      { C: 'Owl Drone',       Q: 'Shock Bolt',     E: 'Recon Bolt',     X: "Hunter's Fury" },
@@ -39,25 +39,25 @@
     kayo:      { C: 'FRAG/ment',       Q: 'FLASH/drive',    E: 'ZERO/point',     X: 'NULL/cmd' },
     fade:      { C: 'Prowler',         Q: 'Seize',          E: 'Haunt',          X: 'Nightfall' },
     gekko:     { C: 'Mosh Pit',        Q: 'Wingman',        E: 'Dizzy',          X: 'Thrash' },
-    tejo:      { C: 'Special Delivery', Q: 'Guided Salvo',  E: 'Stealth Drone',  X: 'Armageddon' },
+    tejo:      { C: 'Stealth Drone', Q: 'Special Delivery', E: 'Guided Salvo', X: 'Armageddon' },
 
     /* --- CONTROLLER --- */
     brimstone: { C: 'Stim Beacon',     Q: 'Incendiary',     E: 'Sky Smoke',      X: 'Orbital Strike' },
     omen:      { C: 'Shrouded Step',   Q: 'Paranoia',       E: 'Dark Cover',     X: 'From the Shadows' },
     viper:     { C: 'Snake Bite',      Q: 'Poison Cloud',   E: 'Toxic Screen',   X: "Viper's Pit" },
-    astra:     { C: 'Gravity Well',    Q: 'Nova Pulse',     E: 'Nebula',         X: 'Cosmic Divide' },
-    harbor:    { C: 'Cascade',         Q: 'Cove',           E: 'High Tide',      X: 'Reckoning' },
+    astra:     { C: 'Gravity Well', Q: 'Nova Pulse', E: 'Nebula  / Dissipate', X: 'Astral Form / Cosmic Divide' },
+    harbor:    { C: 'Storm Surge', Q: 'High Tide', E: 'Cove', X: 'Reckoning' },
     clove:     { C: 'Pick-me-up',      Q: 'Meddle',         E: 'Ruse',           X: 'Not Dead Yet' },
-    miks:      { C: 'M-Pulse',         Q: 'Harmonize',      E: 'Waveform',       X: 'Base Quake' },
+    miks:      { C: 'M-pulse', Q: 'Harmonize', E: 'Waveform', X: 'Bassquake' },
 
     /* --- SENTINEL --- */
-    killjoy:   { C: 'Nanoswarm',       Q: 'Alarmbot',       E: 'Turret',         X: 'Lockdown' },
+    killjoy:   { C: 'Nanoswarm', Q: 'ALARMBOT', E: 'TURRET', X: 'Lockdown' },
     cypher:    { C: 'Trapwire',        Q: 'Cyber Cage',     E: 'Spycam',         X: 'Neural Theft' },
     sage:      { C: 'Barrier Orb',     Q: 'Slow Orb',       E: 'Healing Orb',    X: 'Resurrection' },
     chamber:   { C: 'Trademark',       Q: 'Headhunter',     E: 'Rendezvous',     X: 'Tour De Force' },
-    deadlock:  { C: 'GravNet',         Q: 'Sonic Sensor',   E: 'Barrier Mesh',   X: 'Annihilation' },
-    vyse:      { C: 'Shear',           Q: 'Arc Rose',       E: 'Razorvine',      X: 'Steel Garden' },
-    veto:      { C: 'Chokehold',       Q: 'Crosscut',       E: 'Interceptor',    X: 'Evolution' }
+    deadlock:  { C: 'Barrier Mesh', Q: 'Sonic Sensor', E: 'GravNet', X: 'Annihilation' },
+    vyse:      { C: 'Razorvine', Q: 'Shear', E: 'Arc Rose', X: 'Steel Garden' },
+    veto:      { C: 'Crosscut', Q: 'Chokehold', E: 'Interceptor', X: 'Evolution' }
   };
 
   /**

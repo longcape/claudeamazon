@@ -44,8 +44,9 @@ const INLINE = process.argv.includes('--inline');
 const AGENT_DIR = path.join(ROOT, 'assets/img/agents');
 const ABILITY_DIR = path.join(ROOT, 'assets/img/abilities');
 
-/* API のスロット名 → アプリのキー割り当て */
-const SLOT_MAP = { Grenade: 'C', Ability2: 'Q', Ability1: 'E', Ultimate: 'X' };
+/* API のスロット名 → ゲーム内のキー割当。
+   Ability1 が Q、Ability2 が E。逆にすると全エージェントで Q と E が入れ替わる。 */
+const SLOT_MAP = { Grenade: 'C', Ability1: 'Q', Ability2: 'E', Ultimate: 'X' };
 
 /* アビリティ名を取り込む言語。locales/ にある言語に合わせる */
 const NAME_LANGS = { ja: 'ja-JP', en: 'en-US', ko: 'ko-KR' };
@@ -190,6 +191,10 @@ async function main() {
         }
       }
       console.log(`  names  ${appLang.padEnd(10)} ${Object.keys(abilityNames[appLang]).length} 件`);
+
+      /* 英語名は abilities.js の既定値と一致するはず。
+         大量にずれる場合は SLOT_MAP の対応が違っている。 */
+      if (appLang === 'en') verifySlots(abilityNames.en);
     } catch (err) {
       console.log(`  ! ${appLang} のアビリティ名を取得できませんでした: ${err.message}`);
     }
@@ -268,6 +273,57 @@ async function main() {
     console.log('\n  単一 HTML 配布版にも公式アイコンを載せたい場合は --inline を付けて再実行してください。');
   }
   console.log('  最後に `node build.js` を実行して配布ファイルを更新してください。');
+}
+
+
+/**
+ * 取得した英語名を abilities.js の既定値と突き合わせる。
+ * スロットの対応を間違えると全エージェントで Q と E が入れ替わるため、
+ * 気づかずに公開してしまわないようここで検出する。
+ */
+function verifySlots(fetchedEn) {
+  let defaults;
+  try {
+    const src = fs.readFileSync(path.join(ROOT, 'assets/js/abilities.js'), 'utf8');
+    const from = src.indexOf('const ABILITIES = {');
+    const to = src.indexOf('\n  };', from);
+    if (from < 0 || to < 0) return;
+    defaults = src.slice(from, to);
+  } catch {
+    return;
+  }
+
+  const norm = (v) => String(v).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const rows = [...defaults.matchAll(/(\w+):\s*\{\s*C:\s*'([^']*)',\s*Q:\s*'([^']*)',\s*E:\s*'([^']*)',\s*X:\s*'([^']*)'/g)];
+
+  let checked = 0;
+  let mismatch = 0;
+  let swapped = 0;
+
+  for (const [, agent, c, q, e, x] of rows) {
+    const expect = { C: c, Q: q, E: e, X: x };
+    for (const slot of ['C', 'Q', 'E', 'X']) {
+      const got = fetchedEn[`${agent}:${slot}`];
+      if (!got) continue;
+      checked++;
+      if (norm(got) !== norm(expect[slot])) mismatch++;
+    }
+    const gotQ = fetchedEn[`${agent}:Q`];
+    const gotE = fetchedEn[`${agent}:E`];
+    if (gotQ && gotE && norm(gotQ) === norm(e) && norm(gotE) === norm(q)) swapped++;
+  }
+
+  if (!checked) return;
+
+  if (swapped >= 3) {
+    console.log('\n⚠ Q と E が入れ替わっています。SLOT_MAP の対応を見直してください。');
+    console.log(`   ${swapped} 体で入れ替わりを検出しました。`);
+  } else if (mismatch > checked * 0.3) {
+    console.log(`\n⚠ 取得した名前の ${mismatch}/${checked} 件が既定値と一致しません。`);
+    console.log('   スロットの対応か、既定値のどちらかが古い可能性があります。');
+  } else if (mismatch) {
+    console.log(`  （既定値と異なる名前が ${mismatch}/${checked} 件。パッチでの改名と思われます）`);
+  }
 }
 
 main().catch((err) => {
