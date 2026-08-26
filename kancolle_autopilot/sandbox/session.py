@@ -24,7 +24,9 @@ from automation.interface import Screen
 from automation.keyboard_controller import KeyboardController, VirtualKeyboard
 from automation.mouse_controller import MouseController
 from automation.screen_detector import ScreenDetector
-from monitor.api_parser import APIParser, Event
+from monitor.api_parser import APIParser, Event, EventType
+from recording.recorder import SessionRecorder
+from recording.timeline import EventKind
 from monitor.game_state import GameState
 from safety.lock_guard import Blacklist, DismantlePolicy, LockGuard
 from safety.safety_manager import SafetyManager
@@ -52,6 +54,9 @@ class SandboxSession:
     game_state: GameState
     safety: SafetyManager
     parser: APIParser = field(default_factory=APIParser)
+    #: 記録係。``None`` なら何も記録しない。
+    recorder: SessionRecorder | None = None
+    _cursor_offset: int = field(default=0, init=False)
 
     @classmethod
     def create(
@@ -59,6 +64,7 @@ class SandboxSession:
         seed: int = 0,
         blacklist: Blacklist | None = None,
         safety: SafetyManager | None = None,
+        recorder: SessionRecorder | None = None,
     ) -> "SandboxSession":
         """既定の初期状態で一式を組み立てる。
 
@@ -67,6 +73,7 @@ class SandboxSession:
             blacklist: 解体保護のブラックリスト。省略時は空を許可した
                 ものを使う（サンドボックスには保護対象の実艦がいない）。
             safety: 差し替える SafetyManager。
+            recorder: 記録係。渡すと操作・判断・状態が記録される。
 
         Returns:
             組み立て済みのセッション。
@@ -93,6 +100,7 @@ class SandboxSession:
             interface=interface,
             game_state=state,
             safety=manager,
+            recorder=recorder,
         )
 
     # ------------------------------------------------------------------
@@ -108,13 +116,41 @@ class SandboxSession:
         events: list[Event] = []
         for record in self.environment.drain_records():
             events.extend(self.parser.parse_record(record))
+        before = self.game_state.resources
         derived = self.game_state.apply_all(events)
         self.safety.observe(derived)
         if derived:
             logger.info(
                 "派生イベント: %s", [event.type.value for event in derived]
             )
+        self._record_sync(before, derived)
         return derived
+
+    def _record_sync(self, before, derived: Sequence[Event]) -> None:
+        """同期で分かったことをタイムラインへ残す。"""
+        if self.recorder is None:
+            return
+
+        after = self.game_state.resources
+        if (before.fuel, before.ammo, before.steel, before.bauxite) != (
+            after.fuel,
+            after.ammo,
+            after.steel,
+            after.bauxite,
+        ):
+            self.recorder.record(
+                EventKind.RESOURCE_CHANGE,
+                f"燃{after.fuel} 弾{after.ammo} 鋼{after.steel} ボ{after.bauxite}",
+                detail={"fuel": after.fuel, "ammo": after.ammo},
+            )
+
+        for event in derived:
+            if event.type is EventType.UNKNOWN_SHIP_DROPPED:
+                self.recorder.record(
+                    EventKind.SAFETY_WARNING,
+                    f"未所持艦のドロップ: {event.payload.get('name')}",
+                    detail=dict(event.payload),
+                )
 
     def bootstrap(self) -> list[Event]:
         """母港応答を 1 回流し込んで、初期状態を作る。"""
@@ -139,17 +175,24 @@ class SandboxSession:
         を使わず段階を組み立てる。
         """
         ctx = self.context(now)
+        task_id = self._start_recording(task, ctx)
 
         verdict = self.safety.evaluate(
             self.game_state, fleet_id=task.safety_fleet_id(ctx), now=ctx.now
         )
         if verdict.should_stop:
-            return TaskResult.failure(f"安全判定により中止: {verdict.describe()}")
+            return self._finish_recording(
+                task_id,
+                TaskResult.failure(f"安全判定により中止: {verdict.describe()}"),
+            )
 
         precondition = task.preconditions(ctx)
         if precondition.should_stop:
-            return TaskResult.failure(
-                f"事前条件を満たしません: {precondition.describe()}"
+            return self._finish_recording(
+                task_id,
+                TaskResult.failure(
+                    f"事前条件を満たしません: {precondition.describe()}"
+                ),
             )
 
         from tasks.base_task import ActionFailed
@@ -159,13 +202,21 @@ class SandboxSession:
         except ActionFailed as exc:
             reason = f"{task.name}: 操作に失敗しました: {exc.result.describe()}"
             self.safety.trigger_emergency_stop(reason, at=ctx.now)
-            return TaskResult.failure(reason, actions=tuple(ctx.performed))
+            self._record_steps(ctx, task_id)
+            return self._finish_recording(
+                task_id, TaskResult.failure(reason, actions=tuple(ctx.performed))
+            )
+
+        self._record_steps(ctx, task_id)
 
         if not result.ok:
             self.safety.trigger_emergency_stop(
                 f"{task.name}: {result.message}", at=ctx.now
             )
-            return TaskResult(False, result.message, result.details, tuple(ctx.performed))
+            return self._finish_recording(
+                task_id,
+                TaskResult(False, result.message, result.details, tuple(ctx.performed)),
+            )
 
         # 照合の前に、ゲームが吐いたレコードを取り込む。
         self.sync()
@@ -174,13 +225,75 @@ class SandboxSession:
         if not verification.ok:
             reason = f"{task.name}: 結果を確認できません: {verification.message}"
             self.safety.trigger_emergency_stop(reason, at=ctx.now)
-            return TaskResult.failure(reason, verification.details, tuple(ctx.performed))
+            return self._finish_recording(
+                task_id,
+                TaskResult.failure(reason, verification.details, tuple(ctx.performed)),
+            )
 
-        return TaskResult.succeeded(
-            result.message or verification.message,
-            {**result.details, **verification.details},
-            tuple(ctx.performed),
+        return self._finish_recording(
+            task_id,
+            TaskResult.succeeded(
+                result.message or verification.message,
+                {**result.details, **verification.details},
+                tuple(ctx.performed),
+            ),
         )
+
+    # ------------------------------------------------------------------
+    # 記録
+    # ------------------------------------------------------------------
+
+    def _start_recording(self, task: BaseTask, ctx: TaskContext) -> str | None:
+        """タスク開始を記録し、判断とスナップショットを残す。"""
+        if self.recorder is None:
+            return None
+
+        task_id = f"{task.name}-{len(self.recorder.timeline)}"
+        self.recorder.record(
+            EventKind.TASK_START,
+            task.name,
+            task_id=task_id,
+            screen=self.interface.get_state().value,
+        )
+        self.recorder.snapshot(self.game_state, f"{task.name} 開始前")
+        self.recorder.decide(
+            self.game_state,
+            decision=task.name.upper(),
+            reason_code="TASK_REQUESTED",
+            selected_action=task.name,
+            expected_result="TASK_COMPLETED",
+            task_id=task_id,
+        )
+        self._cursor_offset = len(self.interface.mouse.trace)
+        return task_id
+
+    def _record_steps(self, ctx: TaskContext, task_id: str | None) -> None:
+        """操作とカーソル軌跡を記録する。"""
+        if self.recorder is None:
+            return
+        self.recorder.record_actions(ctx.performed, task_id)
+        self.recorder.record_cursor(
+            self.interface.mouse.trace[self._cursor_offset :], task_id
+        )
+        self._cursor_offset = len(self.interface.mouse.trace)
+
+    def _finish_recording(
+        self, task_id: str | None, result: TaskResult
+    ) -> TaskResult:
+        """タスク終了を記録し、判断の実際の結果を書き込む。"""
+        if self.recorder is None or task_id is None:
+            return result
+
+        decision = self.recorder.decisions.latest(task_id)
+        if decision is not None:
+            decision.resolve("TASK_COMPLETED" if result.ok else "TASK_FAILED")
+        self.recorder.record(
+            EventKind.TASK_END,
+            f"{task_id} {'成功' if result.ok else '失敗'}",
+            task_id=task_id,
+            detail={"ok": result.ok, "message": result.message},
+        )
+        return result
 
     # ------------------------------------------------------------------
     # ゲーム側の進行
@@ -206,10 +319,28 @@ class SandboxSession:
             if self.game.sortie is None:
                 break
 
+            if self.recorder is not None:
+                self.recorder.record(
+                    EventKind.BATTLE_START,
+                    f"{self.game.sortie.map_key} セル{self.game.sortie.cell}",
+                )
+
+            damaged_before = self._heavily_damaged_ids()
             records = self.game.fight()
-            ranks.append(self._rank_of(records))
+            rank = self._rank_of(records)
+            ranks.append(rank)
             self.environment.records.extend(records)
             self.sync()
+
+            if self.recorder is not None:
+                self.recorder.record(EventKind.BATTLE_END, rank)
+                newly_damaged = self._heavily_damaged_ids() - damaged_before
+                if newly_damaged:
+                    self.recorder.record(
+                        EventKind.DAMAGE,
+                        f"大破: {sorted(newly_damaged)}",
+                        detail={"ship_ids": sorted(newly_damaged)},
+                    )
 
             target = self.game.maps[self.game.sortie.map_key]
             if self.game.at_boss or self.game.sortie.cell >= target.cells:
@@ -234,6 +365,16 @@ class SandboxSession:
             if isinstance(body, dict) and "api_win_rank" in body:
                 return str(body["api_win_rank"])
         return "?"
+
+    def _heavily_damaged_ids(self) -> set[int]:
+        """出撃中の艦隊で大破している艦の ID。"""
+        if self.game.sortie is None:
+            return set()
+        return {
+            ship.instance_id
+            for ship in self.game.fleet_ships(self.game.sortie.fleet_id)
+            if ship.is_heavily_damaged
+        }
 
     def _has_heavy_damage(self) -> bool:
         """出撃中の艦隊に大破艦がいれば ``True``。"""

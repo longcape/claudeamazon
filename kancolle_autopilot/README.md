@@ -2,9 +2,9 @@
 
 「艦これ Auto-Pilot 開発指示書」に基づく運用補助システム。
 
-現在の到達点は **サンドボックス環境の完成**（追加指示書 §4〜§7）。
-AI が艦これ風の仮想環境を自律的に操作し、出撃・戦闘・ドロップ・遠征・
-建造・解体まで一周する。**実ゲームには接続しない。**
+現在の到達点は **記録とリプレイ**（追加指示書 §12〜§18）。AI が艦これ風の
+仮想環境を自律操作し、その全操作・判断・状態変化を記録して後から再生
+できる。**実ゲームには接続しない。**
 
 ## 現時点でできること / できないこと
 
@@ -31,14 +31,20 @@ AI が艦これ風の仮想環境を自律的に操作し、出撃・戦闘・�
 - サンドボックスの状態変化を **kcsapi 形式で出力**し、実ゲームと同じ
   パーサ経由で AI Core へ渡す
 - 未所持艦のドロップで周回を止め、ロックを確認して再開する
+- 全操作・判断・カーソル軌跡・状態変化を 1 本のタイムラインに記録する
+- 判断の入力・制約・期待・実際を残し、期待とずれた判断を取り出す
+- 重要イベントごとに状態のスナップショットを取る
+- ブレークポイントとステップ実行で任意の地点で止める
+- 記録を保存し、速度・ジャンプ・ステップ付きで再生する
 - 保存ログの再生・ライブ監視・予約操作・シミュレーション・サンドボックス
-  周回を CLI で確認する
+  周回・記録の再生を CLI で確認する
 
 できないこと（未実装）
 
 - 実ゲームへの接続（`build_interface(False)` は `NotImplementedError`）
 - 画像認識による画面判別（サンドボックスは環境自身が画面を教える）
-- リプレイ UI、タイムライン表示、ステップ実行、ブレークポイント
+- GUI（Game View / AI Decision View などの画面表示）。記録と再生は
+  テキストのみ
 - 進撃・補給・入渠のタスク化（サンドボックスでは直接呼んでいる）
 - 通知連携、LLM によるタスク解釈
 
@@ -68,6 +74,13 @@ python main.py simulate --log data/fixtures/scenario_ready.jsonl --task daily --
 
 # サンドボックスで判断ループを一周させる（実ゲームに接続しない）
 python main.py sandbox --seed 7 --map 1-5 --cycles 3 --expedition 5
+
+# 記録を取りながら周回し、戦闘終了と大破で止める
+python main.py sandbox --seed 7 --cycles 2 --record ./rec --break on_battle_end,on_damage
+
+# 記録を再生する（10 倍速、カーソルの MOVE は除く）
+python main.py review --dir ./rec --speed 10
+python main.py review --dir ./rec --summary
 
 # 未来タスクの予約
 python main.py schedule add --at "2026-08-27T10:52+09:00" --tasks daily,expedition,sortie --name "朝の周回"
@@ -119,6 +132,11 @@ kancolle_autopilot/
 │  ├─ keyboard_controller.py  キー入力とキルスイッチ
 │  ├─ navigator.py            画面遷移の経路探索
 │  └─ controller.py           §15 の検証付き GameInterface 実装
+├─ recording/
+│  ├─ timeline.py             操作タイムラインとブレークポイント
+│  ├─ decision_log.py         AI Decision Log
+│  ├─ recorder.py             記録・スナップショット・停止
+│  └─ replay.py               再生（速度・ジャンプ・ステップ）
 ├─ sandbox/
 │  ├─ environment.py          当たり判定・画面遷移・押下のゲームへの反映
 │  ├─ game.py                 ゲーム状態と kcsapi 形式での出力
@@ -139,7 +157,7 @@ kancolle_autopilot/
 └─ tests/                     unit test と kcsapi フィクスチャ
 ```
 
-未作成（今後の Phase）: リプレイと可視化、`notify/`、`llm/`。
+未作成（今後の Phase）: GUI での可視化、`notify/`、`llm/`。
 
 ## 使う前に設定が要るもの
 
@@ -296,6 +314,31 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
 `BattleModel` が持つ乱数は被弾とドロップを再現するためのもので、操作の
 間隔や座標には一切関わらない。種を固定すれば結果は完全に再現できる。
 
+### LLM の内部思考は保存しない
+
+`Decision` に残すのは「どんな状態を見て」「どの制約の下で」「何を選び」
+「何を期待し」「実際どうなったか」だけ（追加指示書 §13）。後から読む
+人間が知りたいのは思考の流れではなく、判断の入力と結果の食い違いなので。
+`DecisionLog.mismatched()` でそこだけ取り出せる。
+
+### スナップショットはメモリ上にだけ持つ
+
+「この判断をした瞬間、AI は何を知っていたか」を引くために `GameState` を
+丸ごと複製する。ディスクへ書くのはタイムラインと判断だけ。状態の完全な
+復元まで永続化すると、形式の互換性の面倒がリプレイの価値を上回る。
+
+### 再生は記録された時刻差を保つ
+
+等間隔で送ると、実際には一瞬だった連打と、待ちが入った箇所の区別が
+消える。`--speed` はその時刻差を割るかたちで効かせる。長い空白は
+`MAX_GAP_SECONDS` で頭打ちにする。
+
+### ステップ実行とブレークポイントは同じ仕組み
+
+どちらも「イベントを積んだ直後に止まる」。止まったとき何をするかは
+`SessionRecorder.on_pause` に委ねる。CLI なら入力待ち、テストなら
+記録するだけ。
+
 ### 起動時に過去ログを読まない
 
 `LogMonitor` は既定で既存ファイルを末尾まで読み飛ばす。古いログを
@@ -362,12 +405,21 @@ PC が落ちていて 10:52 の予約を 23:00 に見つけた場合、そのま
 19. **戦闘モデルは意図的に粗い**。戦力比 ±20% のゆらぎで勝敗を決めるだけ
     で、装備・陣形・射程・夜戦は無い。AI の判断を検証するのに足りる
     範囲から始めている。
+20. **クリックがタイムラインに 2 回出る**。論理名（`CLICK = sortie_start`）
+    とカーソル座標（`CLICK = (620, 495)`）の両方を残しているため。
+    §10 がカーソルの記録を求めているので重複を許している。
+21. **記録は追記のみでメモリに載る**。長時間の稼働では
+    `Timeline.events` と `snapshots` が伸び続ける。上限や切り出しは
+    まだ無い。
+22. **`--step` は tty のときだけ入力待ちする**。パイプ越しでは止まらず
+    表示だけして進む。
 
 ## 次の Phase
 
-追加指示書 §9〜§18 の可視化系（タイムライン、AI Decision Log、リプレイ、
-State Snapshot、ステップ実行、ブレークポイント）。記録に必要な材料は
-既に揃っている（`GameState.snapshot()`、`MouseController.trace`、
-`StateMachine.history`、`TaskQueue.history`）ので、集約と表示が残っている。
+Phase 6（通知）。`notify/` に Webhook 送信を置き、SAFETY STOP・
+RESOURCE LOW・DAMAGE DETECTED・NEW DROP PROTECTED・TASK COMPLETED /
+FAILED を送る。通知の材料は既に `SafetyManager` と `SessionRecorder` に
+揃っている。
 
-その後に Phase 6（通知）、Phase 7（LLM によるタスク解釈）。
+その後に Phase 7（LLM によるタスク解釈）。自然言語 → 構造化タスクへの
+変換に限定し、スキーマ検証を通す。

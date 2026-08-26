@@ -447,7 +447,15 @@ def command_sandbox(args: argparse.Namespace, config: ConfigManager) -> int:
     from tasks.expedition_task import ExpeditionTask
     from tasks.sortie_task import SortieTask
 
-    session = SandboxSession.create(seed=args.seed)
+    from recording.timeline import UnknownBreakpoint
+
+    try:
+        recorder = make_recorder(args)
+    except UnknownBreakpoint as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    session = SandboxSession.create(seed=args.seed, recorder=recorder)
     session.bootstrap()
 
     area, _, number = args.map.partition("-")
@@ -486,11 +494,105 @@ def command_sandbox(args: argparse.Namespace, config: ConfigManager) -> int:
     print("\n== 最終状態 ==")
     for key, value in session.summary().items():
         print(f"  {key}: {value}")
+
+    if recorder is not None:
+        print("== 記録 ==")
+        for key, value in recorder.summary().items():
+            print(f"  {key}: {value}")
+        if args.record:
+            paths = recorder.save(args.record)
+            print(f"  保存先: {paths['timeline'].parent}")
     if session.safety.is_stopped:
         print("== 緊急停止 ==")
         for reason in session.safety.latched_reasons:
             print(f"  {reason}")
         return 2
+    return 0
+
+
+def make_recorder(args: argparse.Namespace) -> Any:
+    """``--record`` / ``--break`` / ``--step`` から記録係を作る。
+
+    Returns:
+        記録が要らなければ ``None``。
+
+    Raises:
+        UnknownBreakpoint: ブレークポイント名が不正な場合。
+    """
+    from recording.recorder import SessionRecorder
+    from recording.timeline import BreakpointSet
+
+    names = [name for name in args.breakpoints.split(",") if name.strip()]
+    if not (args.record or names or args.step):
+        return None
+
+    recorder = SessionRecorder(breakpoints=BreakpointSet.from_names(names))
+    recorder.step_mode = args.step
+
+    interactive = args.step and sys.stdin.isatty()
+
+    def on_pause(event) -> None:
+        print(f"  ⏸ {event.describe()}", flush=True)
+        if interactive:
+            input("     Enter で次へ ")
+
+    recorder.on_pause = on_pause
+    return recorder
+
+
+def command_review(args: argparse.Namespace, config: ConfigManager) -> int:
+    """記録したタイムラインを再生する。"""
+    from recording.replay import ReplayPlayer, filter_noise, summarize
+    from recording.timeline import Timeline
+
+    directory = Path(args.dir)
+    timeline_path = directory / "timeline.jsonl"
+    if not timeline_path.exists():
+        print(f"タイムラインが見つかりません: {timeline_path}", file=sys.stderr)
+        return 1
+
+    timeline = Timeline.load(timeline_path)
+    if not args.include_cursor:
+        timeline = filter_noise(timeline)
+
+    print(f"== 記録 ==\n  {timeline_path}（{len(timeline)} 件）")
+    counts = summarize(timeline)
+    print("  " + " / ".join(f"{kind}:{count}" for kind, count in sorted(counts.items())))
+
+    decisions_path = directory / "decisions.json"
+    if decisions_path.exists():
+        decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
+        mismatched = [
+            d
+            for d in decisions
+            if d.get("actual_result") is not None
+            and d["actual_result"] != d["expected_result"]
+        ]
+        print(f"== 判断 ==\n  {len(decisions)} 件 / うち期待とずれたもの {len(mismatched)} 件")
+        for entry in mismatched:
+            print(
+                f"  ! {entry['decision']} 期待={entry['expected_result']}"
+                f" 実際={entry['actual_result']}"
+            )
+
+    if args.summary:
+        return 0
+
+    player = ReplayPlayer(timeline)
+    if args.start:
+        player.jump(args.start)
+        player.position = max(0, args.start)
+
+    print("== 再生 ==")
+    if args.speed <= 0:
+        for event in player.step(args.limit or len(timeline)):
+            print(f"  {event.describe()}")
+    else:
+        player.play(
+            speed=args.speed,
+            limit=args.limit,
+            on_event=lambda event: print(f"  {event.describe()}", flush=True),
+        )
     return 0
 
 
@@ -559,6 +661,28 @@ def main(argv: list[str] | None = None) -> int:
         default=2,
         help="遠征に出す艦隊 ID",
     )
+    sandbox.add_argument("--record", default="", help="記録の保存先ディレクトリ")
+    sandbox.add_argument(
+        "--break",
+        dest="breakpoints",
+        default="",
+        help="停止条件をカンマ区切りで指定（例 on_battle_end,on_damage）",
+    )
+    sandbox.add_argument(
+        "--step", action="store_true", help="1 イベントごとに止める"
+    )
+
+    review = subparsers.add_parser("review", help="記録したタイムラインを再生する")
+    review.add_argument("--dir", required=True, help="記録の保存先ディレクトリ")
+    review.add_argument(
+        "--speed", type=float, default=0.0, help="再生速度（0 で待たずに一覧表示）"
+    )
+    review.add_argument("--limit", type=int, default=None, help="表示する最大件数")
+    review.add_argument("--start", type=int, default=0, help="開始位置")
+    review.add_argument(
+        "--include-cursor", action="store_true", help="カーソルの MOVE も表示する"
+    )
+    review.add_argument("--summary", action="store_true", help="概要だけ表示する")
 
     schedule = subparsers.add_parser("schedule", help="未来タスクの予約を操作する")
     schedule.add_argument(
@@ -607,6 +731,8 @@ def main(argv: list[str] | None = None) -> int:
         return command_simulate(args, config)
     if args.command == "sandbox":
         return command_sandbox(args, config)
+    if args.command == "review":
+        return command_review(args, config)
     return command_replay(args, config)
 
 
