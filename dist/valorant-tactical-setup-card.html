@@ -2859,6 +2859,8 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.edit': '配置を編集',
   'board.done': '完了',
   'board.clear': 'すべて消去',
+  'board.noRoster': 'エージェントが未設定です。セットアップ画面で味方と敵を選ぶと、ここにスキルが並びます。',
+  'board.needTactic': '先に戦術を選ぶか、新しく追加してください。',
   'board.empty': 'まだ配置がありません。左右のパレットから選んで、マップ上に置いてください。',
   'board.agents': 'エージェント',
   'board.abilities': 'スキル',
@@ -3188,6 +3190,8 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'board.edit': 'Edit placement',
   'board.done': 'Done',
   'board.clear': 'Clear all',
+  'board.noRoster': 'No agents set. Pick your team and the enemy on the setup screen and their abilities appear here.',
+  'board.needTactic': 'Pick a tactic first, or add a new one.',
   'board.empty': 'Nothing placed yet. Pick something from the side palettes and drop it on the map.',
   'board.agents': 'Agents',
   'board.abilities': 'Abilities',
@@ -3517,6 +3521,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'board.edit': '배치 편집',
   'board.done': '완료',
   'board.clear': '전체 지우기',
+  'board.noRoster': '요원이 설정되지 않았습니다. 설정 화면에서 아군과 적을 고르면 스킬이 여기에 표시됩니다.',
+  'board.needTactic': '먼저 전술을 선택하거나 새로 추가하세요.',
   'board.empty': '아직 배치가 없습니다. 좌우 팔레트에서 골라 맵 위에 놓으세요.',
   'board.agents': '요원',
   'board.abilities': '스킬',
@@ -6587,7 +6593,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     $('board-palette-' + team).innerHTML =
       '<h3 class="pal-title"><span class="tag tag-' + team + '">' + t('tag.' + team) + '</span></h3>' +
-      (groups.trim() ? groups : '<p class="deck-empty">' + t('roster.clickToSelect') + '</p>');
+      (groups.trim() ? groups : '<p class="deck-empty">' + t('board.noRoster') + '</p>');
   }
 
   function renderBoardTools(uiState) {
@@ -7306,7 +7312,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   /* ================= 配置盤 ================= */
   function openBoardEditor(tactic) {
-    if (!tactic) return;
+    /* 押しても何も起きないボタンを作らない。理由を必ず出す */
+    if (!tactic) { U.toast(t('board.needTactic'), 'err'); return; }
     ui.boardTactic = tactic;
     ui.boardSide = S.sideForRound(S.currentRoundNumber());
     ui.armed = null;
@@ -8007,10 +8014,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       });
     });
 
-    $('tactic-form').addEventListener('submit', function (e) {
-      e.preventDefault();
+    /* 入力内容を保存して、保存できた戦術を返す。保存できなければ null */
+    function saveTacticForm(quiet) {
       const name = $('t-name').value.trim();
-      if (!name) { U.toast(t('toast.nameRequired'), 'err'); return; }
+      if (!name) { U.toast(t('toast.nameRequired'), 'err'); return null; }
       const payload = {
         name: name,
         side: U.segValue($('t-side')) || 'BOTH',
@@ -8018,28 +8025,35 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         kind: $('t-kind').value,
         note: $('t-note').value.trim()
       };
+      let tac;
       if (ui.editingTacticId) {
         S.updateTactic(ui.editingTacticId, payload);
-        U.toast(t('toast.tacticUpdated'), 'ok');
+        tac = S.tacticById(ui.editingTacticId);
+        if (!quiet) U.toast(t('toast.tacticUpdated'), 'ok');
       } else {
-        const created = S.addTactic(payload);
-        if (!created) {
+        tac = S.addTactic(payload);
+        if (!tac) {
           U.toast(t('tactic.limitReached', { n: S.tacticLimit() }), 'err');
-          return;
+          return null;
         }
-        U.toast(t('toast.tacticAdded'), 'ok');
+        if (!quiet) U.toast(t('toast.tacticAdded'), 'ok');
       }
       ui.editingTacticId = null;
       ui.analysis = null;
       closeModal('modal-tactic');
       renderAll();
+      return tac;
+    }
+
+    $('tactic-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      saveTacticForm(false);
     });
 
+    /* 新規作成中はまだ戦術が存在しないので、先に保存してから配置盤を開く */
     $('btn-tactic-board').addEventListener('click', function () {
-      const tac = ui.editingTacticId ? S.tacticById(ui.editingTacticId) : null;
-      if (!tac) return;
-      closeModal('modal-tactic');
-      openBoardEditor(tac);
+      const tac = saveTacticForm(true);
+      if (tac) openBoardEditor(tac);
     });
 
     $('btn-delete-tactic').addEventListener('click', function () {

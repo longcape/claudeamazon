@@ -208,7 +208,8 @@
 
   /* ================= 配置盤 ================= */
   function openBoardEditor(tactic) {
-    if (!tactic) return;
+    /* 押しても何も起きないボタンを作らない。理由を必ず出す */
+    if (!tactic) { U.toast(t('board.needTactic'), 'err'); return; }
     ui.boardTactic = tactic;
     ui.boardSide = S.sideForRound(S.currentRoundNumber());
     ui.armed = null;
@@ -909,10 +910,10 @@
       });
     });
 
-    $('tactic-form').addEventListener('submit', function (e) {
-      e.preventDefault();
+    /* 入力内容を保存して、保存できた戦術を返す。保存できなければ null */
+    function saveTacticForm(quiet) {
       const name = $('t-name').value.trim();
-      if (!name) { U.toast(t('toast.nameRequired'), 'err'); return; }
+      if (!name) { U.toast(t('toast.nameRequired'), 'err'); return null; }
       const payload = {
         name: name,
         side: U.segValue($('t-side')) || 'BOTH',
@@ -920,28 +921,35 @@
         kind: $('t-kind').value,
         note: $('t-note').value.trim()
       };
+      let tac;
       if (ui.editingTacticId) {
         S.updateTactic(ui.editingTacticId, payload);
-        U.toast(t('toast.tacticUpdated'), 'ok');
+        tac = S.tacticById(ui.editingTacticId);
+        if (!quiet) U.toast(t('toast.tacticUpdated'), 'ok');
       } else {
-        const created = S.addTactic(payload);
-        if (!created) {
+        tac = S.addTactic(payload);
+        if (!tac) {
           U.toast(t('tactic.limitReached', { n: S.tacticLimit() }), 'err');
-          return;
+          return null;
         }
-        U.toast(t('toast.tacticAdded'), 'ok');
+        if (!quiet) U.toast(t('toast.tacticAdded'), 'ok');
       }
       ui.editingTacticId = null;
       ui.analysis = null;
       closeModal('modal-tactic');
       renderAll();
+      return tac;
+    }
+
+    $('tactic-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      saveTacticForm(false);
     });
 
+    /* 新規作成中はまだ戦術が存在しないので、先に保存してから配置盤を開く */
     $('btn-tactic-board').addEventListener('click', function () {
-      const tac = ui.editingTacticId ? S.tacticById(ui.editingTacticId) : null;
-      if (!tac) return;
-      closeModal('modal-tactic');
-      openBoardEditor(tac);
+      const tac = saveTacticForm(true);
+      if (tac) openBoardEditor(tac);
     });
 
     $('btn-delete-tactic').addEventListener('click', function () {

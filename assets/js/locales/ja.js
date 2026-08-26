@@ -313,6 +313,8 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'board.edit': '配置を編集',
   'board.done': '完了',
   'board.clear': 'すべて消去',
+  'board.noRoster': 'エージェントが未設定です。セットアップ画面で味方と敵を選ぶと、ここにスキルが並びます。',
+  'board.needTactic': '先に戦術を選ぶか、新しく追加してください。',
   'board.empty': 'まだ配置がありません。左右のパレットから選んで、マップ上に置いてください。',
   'board.agents': 'エージェント',
   'board.abilities': 'スキル',

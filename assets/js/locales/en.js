@@ -303,6 +303,8 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'board.edit': 'Edit placement',
   'board.done': 'Done',
   'board.clear': 'Clear all',
+  'board.noRoster': 'No agents set. Pick your team and the enemy on the setup screen and their abilities appear here.',
+  'board.needTactic': 'Pick a tactic first, or add a new one.',
   'board.empty': 'Nothing placed yet. Pick something from the side palettes and drop it on the map.',
   'board.agents': 'Agents',
   'board.abilities': 'Abilities',

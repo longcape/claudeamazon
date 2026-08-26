@@ -469,7 +469,7 @@
 
     $('board-palette-' + team).innerHTML =
       '<h3 class="pal-title"><span class="tag tag-' + team + '">' + t('tag.' + team) + '</span></h3>' +
-      (groups.trim() ? groups : '<p class="deck-empty">' + t('roster.clickToSelect') + '</p>');
+      (groups.trim() ? groups : '<p class="deck-empty">' + t('board.noRoster') + '</p>');
   }
 
   function renderBoardTools(uiState) {
