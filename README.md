@@ -239,9 +239,31 @@ build.js                        単一 HTML へのバンドル
 dist/                           ビルド生成物
 supabase/schema.sql             テーブル・RLS ポリシー・RPC
 supabase/functions/tactic-review/  AI 寸評を返す Edge Function
+CLAUDE.md                       開発メモ（設計の前提と過去の失敗）
 docs/SETUP.md                   コミュニティ / AI 寸評のセットアップと課金の考え方
+docs/FETCH-ASSETS.md            公式画像の取得手順
+docs/HANDOFF.md                 ローカル環境で開発を続けるための手順
 tools/fetch-assets.mjs          Riot 公式アセットの取得ツール
+tools/smoke-test.mjs            配布ファイルの動作確認
 ```
+
+## 開発する
+
+```bash
+git clone -b claude/valorant-tactical-setup-card-iiiog3 \
+  https://github.com/longcape/claudeamazon.git
+```
+
+`index.html` をブラウザで開けばそのまま動きます。ビルドは不要です。
+`assets/` を触ったら `node build.js` で `dist/` を作り直してください。
+
+```bash
+node build.js            # 単一 HTML を作り直す
+node tools/smoke-test.mjs   # 動作確認（要 playwright）
+```
+
+設計の前提と、過去に踏んだ地雷は **[CLAUDE.md](CLAUDE.md)** にまとめてあります。
+自分の PC で開発を続ける手順は **[docs/HANDOFF.md](docs/HANDOFF.md)** を参照してください。
 
 ## エージェントロスター（29 体）
 
