@@ -913,6 +913,14 @@ def command_view(args: argparse.Namespace, config: ConfigManager) -> int:
     return 0
 
 
+def command_play(args: argparse.Namespace, config: ConfigManager) -> int:
+    """サンドボックスを手で操作するためのサーバを起動する。"""
+    from viz.server import serve
+
+    serve(seed=args.seed, port=args.port, host=args.host)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """エントリポイント。
 
@@ -1040,6 +1048,15 @@ def main(argv: list[str] | None = None) -> int:
         "--effort", default="low", help="LLM の思考の深さ（low/medium/high）"
     )
 
+    play = subparsers.add_parser(
+        "play", help="サンドボックスを手で操作する（ブラウザで開く）"
+    )
+    play.add_argument("--seed", type=int, default=0, help="戦闘乱数の種")
+    play.add_argument("--port", type=int, default=8765, help="待ち受けポート")
+    play.add_argument(
+        "--host", default="127.0.0.1", help="待ち受けアドレス（既定は自ホストのみ）"
+    )
+
     view = subparsers.add_parser("view", help="記録から HTML レポートを作る")
     view.add_argument("--dir", required=True, help="記録の保存先ディレクトリ")
     view.add_argument("--out", default="", help="出力先（既定は <dir>/report.html）")
@@ -1108,6 +1125,8 @@ def main(argv: list[str] | None = None) -> int:
         return command_review(args, config)
     if args.command == "view":
         return command_view(args, config)
+    if args.command == "play":
+        return command_play(args, config)
     if args.command == "run":
         return command_run(args, config)
     if args.command == "plan":
