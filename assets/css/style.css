@@ -2155,3 +2155,165 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 /* ライブ画面側は切り替えるだけなので、名前の欄は出さない */
 .stage-bar-view { margin-bottom: 10px; }
+
+/* =========================================================
+   戦術デッキの検索・まとめ分け
+   ========================================================= */
+.deck-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.deck-search {
+  position: relative;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 320px;
+}
+.deck-search input {
+  width: 100%;
+  padding: 7px 28px 7px 11px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  font-size: 13px;
+}
+.deck-search input:focus { outline: none; border-color: var(--cyan); }
+/* ブラウザ既定の × は当たり判定が小さく見た目も揃わないので自前で出す */
+.deck-search input::-webkit-search-cancel-button { display: none; }
+.deck-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.deck-search-clear:hover { color: #fff; }
+
+.deck-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.deck-group select {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  font-size: 12px;
+}
+.deck-group select:focus { outline: none; border-color: var(--cyan); }
+
+.deck-count {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 11.5px;
+  letter-spacing: .04em;
+}
+.deck-count.is-empty { color: var(--red); }
+
+.deck-grouped { display: grid; gap: 18px; }
+.deck-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 9px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--text);
+  text-transform: uppercase;
+}
+.deck-section-head b {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .1);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* =========================================================
+   クラウド保存
+   ========================================================= */
+.cloud-save {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cloud-save .btn { white-space: nowrap; }
+.cloud-save input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  font-size: 13px;
+}
+.cloud-save input:focus { outline: none; border-color: var(--cyan); }
+
+.cloud-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.cloud-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cloud-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .02);
+}
+.cloud-row-main { flex: 1 1 200px; min-width: 0; display: grid; gap: 2px; }
+.cloud-row-main b {
+  color: #fff;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cloud-row-main span { color: var(--muted); font-size: 11px; }
+.cloud-row-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* =========================================================
+   免責表記
+   ---------------------------------------------------------
+   Riot の二次利用条件で明記が求められている。消さないこと。
+   ========================================================= */
+.app-foot {
+  max-width: 1720px;
+  margin: 28px auto 0;
+  padding: 18px 24px 26px;
+  border-top: 1px solid var(--line);
+}
+.app-foot p {
+  margin: 0 0 4px;
+  color: var(--text-mute);
+  font-size: 11px;
+  line-height: 1.7;
+}

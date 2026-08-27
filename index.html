@@ -131,16 +131,28 @@
           <h2><span class="idx">03</span><span data-i18n="setup.deck.title">TACTIC DECK</span></h2>
           <p class="panel-sub" data-i18n="setup.deck.sub"></p>
           <div class="panel-head-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-cloud" data-i18n="cloud.open" hidden></button>
             <button class="btn btn-ghost btn-sm" id="btn-seed" data-i18n="deck.sample"></button>
             <button class="btn btn-primary btn-sm" id="btn-add-tactic" data-i18n="deck.add"></button>
           </div>
         </header>
         <div class="panel-body">
-          <div class="deck-filter" id="deck-filter">
-            <button class="chip is-active" data-filter="ALL" data-i18n="filter.all">ALL</button>
-            <button class="chip" data-filter="ATK" data-i18n="filter.atk">ATTACK</button>
-            <button class="chip" data-filter="DEF" data-i18n="filter.def">DEFENSE</button>
+          <div class="deck-toolbar">
+            <div class="deck-filter" id="deck-filter">
+              <button class="chip is-active" data-filter="ALL" data-i18n="filter.all">ALL</button>
+              <button class="chip" data-filter="ATK" data-i18n="filter.atk">ATTACK</button>
+              <button class="chip" data-filter="DEF" data-i18n="filter.def">DEFENSE</button>
+            </div>
+            <div class="deck-search">
+              <input type="search" id="deck-query" data-i18n-ph="deck.searchPh" />
+              <button type="button" class="deck-search-clear" id="btn-deck-clear" hidden aria-label="clear">×</button>
+            </div>
+            <label class="deck-group">
+              <span data-i18n="deck.groupBy"></span>
+              <select id="deck-group"></select>
+            </label>
           </div>
+          <p class="deck-count" id="deck-count" hidden></p>
           <div class="deck-grid" id="deck-grid"></div>
           <p class="deck-empty" id="deck-empty" data-i18n="deck.empty" hidden></p>
         </div>
@@ -244,6 +256,12 @@
 
 </main>
 
+<!-- Riot の二次利用条件で明記が求められている。消さないこと -->
+<footer class="app-foot">
+  <p data-i18n="legal.disclaimer"></p>
+  <p data-i18n="legal.trademark"></p>
+</footer>
+
 <!-- ============ AGENT PICKER MODAL ============ -->
 <div class="modal" id="modal-agent" hidden>
   <div class="modal-backdrop" data-close></div>
@@ -344,6 +362,22 @@
       <button type="button" class="btn btn-ghost btn-danger" id="btn-board-clear" data-i18n="board.clear"></button>
       <span class="spacer"></span>
       <button type="button" class="btn btn-primary" data-close data-i18n="board.done"></button>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ CLOUD MODAL ============ -->
+<div class="modal" id="modal-cloud" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="cloud-modal-title">
+    <header class="modal-head">
+      <h2 id="cloud-modal-title" data-i18n="cloud.title"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body" id="cloud-body"></div>
+    <footer class="modal-foot">
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-ghost" data-close data-i18n="common.close"></button>
     </footer>
   </div>
 </div>

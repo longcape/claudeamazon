@@ -29,6 +29,8 @@
   const ui = {
     view: 'setup',            // 'setup' | 'live' | 'community'
     deckFilter: 'ALL',
+    deckQuery: '',            // 戦術の検索語
+    deckGroup: 'none',        // まとめ方 none / site / kind / side
     includeOffSide: false,
     economy: 'full',
     agentTarget: null,
@@ -42,6 +44,8 @@
     postSort: 'new',
     postMap: '',
     postTacticId: null,
+    cloudSetups: [],          // クラウドに保存済みのセットアップ
+    cloudLoading: false,
 
     /* 配置盤エディタ */
     boardTactic: null,        // 編集中の戦術
@@ -60,7 +64,9 @@
     U.renderSideToggle();
     U.renderMatchFields();
     U.renderRoster();
-    U.renderDeck(ui.deckFilter);
+    /* 言語を切り替えても選択肢の文言が付いてくるよう、毎回描き直す */
+    U.renderDeckGroupSelect(ui.deckGroup);
+    U.renderDeck(ui);
     U.renderReady();
   }
 
@@ -83,6 +89,9 @@
     $('view-live').hidden = ui.view !== 'live';
     $('view-community').hidden = ui.view !== 'community';
     $('tab-community').hidden = !C.enabled();
+    /* 未ログインでも押せるようにする。押した先でログインへ誘導した方が
+       「どこから入るのか」が分かりやすい */
+    $('btn-cloud').hidden = !C.enabled();
 
     document.querySelectorAll('.phase-tab').forEach(function (tab) {
       const active = tab.dataset.phase === ui.view;
@@ -114,7 +123,7 @@
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -208,6 +217,110 @@
     }).filter(Boolean);
   }
 
+  /* ================= クラウド保存 ================= */
+
+  function openCloudModal() {
+    ui.cloudSetups = [];
+    ui.cloudLoading = !!C.currentUser();
+    U.renderCloud(ui);
+    openModal('modal-cloud');
+    if (C.currentUser()) refreshCloudList();
+  }
+
+  function refreshCloudList() {
+    ui.cloudLoading = true;
+    U.renderCloud(ui);
+    return C.listSetups().then(function (rows) {
+      ui.cloudSetups = Array.isArray(rows) ? rows : [];
+      ui.cloudLoading = false;
+      U.renderCloud(ui);
+    }, function (err) {
+      ui.cloudLoading = false;
+      U.renderCloud(ui);
+      U.toast(cloudError(err), 'err');
+    });
+  }
+
+  /* 通信の失敗は理由が分からないと直しようがないので、
+     ログインが切れた場合だけは専用の文言にする */
+  function cloudError(err) {
+    if (err && err.message === 'AUTH_REQUIRED') return t('cloud.needLogin');
+    return t('cloud.failed', { msg: (err && err.message) || '' });
+  }
+
+  function bindCloud() {
+    $('btn-cloud').addEventListener('click', openCloudModal);
+
+    $('cloud-body').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-cloud-act]');
+      if (!btn) return;
+      const act = btn.dataset.cloudAct;
+      const row = btn.closest('[data-cloud-id]');
+      const id = row ? row.dataset.cloudId : null;
+      const saved = ui.cloudSetups.filter(function (r) { return r.id === id; })[0];
+
+      if (act === 'login') {
+        closeModal('modal-cloud');
+        openModal('modal-login');
+        return;
+      }
+
+      if (act === 'save') {
+        const name = ($('cloud-name').value || '').trim();
+        if (!name) { U.toast(t('cloud.nameRequired'), 'err'); return; }
+        btn.disabled = true;
+        C.saveSetup(name, JSON.parse(S.exportJSON())).then(function () {
+          U.toast(t('cloud.saved'), 'ok');
+          refreshCloudList();
+        }, function (err) {
+          btn.disabled = false;
+          U.toast(cloudError(err), 'err');
+        });
+        return;
+      }
+
+      if (!saved) return;
+
+      if (act === 'load') {
+        /* 読み込むと手元の内容が丸ごと入れ替わる。取り返しがつかないので確認する */
+        if (!confirm(t('cloud.confirmLoad', { name: saved.name }))) return;
+        try {
+          S.importObject(saved.payload);
+        } catch (err) {
+          U.toast(t('cloud.badPayload'), 'err');
+          return;
+        }
+        closeModal('modal-cloud');
+        ui.analysis = null;
+        ui.aiReview = null;
+        renderAll();
+        U.toast(t('cloud.loaded', { name: saved.name }), 'ok');
+        return;
+      }
+
+      if (act === 'overwrite') {
+        if (!confirm(t('cloud.confirmOverwrite', { name: saved.name }))) return;
+        btn.disabled = true;
+        C.updateSetup(saved.id, saved.name, JSON.parse(S.exportJSON())).then(function () {
+          U.toast(t('cloud.saved'), 'ok');
+          refreshCloudList();
+        }, function (err) {
+          btn.disabled = false;
+          U.toast(cloudError(err), 'err');
+        });
+        return;
+      }
+
+      if (act === 'delete') {
+        if (!confirm(t('cloud.confirmDelete', { name: saved.name }))) return;
+        C.deleteSetup(saved.id).then(function () {
+          U.toast(t('cloud.deleted'), 'ok');
+          refreshCloudList();
+        }, function (err) { U.toast(cloudError(err), 'err'); });
+      }
+    });
+  }
+
   /* ================= 配置盤 ================= */
 
   /** いま編集している局面の盤面 */
@@ -243,7 +356,7 @@
   function commitBoard() {
     S.save();
     if (ui.view === 'live') renderLive();
-    else if (ui.view === 'setup') U.renderDeck(ui.deckFilter);
+    else if (ui.view === 'setup') U.renderDeck(ui);
   }
 
   function bindBoardEditor() {
@@ -687,7 +800,34 @@
       $('deck-filter').querySelectorAll('.chip').forEach(function (c) {
         c.classList.toggle('is-active', c === chip);
       });
-      U.renderDeck(ui.deckFilter);
+      U.renderDeck(ui);
+    });
+
+    /* 検索。打つたびに絞り込む。件数が多くないので遅延は要らない */
+    $('deck-query').addEventListener('input', function (e) {
+      ui.deckQuery = e.target.value;
+      $('btn-deck-clear').hidden = !ui.deckQuery;
+      U.renderDeck(ui);
+    });
+
+    $('btn-deck-clear').addEventListener('click', function () {
+      ui.deckQuery = '';
+      $('deck-query').value = '';
+      $('btn-deck-clear').hidden = true;
+      U.renderDeck(ui);
+      $('deck-query').focus();
+    });
+
+    /* 検索欄で Esc を押したら消す。入力欄から出ずに戻せるように */
+    $('deck-query').addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !ui.deckQuery) return;
+      e.stopPropagation();
+      $('btn-deck-clear').click();
+    });
+
+    $('deck-group').addEventListener('change', function (e) {
+      ui.deckGroup = e.target.value;
+      U.renderDeck(ui);
     });
 
     $('deck-grid').addEventListener('click', function (e) {
@@ -713,7 +853,7 @@
 
     $('btn-seed').addEventListener('click', function () {
       S.seedSamples();
-      U.renderDeck(ui.deckFilter);
+      U.renderDeck(ui);
       U.renderReady();
       U.toast(t('toast.sampleAdded'), 'ok');
     });
@@ -1145,7 +1285,7 @@
         return;
       }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;
@@ -1217,6 +1357,7 @@
     bindSetup();
     bindLive();
     bindCommunity();
+    bindCloud();
     bindBoardEditor();
     bindAgentModal();
     bindTacticModal();

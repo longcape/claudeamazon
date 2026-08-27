@@ -311,7 +311,12 @@
   }
 
   function importJSON(text) {
-    const parsed = JSON.parse(text);
+    importObject(JSON.parse(text));
+  }
+
+  /* クラウドから受け取るのはパース済みのオブジェクトなので、
+     文字列を経由せずに取り込めるようにしておく */
+  function importObject(parsed) {
     if (!parsed || parsed.version !== 1) throw new Error('対応していないフォーマットです');
     hydrate(parsed);
     save();
@@ -343,6 +348,7 @@
     resetAll: resetAll,
     exportJSON: exportJSON,
     importJSON: importJSON,
+    importObject: importObject,
     seedSamples: function () {
       const I = global.VCT_I18N;
       D.SAMPLE_TACTICS.forEach(function (t) {

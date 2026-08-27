@@ -241,6 +241,18 @@
     }).then(function (rows) { return Array.isArray(rows) ? rows[0] : rows; });
   }
 
+  /* 同じ名前で保存し直すとき用。行を増やさず中身だけ差し替える */
+  function updateSetup(id, name, payload) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/saved_setups?id=eq.' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: { name: name, payload: payload }
+      });
+    }).then(function (rows) { return Array.isArray(rows) ? rows[0] : rows; });
+  }
+
   function deleteSetup(id) {
     return ensureFresh().then(function (s) {
       if (!s) throw new Error('AUTH_REQUIRED');
@@ -291,6 +303,7 @@
     likePost: likePost,
     listSetups: listSetups,
     saveSetup: saveSetup,
+    updateSetup: updateSetup,
     deleteSetup: deleteSetup,
     aiReview: aiReview,
     anonId: anonId

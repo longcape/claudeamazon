@@ -2159,6 +2159,168 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 /* ライブ画面側は切り替えるだけなので、名前の欄は出さない */
 .stage-bar-view { margin-bottom: 10px; }
+
+/* =========================================================
+   戦術デッキの検索・まとめ分け
+   ========================================================= */
+.deck-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.deck-search {
+  position: relative;
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 320px;
+}
+.deck-search input {
+  width: 100%;
+  padding: 7px 28px 7px 11px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  font-size: 13px;
+}
+.deck-search input:focus { outline: none; border-color: var(--cyan); }
+/* ブラウザ既定の × は当たり判定が小さく見た目も揃わないので自前で出す */
+.deck-search input::-webkit-search-cancel-button { display: none; }
+.deck-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.deck-search-clear:hover { color: #fff; }
+
+.deck-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.deck-group select {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  font-size: 12px;
+}
+.deck-group select:focus { outline: none; border-color: var(--cyan); }
+
+.deck-count {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 11.5px;
+  letter-spacing: .04em;
+}
+.deck-count.is-empty { color: var(--red); }
+
+.deck-grouped { display: grid; gap: 18px; }
+.deck-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 9px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--text);
+  text-transform: uppercase;
+}
+.deck-section-head b {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .1);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* =========================================================
+   クラウド保存
+   ========================================================= */
+.cloud-save {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cloud-save .btn { white-space: nowrap; }
+.cloud-save input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .28);
+  color: #fff;
+  font-size: 13px;
+}
+.cloud-save input:focus { outline: none; border-color: var(--cyan); }
+
+.cloud-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.cloud-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cloud-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .02);
+}
+.cloud-row-main { flex: 1 1 200px; min-width: 0; display: grid; gap: 2px; }
+.cloud-row-main b {
+  color: #fff;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cloud-row-main span { color: var(--muted); font-size: 11px; }
+.cloud-row-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* =========================================================
+   免責表記
+   ---------------------------------------------------------
+   Riot の二次利用条件で明記が求められている。消さないこと。
+   ========================================================= */
+.app-foot {
+  max-width: 1720px;
+  margin: 28px auto 0;
+  padding: 18px 24px 26px;
+  border-top: 1px solid var(--line);
+}
+.app-foot p {
+  margin: 0 0 4px;
+  color: var(--text-mute);
+  font-size: 11px;
+  line-height: 1.7;
+}
 </style>
 <div class="bg-grid" aria-hidden="true"></div>
 <div class="bg-glow" aria-hidden="true"></div>
@@ -2280,16 +2442,28 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
           <h2><span class="idx">03</span><span data-i18n="setup.deck.title">TACTIC DECK</span></h2>
           <p class="panel-sub" data-i18n="setup.deck.sub"></p>
           <div class="panel-head-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-cloud" data-i18n="cloud.open" hidden></button>
             <button class="btn btn-ghost btn-sm" id="btn-seed" data-i18n="deck.sample"></button>
             <button class="btn btn-primary btn-sm" id="btn-add-tactic" data-i18n="deck.add"></button>
           </div>
         </header>
         <div class="panel-body">
-          <div class="deck-filter" id="deck-filter">
-            <button class="chip is-active" data-filter="ALL" data-i18n="filter.all">ALL</button>
-            <button class="chip" data-filter="ATK" data-i18n="filter.atk">ATTACK</button>
-            <button class="chip" data-filter="DEF" data-i18n="filter.def">DEFENSE</button>
+          <div class="deck-toolbar">
+            <div class="deck-filter" id="deck-filter">
+              <button class="chip is-active" data-filter="ALL" data-i18n="filter.all">ALL</button>
+              <button class="chip" data-filter="ATK" data-i18n="filter.atk">ATTACK</button>
+              <button class="chip" data-filter="DEF" data-i18n="filter.def">DEFENSE</button>
+            </div>
+            <div class="deck-search">
+              <input type="search" id="deck-query" data-i18n-ph="deck.searchPh" />
+              <button type="button" class="deck-search-clear" id="btn-deck-clear" hidden aria-label="clear">×</button>
+            </div>
+            <label class="deck-group">
+              <span data-i18n="deck.groupBy"></span>
+              <select id="deck-group"></select>
+            </label>
           </div>
+          <p class="deck-count" id="deck-count" hidden></p>
           <div class="deck-grid" id="deck-grid"></div>
           <p class="deck-empty" id="deck-empty" data-i18n="deck.empty" hidden></p>
         </div>
@@ -2393,6 +2567,12 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 </main>
 
+<!-- Riot の二次利用条件で明記が求められている。消さないこと -->
+<footer class="app-foot">
+  <p data-i18n="legal.disclaimer"></p>
+  <p data-i18n="legal.trademark"></p>
+</footer>
+
 <!-- ============ AGENT PICKER MODAL ============ -->
 <div class="modal" id="modal-agent" hidden>
   <div class="modal-backdrop" data-close></div>
@@ -2493,6 +2673,22 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
       <button type="button" class="btn btn-ghost btn-danger" id="btn-board-clear" data-i18n="board.clear"></button>
       <span class="spacer"></span>
       <button type="button" class="btn btn-primary" data-close data-i18n="board.done"></button>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ CLOUD MODAL ============ -->
+<div class="modal" id="modal-cloud" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="cloud-modal-title">
+    <header class="modal-head">
+      <h2 id="cloud-modal-title" data-i18n="cloud.title"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body" id="cloud-body"></div>
+    <footer class="modal-foot">
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-ghost" data-close data-i18n="common.close"></button>
     </footer>
   </div>
 </div>
@@ -2748,6 +2944,41 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'setup.deck.sub': 'ラウンドで使う戦術を事前登録',
   'deck.sample': 'SAMPLE 追加',
   'deck.add': '+ 戦術を追加',
+  'filter.both': '両サイド',
+  'legal.disclaimer': '本アプリは Riot Games の承認を受けたものではなく、Riot Games または VALORANT の制作・管理に公式に関与する同社およびその関係者の見解や意見を反映するものではありません。',
+  'legal.trademark': 'Riot Games および VALORANT に関連するすべての名称・ロゴは Riot Games, Inc. の商標または登録商標です。',
+  'common.close': '閉じる',
+  'common.loading': '読み込み中…',
+  'cloud.open': '☁ クラウド',
+  'cloud.title': 'クラウド保存',
+  'cloud.needLogin': 'クラウド保存にはログインが必要です。保存した内容は自分だけが読めます。',
+  'cloud.scope': 'マップ・構成・戦術・配置・戦績を丸ごと保存します。',
+  'cloud.namePh': '保存名（例：VCT予選 vs ○○）',
+  'cloud.save': '現在の内容を保存',
+  'cloud.nameRequired': '保存名を入力してください。',
+  'cloud.saved': 'クラウドに保存しました。',
+  'cloud.none': 'まだ保存されたセットアップはありません。',
+  'cloud.load': '読み込む',
+  'cloud.overwrite': '上書き',
+  'cloud.delete': '削除',
+  'cloud.loaded': '「{name}」を読み込みました。',
+  'cloud.deleted': '削除しました。',
+  'cloud.confirmLoad': '「{name}」を読み込みます。今の内容は置き換わります。よろしいですか？',
+  'cloud.confirmOverwrite': '「{name}」を今の内容で上書きします。よろしいですか？',
+  'cloud.confirmDelete': '「{name}」を削除します。よろしいですか？',
+  'cloud.badPayload': '保存データを読み込めませんでした。',
+  'cloud.failed': '通信に失敗しました。{msg}',
+  'deck.searchPh': '戦術名・コール・サイトで検索',
+  'deck.groupBy': 'まとめ方',
+  'deck.group.none': 'まとめない',
+  'deck.group.site': 'サイト別',
+  'deck.group.kind': 'タイプ別',
+  'deck.group.side': 'サイド別',
+  'deck.count': '{n} 件',
+  'deck.countFiltered': '{total} 件中 {n} 件',
+  'deck.noMatch': '条件に合う戦術がありません。',
+  'deck.siteN': '{n} サイト',
+  'deck.noSite': 'サイト指定なし',
   'deck.empty': 'まだ戦術が登録されていません。「+ 戦術を追加」から作成するか、SAMPLE 追加で雛形を読み込んでください。',
   'deck.edit': '編集 →',
   'filter.all': 'すべて',
@@ -3095,6 +3326,41 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'setup.deck.sub': 'Register the tactics you will call',
   'deck.sample': 'ADD SAMPLES',
   'deck.add': '+ Add tactic',
+  'filter.both': 'Both sides',
+  'legal.disclaimer': 'This app isn\u2019t endorsed by Riot Games and doesn\u2019t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.',
+  'legal.trademark': 'Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.',
+  'common.close': 'Close',
+  'common.loading': 'Loading…',
+  'cloud.open': '☁ Cloud',
+  'cloud.title': 'Cloud save',
+  'cloud.needLogin': 'Sign in to save to the cloud. Only you can read what you save.',
+  'cloud.scope': 'Saves the map, comps, tactics, placements and record together.',
+  'cloud.namePh': 'Save name (e.g. Qualifier vs …)',
+  'cloud.save': 'Save current setup',
+  'cloud.nameRequired': 'Enter a name.',
+  'cloud.saved': 'Saved to the cloud.',
+  'cloud.none': 'No saved setups yet.',
+  'cloud.load': 'Load',
+  'cloud.overwrite': 'Overwrite',
+  'cloud.delete': 'Delete',
+  'cloud.loaded': 'Loaded "{name}".',
+  'cloud.deleted': 'Deleted.',
+  'cloud.confirmLoad': 'Load "{name}"? Your current setup will be replaced.',
+  'cloud.confirmOverwrite': 'Overwrite "{name}" with the current setup?',
+  'cloud.confirmDelete': 'Delete "{name}"?',
+  'cloud.badPayload': 'Could not read the saved data.',
+  'cloud.failed': 'Request failed. {msg}',
+  'deck.searchPh': 'Search name, call or site',
+  'deck.groupBy': 'Group by',
+  'deck.group.none': 'No grouping',
+  'deck.group.site': 'Site',
+  'deck.group.kind': 'Type',
+  'deck.group.side': 'Side',
+  'deck.count': '{n} tactics',
+  'deck.countFiltered': '{n} of {total}',
+  'deck.noMatch': 'No tactic matches.',
+  'deck.siteN': 'Site {n}',
+  'deck.noSite': 'No site',
   'deck.empty': 'No tactics yet. Create one with "+ Add tactic", or load starters with ADD SAMPLES.',
   'deck.edit': 'Edit →',
   'filter.all': 'ALL',
@@ -3434,6 +3700,41 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'setup.deck.sub': '라운드에서 쓸 전술을 미리 등록',
   'deck.sample': '샘플 추가',
   'deck.add': '+ 전술 추가',
+  'filter.both': '양쪽 사이드',
+  'legal.disclaimer': '이 앱은 Riot Games의 승인을 받지 않았으며, Riot Games 또는 VALORANT의 제작 · 관리에 공식적으로 관여하는 회사 및 관계자의 견해나 의견을 반영하지 않습니다.',
+  'legal.trademark': 'Riot Games 및 VALORANT 관련 모든 명칭 · 로고는 Riot Games, Inc.의 상표 또는 등록상표입니다.',
+  'common.close': '닫기',
+  'common.loading': '불러오는 중…',
+  'cloud.open': '☁ 클라우드',
+  'cloud.title': '클라우드 저장',
+  'cloud.needLogin': '클라우드 저장에는 로그인이 필요합니다. 저장한 내용은 본인만 볼 수 있습니다.',
+  'cloud.scope': '맵 · 조합 · 전술 · 배치 · 전적을 한꺼번에 저장합니다.',
+  'cloud.namePh': '저장 이름 (예: 예선 vs ○○)',
+  'cloud.save': '현재 내용 저장',
+  'cloud.nameRequired': '저장 이름을 입력하세요.',
+  'cloud.saved': '클라우드에 저장했습니다.',
+  'cloud.none': '아직 저장된 셋업이 없습니다.',
+  'cloud.load': '불러오기',
+  'cloud.overwrite': '덮어쓰기',
+  'cloud.delete': '삭제',
+  'cloud.loaded': '"{name}"을(를) 불러왔습니다.',
+  'cloud.deleted': '삭제했습니다.',
+  'cloud.confirmLoad': '"{name}"을(를) 불러옵니다. 현재 내용은 대체됩니다. 계속할까요?',
+  'cloud.confirmOverwrite': '"{name}"을(를) 현재 내용으로 덮어쓸까요?',
+  'cloud.confirmDelete': '"{name}"을(를) 삭제할까요?',
+  'cloud.badPayload': '저장 데이터를 읽을 수 없습니다.',
+  'cloud.failed': '통신에 실패했습니다. {msg}',
+  'deck.searchPh': '전술명 · 콜 · 사이트로 검색',
+  'deck.groupBy': '묶는 방법',
+  'deck.group.none': '묶지 않음',
+  'deck.group.site': '사이트별',
+  'deck.group.kind': '유형별',
+  'deck.group.side': '사이드별',
+  'deck.count': '{n}개',
+  'deck.countFiltered': '{total}개 중 {n}개',
+  'deck.noMatch': '조건에 맞는 전술이 없습니다.',
+  'deck.siteN': '{n} 사이트',
+  'deck.noSite': '사이트 미지정',
   'deck.empty': '등록된 전술이 없습니다. "+ 전술 추가"로 만들거나 샘플 추가로 예시를 불러오세요.',
   'deck.edit': '편집 →',
   'filter.all': '전체',
@@ -5234,7 +5535,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   function importJSON(text) {
-    const parsed = JSON.parse(text);
+    importObject(JSON.parse(text));
+  }
+
+  /* クラウドから受け取るのはパース済みのオブジェクトなので、
+     文字列を経由せずに取り込めるようにしておく */
+  function importObject(parsed) {
     if (!parsed || parsed.version !== 1) throw new Error('対応していないフォーマットです');
     hydrate(parsed);
     save();
@@ -5266,6 +5572,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     resetAll: resetAll,
     exportJSON: exportJSON,
     importJSON: importJSON,
+    importObject: importObject,
     seedSamples: function () {
       const I = global.VCT_I18N;
       D.SAMPLE_TACTICS.forEach(function (t) {
@@ -6464,6 +6771,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     }).then(function (rows) { return Array.isArray(rows) ? rows[0] : rows; });
   }
 
+  /* 同じ名前で保存し直すとき用。行を増やさず中身だけ差し替える */
+  function updateSetup(id, name, payload) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/saved_setups?id=eq.' + encodeURIComponent(id), {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: { name: name, payload: payload }
+      });
+    }).then(function (rows) { return Array.isArray(rows) ? rows[0] : rows; });
+  }
+
   function deleteSetup(id) {
     return ensureFresh().then(function (s) {
       if (!s) throw new Error('AUTH_REQUIRED');
@@ -6514,6 +6833,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     likePost: likePost,
     listSetups: listSetups,
     saveSetup: saveSetup,
+    updateSetup: updateSetup,
     deleteSetup: deleteSetup,
     aiReview: aiReview,
     anonId: anonId
@@ -6695,16 +7015,102 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
   }
 
-  function renderDeck(filter) {
+  /* 検索の対象は戦術名・コール詳細・サイトだけにする。
+     サイドや戦術タイプまで含めると、'a' が ATK や DEFAULT にも当たって
+     一文字の検索がまるごと素通りしてしまう。
+     この 2 つは絞り込みチップとまとめ分けで足りている。 */
+  function matchesQuery(tac, q) {
+    if (!q) return true;
+    const hay = [tac.name, tac.note, tac.site].join(' ').toLowerCase();
+    /* 空白区切りは AND。「A ラッシュ」で絞り込める */
+    return q.toLowerCase().split(/\s+/).filter(Boolean)
+      .every(function (word) { return hay.indexOf(word) >= 0; });
+  }
+
+  const GROUP_KEYS = ['none', 'site', 'kind', 'side'];
+
+  function groupOf(tac, mode) {
+    if (mode === 'site') return tac.site || '-';
+    if (mode === 'kind') return tac.kind;
+    if (mode === 'side') return tac.side;
+    return '';
+  }
+
+  function groupLabel(key, mode) {
+    if (mode === 'site') return key === '-' ? t('deck.noSite') : t('deck.siteN', { n: key });
+    if (mode === 'kind') return D.kindById(key).label;
+    if (mode === 'side') return t('filter.' + (key === 'BOTH' ? 'both' : key.toLowerCase()));
+    return '';
+  }
+
+  /* まとめ方のセレクト。言語を切り替えたときにも描き直す */
+  function renderDeckGroupSelect(current) {
+    $('deck-group').innerHTML = GROUP_KEYS.map(function (k) {
+      return '<option value="' + k + '"' + (k === current ? ' selected' : '') + '>' +
+               esc(t('deck.group.' + k)) + '</option>';
+    }).join('');
+  }
+
+  function renderDeck(uiState) {
+    const filter = (uiState && uiState.deckFilter) || 'ALL';
+    const query = (uiState && uiState.deckQuery) || '';
+    const group = (uiState && uiState.deckGroup) || 'none';
+
     const all = S.state.tactics;
     const list = all.filter(function (tac) {
-      if (filter === 'ATK') return tac.side === 'ATK' || tac.side === 'BOTH';
-      if (filter === 'DEF') return tac.side === 'DEF' || tac.side === 'BOTH';
-      return true;
+      if (filter === 'ATK' && !(tac.side === 'ATK' || tac.side === 'BOTH')) return false;
+      if (filter === 'DEF' && !(tac.side === 'DEF' || tac.side === 'BOTH')) return false;
+      return matchesQuery(tac, query);
     });
 
     $('deck-empty').hidden = all.length > 0;
-    $('deck-grid').innerHTML = list.map(function (tac) {
+
+    /* 絞り込みの結果が 0 件なのと、そもそも 1 つも登録が無いのは別物 */
+    const narrowed = filter !== 'ALL' || !!query;
+    const countEl = $('deck-count');
+    if (!all.length) {
+      countEl.hidden = true;
+    } else {
+      countEl.hidden = false;
+      countEl.textContent = narrowed
+        ? t('deck.countFiltered', { n: list.length, total: all.length })
+        : t('deck.count', { n: all.length });
+      countEl.classList.toggle('is-empty', list.length === 0);
+    }
+
+    if (all.length && !list.length) {
+      $('deck-grid').innerHTML = '<p class="deck-empty">' + t('deck.noMatch') + '</p>';
+      return;
+    }
+
+    if (group === 'none') {
+      $('deck-grid').className = 'deck-grid';
+      $('deck-grid').innerHTML = list.map(cardHTML).join('');
+      return;
+    }
+
+    /* 出現順にまとめる。並べ替えはしない（登録した順が作者の意図の順） */
+    const order = [];
+    const buckets = {};
+    list.forEach(function (tac) {
+      const key = groupOf(tac, group);
+      if (!buckets[key]) { buckets[key] = []; order.push(key); }
+      buckets[key].push(tac);
+    });
+
+    $('deck-grid').className = 'deck-grouped';
+    $('deck-grid').innerHTML = order.map(function (key) {
+      return '<section class="deck-section">' +
+               '<h3 class="deck-section-head">' +
+                 '<span>' + esc(groupLabel(key, group)) + '</span>' +
+                 '<b>' + buckets[key].length + '</b>' +
+               '</h3>' +
+               '<div class="deck-grid">' + buckets[key].map(cardHTML).join('') + '</div>' +
+             '</section>';
+    }).join('');
+  }
+
+  function cardHTML(tac) {
       const st = S.statsFor(tac.id);
       const kind = D.kindById(tac.kind);
       return '' +
@@ -6725,7 +7131,6 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
               '▣ ' + t('board.edit') + '</button>' +
           '</div>' +
         '</article>';
-    }).join('');
   }
 
   function renderReady() {
@@ -6966,6 +7371,73 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
                '<span class="legend-steps">' + steps + '</span>' +
              '</li>';
     }).join('') + '</ul>';
+  }
+
+  /* --- クラウド保存 --- */
+
+  /**
+   * 保存済みセットアップの一覧。
+   * ログインしていないと自分の行が引けない（RLS）ので、
+   * 未ログインならログインへ誘導するだけにする。
+   */
+  function renderCloud(uiState) {
+    const el = $('cloud-body');
+    const C = global.VCT_COMMUNITY;
+
+    if (!C.currentUser()) {
+      el.innerHTML =
+        '<p class="cloud-note">' + esc(t('cloud.needLogin')) + '</p>' +
+        '<button type="button" class="btn btn-primary" data-cloud-act="login">' +
+          t('community.login') + '</button>';
+      return;
+    }
+
+    const list = uiState.cloudSetups || [];
+    const rows = list.length
+      ? '<ul class="cloud-list">' + list.map(function (row) {
+          return '<li class="cloud-row" data-cloud-id="' + esc(row.id) + '">' +
+                   '<div class="cloud-row-main">' +
+                     '<b>' + esc(row.name) + '</b>' +
+                     '<span>' + esc(cloudMeta(row)) + '</span>' +
+                   '</div>' +
+                   '<div class="cloud-row-acts">' +
+                     '<button type="button" class="btn btn-ghost btn-sm" data-cloud-act="load">' +
+                       t('cloud.load') + '</button>' +
+                     '<button type="button" class="btn btn-ghost btn-sm" data-cloud-act="overwrite">' +
+                       t('cloud.overwrite') + '</button>' +
+                     '<button type="button" class="btn btn-ghost btn-sm btn-danger" data-cloud-act="delete">' +
+                       t('cloud.delete') + '</button>' +
+                   '</div>' +
+                 '</li>';
+        }).join('') + '</ul>'
+      : '<p class="cloud-note">' + esc(t('cloud.none')) + '</p>';
+
+    el.innerHTML =
+      '<div class="cloud-save">' +
+        '<input type="text" id="cloud-name" maxlength="60" value="' + esc(defaultSetupName()) + '" ' +
+          'placeholder="' + esc(t('cloud.namePh')) + '" />' +
+        '<button type="button" class="btn btn-primary" data-cloud-act="save">' +
+          t('cloud.save') + '</button>' +
+      '</div>' +
+      '<p class="cloud-note">' + esc(t('cloud.scope')) + '</p>' +
+      (uiState.cloudLoading ? '<p class="cloud-note">' + esc(t('common.loading')) + '</p>' : rows);
+  }
+
+  /** 「アセント / 戦術 7 件 / 8月27日」のような見出しの補助行 */
+  function cloudMeta(row) {
+    const n = row.payload && Array.isArray(row.payload.tactics) ? row.payload.tactics.length : 0;
+    const map = row.payload && row.payload.match && row.payload.match.map;
+    const mapName = map ? (D.mapById(map) || {}).name || map : '';
+    const when = row.updated_at ? new Date(row.updated_at).toLocaleString() : '';
+    return [mapName, t('deck.count', { n: n }), when].filter(Boolean).join(' / ');
+  }
+
+  function defaultSetupName() {
+    const m = D.mapById(S.state.match.map);
+    const d = new Date();
+    const stamp = (d.getMonth() + 1) + '/' + d.getDate();
+    return [(m && m.name) || '', S.state.match.enemyTeam || '', stamp]
+      .filter(Boolean).join(' ').slice(0, 60);
   }
 
   /* --- 配置盤エディタ --- */
@@ -7571,7 +8043,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     renderSideToggle: renderSideToggle,
     renderMatchFields: renderMatchFields,
     renderRoster: renderRoster,
+    renderCloud: renderCloud,
     renderDeck: renderDeck,
+    renderDeckGroupSelect: renderDeckGroupSelect,
     renderReady: renderReady,
     renderScorebar: renderScorebar,
     renderBoardRosters: renderBoardRosters,
@@ -7635,6 +8109,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   const ui = {
     view: 'setup',            // 'setup' | 'live' | 'community'
     deckFilter: 'ALL',
+    deckQuery: '',            // 戦術の検索語
+    deckGroup: 'none',        // まとめ方 none / site / kind / side
     includeOffSide: false,
     economy: 'full',
     agentTarget: null,
@@ -7648,6 +8124,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     postSort: 'new',
     postMap: '',
     postTacticId: null,
+    cloudSetups: [],          // クラウドに保存済みのセットアップ
+    cloudLoading: false,
 
     /* 配置盤エディタ */
     boardTactic: null,        // 編集中の戦術
@@ -7666,7 +8144,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     U.renderSideToggle();
     U.renderMatchFields();
     U.renderRoster();
-    U.renderDeck(ui.deckFilter);
+    /* 言語を切り替えても選択肢の文言が付いてくるよう、毎回描き直す */
+    U.renderDeckGroupSelect(ui.deckGroup);
+    U.renderDeck(ui);
     U.renderReady();
   }
 
@@ -7689,6 +8169,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     $('view-live').hidden = ui.view !== 'live';
     $('view-community').hidden = ui.view !== 'community';
     $('tab-community').hidden = !C.enabled();
+    /* 未ログインでも押せるようにする。押した先でログインへ誘導した方が
+       「どこから入るのか」が分かりやすい */
+    $('btn-cloud').hidden = !C.enabled();
 
     document.querySelectorAll('.phase-tab').forEach(function (tab) {
       const active = tab.dataset.phase === ui.view;
@@ -7720,7 +8203,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -7814,6 +8297,110 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     }).filter(Boolean);
   }
 
+  /* ================= クラウド保存 ================= */
+
+  function openCloudModal() {
+    ui.cloudSetups = [];
+    ui.cloudLoading = !!C.currentUser();
+    U.renderCloud(ui);
+    openModal('modal-cloud');
+    if (C.currentUser()) refreshCloudList();
+  }
+
+  function refreshCloudList() {
+    ui.cloudLoading = true;
+    U.renderCloud(ui);
+    return C.listSetups().then(function (rows) {
+      ui.cloudSetups = Array.isArray(rows) ? rows : [];
+      ui.cloudLoading = false;
+      U.renderCloud(ui);
+    }, function (err) {
+      ui.cloudLoading = false;
+      U.renderCloud(ui);
+      U.toast(cloudError(err), 'err');
+    });
+  }
+
+  /* 通信の失敗は理由が分からないと直しようがないので、
+     ログインが切れた場合だけは専用の文言にする */
+  function cloudError(err) {
+    if (err && err.message === 'AUTH_REQUIRED') return t('cloud.needLogin');
+    return t('cloud.failed', { msg: (err && err.message) || '' });
+  }
+
+  function bindCloud() {
+    $('btn-cloud').addEventListener('click', openCloudModal);
+
+    $('cloud-body').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-cloud-act]');
+      if (!btn) return;
+      const act = btn.dataset.cloudAct;
+      const row = btn.closest('[data-cloud-id]');
+      const id = row ? row.dataset.cloudId : null;
+      const saved = ui.cloudSetups.filter(function (r) { return r.id === id; })[0];
+
+      if (act === 'login') {
+        closeModal('modal-cloud');
+        openModal('modal-login');
+        return;
+      }
+
+      if (act === 'save') {
+        const name = ($('cloud-name').value || '').trim();
+        if (!name) { U.toast(t('cloud.nameRequired'), 'err'); return; }
+        btn.disabled = true;
+        C.saveSetup(name, JSON.parse(S.exportJSON())).then(function () {
+          U.toast(t('cloud.saved'), 'ok');
+          refreshCloudList();
+        }, function (err) {
+          btn.disabled = false;
+          U.toast(cloudError(err), 'err');
+        });
+        return;
+      }
+
+      if (!saved) return;
+
+      if (act === 'load') {
+        /* 読み込むと手元の内容が丸ごと入れ替わる。取り返しがつかないので確認する */
+        if (!confirm(t('cloud.confirmLoad', { name: saved.name }))) return;
+        try {
+          S.importObject(saved.payload);
+        } catch (err) {
+          U.toast(t('cloud.badPayload'), 'err');
+          return;
+        }
+        closeModal('modal-cloud');
+        ui.analysis = null;
+        ui.aiReview = null;
+        renderAll();
+        U.toast(t('cloud.loaded', { name: saved.name }), 'ok');
+        return;
+      }
+
+      if (act === 'overwrite') {
+        if (!confirm(t('cloud.confirmOverwrite', { name: saved.name }))) return;
+        btn.disabled = true;
+        C.updateSetup(saved.id, saved.name, JSON.parse(S.exportJSON())).then(function () {
+          U.toast(t('cloud.saved'), 'ok');
+          refreshCloudList();
+        }, function (err) {
+          btn.disabled = false;
+          U.toast(cloudError(err), 'err');
+        });
+        return;
+      }
+
+      if (act === 'delete') {
+        if (!confirm(t('cloud.confirmDelete', { name: saved.name }))) return;
+        C.deleteSetup(saved.id).then(function () {
+          U.toast(t('cloud.deleted'), 'ok');
+          refreshCloudList();
+        }, function (err) { U.toast(cloudError(err), 'err'); });
+      }
+    });
+  }
+
   /* ================= 配置盤 ================= */
 
   /** いま編集している局面の盤面 */
@@ -7849,7 +8436,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function commitBoard() {
     S.save();
     if (ui.view === 'live') renderLive();
-    else if (ui.view === 'setup') U.renderDeck(ui.deckFilter);
+    else if (ui.view === 'setup') U.renderDeck(ui);
   }
 
   function bindBoardEditor() {
@@ -8293,7 +8880,34 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       $('deck-filter').querySelectorAll('.chip').forEach(function (c) {
         c.classList.toggle('is-active', c === chip);
       });
-      U.renderDeck(ui.deckFilter);
+      U.renderDeck(ui);
+    });
+
+    /* 検索。打つたびに絞り込む。件数が多くないので遅延は要らない */
+    $('deck-query').addEventListener('input', function (e) {
+      ui.deckQuery = e.target.value;
+      $('btn-deck-clear').hidden = !ui.deckQuery;
+      U.renderDeck(ui);
+    });
+
+    $('btn-deck-clear').addEventListener('click', function () {
+      ui.deckQuery = '';
+      $('deck-query').value = '';
+      $('btn-deck-clear').hidden = true;
+      U.renderDeck(ui);
+      $('deck-query').focus();
+    });
+
+    /* 検索欄で Esc を押したら消す。入力欄から出ずに戻せるように */
+    $('deck-query').addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !ui.deckQuery) return;
+      e.stopPropagation();
+      $('btn-deck-clear').click();
+    });
+
+    $('deck-group').addEventListener('change', function (e) {
+      ui.deckGroup = e.target.value;
+      U.renderDeck(ui);
     });
 
     $('deck-grid').addEventListener('click', function (e) {
@@ -8319,7 +8933,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     $('btn-seed').addEventListener('click', function () {
       S.seedSamples();
-      U.renderDeck(ui.deckFilter);
+      U.renderDeck(ui);
       U.renderReady();
       U.toast(t('toast.sampleAdded'), 'ok');
     });
@@ -8751,7 +9365,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         return;
       }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;
@@ -8823,6 +9437,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     bindSetup();
     bindLive();
     bindCommunity();
+    bindCloud();
     bindBoardEditor();
     bindAgentModal();
     bindTacticModal();

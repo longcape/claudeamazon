@@ -93,6 +93,46 @@ check('ミニマップが揃っている', data.noMinimap.length === 0, data.noM
 check('全マップに向きの補正角がある', data.noRotation.length === 0, data.noRotation.join(', '));
 check('スパイクの公式アイコンがある', data.spike);
 
+/* ---------------- 戦術デッキ ---------------- */
+console.log('\nデッキ');
+const deckCards = () => page.locator('#deck-grid .tcard').count();
+const total = await deckCards();
+check('サンプル戦術が並ぶ', total > 0);
+
+await page.fill('#deck-query', 'ラッシュ');
+await page.waitForTimeout(200);
+const hits = await deckCards();
+check('検索で絞り込める', hits > 0 && hits < total, `${hits} / ${total}`);
+
+await page.fill('#deck-query', 'そんな戦術はない');
+await page.waitForTimeout(200);
+check('該当なしのときは理由が出る',
+  (await deckCards()) === 0 && /\S/.test(await page.locator('#deck-grid').innerText()));
+
+await page.click('#btn-deck-clear');
+await page.waitForTimeout(200);
+check('検索を消すと元に戻る', (await deckCards()) === total);
+
+for (const mode of ['site', 'kind', 'side']) {
+  await page.selectOption('#deck-group', mode);
+  await page.waitForTimeout(200);
+  const groups = await page.locator('.deck-section').count();
+  const shown = await deckCards();
+  check(`${mode} 別にまとめられる`, groups > 0 && shown === total, `${groups} 群 / ${shown} 枚`);
+}
+await page.selectOption('#deck-group', 'none');
+await page.waitForTimeout(200);
+
+/* ---------------- 免責表記 ---------------- */
+/* Riot の二次利用条件で明記が求められている。消えていないか見る */
+const legal = await page.locator('.app-foot').innerText();
+check('免責表記が出ている', /Riot Games/.test(legal), legal.slice(0, 40));
+
+/* ---------------- クラウド保存 ---------------- */
+/* config.js が空のときは丸ごと隠れていること。
+   設定済みの挙動は実際の Supabase が要るのでここでは見ない */
+check('未設定ならクラウド保存は隠れる', await page.locator('#btn-cloud').isHidden());
+
 /* ---------------- 配置盤を開く ---------------- */
 console.log('\n配置盤');
 for (let i = 0; i < 5; i++) {

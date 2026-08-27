@@ -171,16 +171,102 @@
     });
   }
 
-  function renderDeck(filter) {
+  /* 検索の対象は戦術名・コール詳細・サイトだけにする。
+     サイドや戦術タイプまで含めると、'a' が ATK や DEFAULT にも当たって
+     一文字の検索がまるごと素通りしてしまう。
+     この 2 つは絞り込みチップとまとめ分けで足りている。 */
+  function matchesQuery(tac, q) {
+    if (!q) return true;
+    const hay = [tac.name, tac.note, tac.site].join(' ').toLowerCase();
+    /* 空白区切りは AND。「A ラッシュ」で絞り込める */
+    return q.toLowerCase().split(/\s+/).filter(Boolean)
+      .every(function (word) { return hay.indexOf(word) >= 0; });
+  }
+
+  const GROUP_KEYS = ['none', 'site', 'kind', 'side'];
+
+  function groupOf(tac, mode) {
+    if (mode === 'site') return tac.site || '-';
+    if (mode === 'kind') return tac.kind;
+    if (mode === 'side') return tac.side;
+    return '';
+  }
+
+  function groupLabel(key, mode) {
+    if (mode === 'site') return key === '-' ? t('deck.noSite') : t('deck.siteN', { n: key });
+    if (mode === 'kind') return D.kindById(key).label;
+    if (mode === 'side') return t('filter.' + (key === 'BOTH' ? 'both' : key.toLowerCase()));
+    return '';
+  }
+
+  /* まとめ方のセレクト。言語を切り替えたときにも描き直す */
+  function renderDeckGroupSelect(current) {
+    $('deck-group').innerHTML = GROUP_KEYS.map(function (k) {
+      return '<option value="' + k + '"' + (k === current ? ' selected' : '') + '>' +
+               esc(t('deck.group.' + k)) + '</option>';
+    }).join('');
+  }
+
+  function renderDeck(uiState) {
+    const filter = (uiState && uiState.deckFilter) || 'ALL';
+    const query = (uiState && uiState.deckQuery) || '';
+    const group = (uiState && uiState.deckGroup) || 'none';
+
     const all = S.state.tactics;
     const list = all.filter(function (tac) {
-      if (filter === 'ATK') return tac.side === 'ATK' || tac.side === 'BOTH';
-      if (filter === 'DEF') return tac.side === 'DEF' || tac.side === 'BOTH';
-      return true;
+      if (filter === 'ATK' && !(tac.side === 'ATK' || tac.side === 'BOTH')) return false;
+      if (filter === 'DEF' && !(tac.side === 'DEF' || tac.side === 'BOTH')) return false;
+      return matchesQuery(tac, query);
     });
 
     $('deck-empty').hidden = all.length > 0;
-    $('deck-grid').innerHTML = list.map(function (tac) {
+
+    /* 絞り込みの結果が 0 件なのと、そもそも 1 つも登録が無いのは別物 */
+    const narrowed = filter !== 'ALL' || !!query;
+    const countEl = $('deck-count');
+    if (!all.length) {
+      countEl.hidden = true;
+    } else {
+      countEl.hidden = false;
+      countEl.textContent = narrowed
+        ? t('deck.countFiltered', { n: list.length, total: all.length })
+        : t('deck.count', { n: all.length });
+      countEl.classList.toggle('is-empty', list.length === 0);
+    }
+
+    if (all.length && !list.length) {
+      $('deck-grid').innerHTML = '<p class="deck-empty">' + t('deck.noMatch') + '</p>';
+      return;
+    }
+
+    if (group === 'none') {
+      $('deck-grid').className = 'deck-grid';
+      $('deck-grid').innerHTML = list.map(cardHTML).join('');
+      return;
+    }
+
+    /* 出現順にまとめる。並べ替えはしない（登録した順が作者の意図の順） */
+    const order = [];
+    const buckets = {};
+    list.forEach(function (tac) {
+      const key = groupOf(tac, group);
+      if (!buckets[key]) { buckets[key] = []; order.push(key); }
+      buckets[key].push(tac);
+    });
+
+    $('deck-grid').className = 'deck-grouped';
+    $('deck-grid').innerHTML = order.map(function (key) {
+      return '<section class="deck-section">' +
+               '<h3 class="deck-section-head">' +
+                 '<span>' + esc(groupLabel(key, group)) + '</span>' +
+                 '<b>' + buckets[key].length + '</b>' +
+               '</h3>' +
+               '<div class="deck-grid">' + buckets[key].map(cardHTML).join('') + '</div>' +
+             '</section>';
+    }).join('');
+  }
+
+  function cardHTML(tac) {
       const st = S.statsFor(tac.id);
       const kind = D.kindById(tac.kind);
       return '' +
@@ -201,7 +287,6 @@
               '▣ ' + t('board.edit') + '</button>' +
           '</div>' +
         '</article>';
-    }).join('');
   }
 
   function renderReady() {
@@ -442,6 +527,73 @@
                '<span class="legend-steps">' + steps + '</span>' +
              '</li>';
     }).join('') + '</ul>';
+  }
+
+  /* --- クラウド保存 --- */
+
+  /**
+   * 保存済みセットアップの一覧。
+   * ログインしていないと自分の行が引けない（RLS）ので、
+   * 未ログインならログインへ誘導するだけにする。
+   */
+  function renderCloud(uiState) {
+    const el = $('cloud-body');
+    const C = global.VCT_COMMUNITY;
+
+    if (!C.currentUser()) {
+      el.innerHTML =
+        '<p class="cloud-note">' + esc(t('cloud.needLogin')) + '</p>' +
+        '<button type="button" class="btn btn-primary" data-cloud-act="login">' +
+          t('community.login') + '</button>';
+      return;
+    }
+
+    const list = uiState.cloudSetups || [];
+    const rows = list.length
+      ? '<ul class="cloud-list">' + list.map(function (row) {
+          return '<li class="cloud-row" data-cloud-id="' + esc(row.id) + '">' +
+                   '<div class="cloud-row-main">' +
+                     '<b>' + esc(row.name) + '</b>' +
+                     '<span>' + esc(cloudMeta(row)) + '</span>' +
+                   '</div>' +
+                   '<div class="cloud-row-acts">' +
+                     '<button type="button" class="btn btn-ghost btn-sm" data-cloud-act="load">' +
+                       t('cloud.load') + '</button>' +
+                     '<button type="button" class="btn btn-ghost btn-sm" data-cloud-act="overwrite">' +
+                       t('cloud.overwrite') + '</button>' +
+                     '<button type="button" class="btn btn-ghost btn-sm btn-danger" data-cloud-act="delete">' +
+                       t('cloud.delete') + '</button>' +
+                   '</div>' +
+                 '</li>';
+        }).join('') + '</ul>'
+      : '<p class="cloud-note">' + esc(t('cloud.none')) + '</p>';
+
+    el.innerHTML =
+      '<div class="cloud-save">' +
+        '<input type="text" id="cloud-name" maxlength="60" value="' + esc(defaultSetupName()) + '" ' +
+          'placeholder="' + esc(t('cloud.namePh')) + '" />' +
+        '<button type="button" class="btn btn-primary" data-cloud-act="save">' +
+          t('cloud.save') + '</button>' +
+      '</div>' +
+      '<p class="cloud-note">' + esc(t('cloud.scope')) + '</p>' +
+      (uiState.cloudLoading ? '<p class="cloud-note">' + esc(t('common.loading')) + '</p>' : rows);
+  }
+
+  /** 「アセント / 戦術 7 件 / 8月27日」のような見出しの補助行 */
+  function cloudMeta(row) {
+    const n = row.payload && Array.isArray(row.payload.tactics) ? row.payload.tactics.length : 0;
+    const map = row.payload && row.payload.match && row.payload.match.map;
+    const mapName = map ? (D.mapById(map) || {}).name || map : '';
+    const when = row.updated_at ? new Date(row.updated_at).toLocaleString() : '';
+    return [mapName, t('deck.count', { n: n }), when].filter(Boolean).join(' / ');
+  }
+
+  function defaultSetupName() {
+    const m = D.mapById(S.state.match.map);
+    const d = new Date();
+    const stamp = (d.getMonth() + 1) + '/' + d.getDate();
+    return [(m && m.name) || '', S.state.match.enemyTeam || '', stamp]
+      .filter(Boolean).join(' ').slice(0, 60);
   }
 
   /* --- 配置盤エディタ --- */
@@ -1047,7 +1199,9 @@
     renderSideToggle: renderSideToggle,
     renderMatchFields: renderMatchFields,
     renderRoster: renderRoster,
+    renderCloud: renderCloud,
     renderDeck: renderDeck,
+    renderDeckGroupSelect: renderDeckGroupSelect,
     renderReady: renderReady,
     renderScorebar: renderScorebar,
     renderBoardRosters: renderBoardRosters,
