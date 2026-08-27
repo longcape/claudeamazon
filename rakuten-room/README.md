@@ -55,7 +55,12 @@ RAKUTEN_AFFILIATE_ID=xxxxxxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx
 
 ```bash
 node bin/room.js doctor
+node bin/room.js probe    # 実データが想定どおり返るかを点検する
 ```
+
+`probe` は30件を取得して各フィールドの充足率を出します。
+商品説明やアフィリエイト報酬率が欠けていると、スコアが静かに壊れます。
+**ジャンルやキーワードを変えたら毎回これを通してください。**
 
 ---
 
@@ -316,7 +321,9 @@ OK:「キッチンの置き場問題が一瞬で消える収納ラック」
 ```
 node bin/room.js doctor              設定と接続を確認する
 node bin/room.js genre [id]          ジャンルIDを調べる
+node bin/room.js probe [keyword]     実データが想定どおり返るか点検する
 node bin/room.js collect             楽天市場から候補を収集（毎日）
+node bin/room.js daily               収集から計画作成までを一気に（cron向け）
 node bin/room.js launch              初動30件の計画を作る
 node bin/room.js plan [--days=3]     通常運用の計画を作る
 node bin/room.js next [--count=5]    これから出す投稿を見る

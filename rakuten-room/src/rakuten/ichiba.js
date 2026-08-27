@@ -77,7 +77,9 @@ async function searchItems(opts) {
     maxPrice: opts.maxPrice,
     availability: opts.availability === false ? 0 : 1,
     imageFlag: 1,
-    field: 1
+    /* field=1 は「一部の情報のみ」。itemCaption や affiliateRate が
+       落ちるとスコアの根幹が崩れるので、必ず全件取得にする */
+    field: 0
   });
   const hits = opts.hits || 30;
   const base = ((opts.page || 1) - 1) * hits;

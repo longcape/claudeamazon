@@ -198,7 +198,7 @@ function cmdReport() {
     log.step(title);
     Object.keys(stats).sort(function (a, b) { return stats[b].cvIndex - stats[a].cvIndex; }).forEach(function (k) {
       const v = stats[k];
-      log.detail(String(k).padEnd(18) + ' n=' + String(v.n).padStart(3) +
+      log.detail(log.pad(k, 18) + ' n=' + String(v.n).padStart(3) +
         '  クリック/件 ' + String(v.clicksPerPost).padStart(6) +
         '  成約/件 ' + String(v.cvPerPost).padStart(6) +
         '  指数 ' + v.clickIndex + '/' + v.cvIndex);
@@ -218,7 +218,7 @@ function cmdTrend() {
   log.step('上昇ワードの昇格候補');
   log.detail('良さそうなものを config/trend-words.json の rising に手で移してください');
   rows.forEach(function (r) {
-    log.detail(r.word.padEnd(14) + ' 出現増 ' + String(r.growth).padStart(3) + '　レビュー速度 ' + (r.speed || 0).toFixed(2) + '/日');
+    log.detail(log.pad(r.word, 16) + ' 出現増 ' + String(r.growth).padStart(3) + '　レビュー速度 ' + (r.speed || 0).toFixed(2) + '/日');
   });
 }
 
@@ -228,7 +228,7 @@ async function cmdGenre(args) {
   log.step('ジャンル ' + g.id + ' : ' + g.name + '（階層 ' + g.level + '）');
   if (g.parents.length) log.detail('親: ' + g.parents.map(function (p) { return p.name + '(' + p.id + ')'; }).join(' > '));
   log.step('子ジャンル');
-  g.children.forEach(function (c) { log.detail(c.id.padEnd(10) + c.name); });
+  g.children.forEach(function (c) { log.detail(log.pad(c.id, 10) + c.name); });
   log.info('');
   log.detail('使いたいIDを config/strategy.json の genre.rootGenreId に入れてください');
 }
@@ -268,12 +268,95 @@ async function cmdDoctor() {
   }
 }
 
+/* 実データが想定どおり返っているかを1クエリで点検する。
+   楽天APIのレスポンスが欠けていると、スコアは静かに壊れる。
+   「動いてはいるが全商品の作り込み度が0」のような事故を
+   最初に見つけるためのコマンド。 */
+async function cmdProbe(args) {
+  const s = strategy();
+  const keyword = args._[1] || (s.genre.subThemes[0] && s.genre.subThemes[0].keywords[0]) || 'キッチン 収納';
+
+  log.step('点検クエリ: "' + keyword + '" / ジャンル ' + s.genre.rootGenreId);
+  const items = await ichiba.searchItems({
+    keyword: keyword,
+    genreId: s.genre.rootGenreId,
+    hits: 30,
+    page: 1,
+    sort: 'standard',
+    minPrice: s.filters.priceHardMin,
+    maxPrice: s.filters.priceHardMax
+  });
+
+  if (!items.length) {
+    log.warn('0件でした。ジャンルIDかキーワードが実態と合っていません');
+    log.detail('node bin/room.js genre 0 でジャンルを探し直してください');
+    return;
+  }
+  log.detail(items.length + ' 件取得');
+
+  /* 各フィールドが「何件で埋まっているか」を見る。
+     1件だけ見ても、たまたま空だったのか全滅なのか分からない。 */
+  const checks = [
+    { key: 'caption', label: '商品説明', impact: '作り込み度が全商品0になる', ok: function (i) { return i.captionLength > 50; } },
+    { key: 'affiliateRate', label: 'アフィリ報酬率', impact: '広告加熱度が機能しない（最重要）', ok: function (i) { return i.affiliateRate > 0; } },
+    { key: 'pointRate', label: 'ポイント倍率', impact: 'ポイント評価が効かない', ok: function (i) { return i.pointRate >= 1; } },
+    { key: 'images', label: '商品画像', impact: '作り込み度が下がる', ok: function (i) { return i.imageCount > 0; } },
+    { key: 'reviewCount', label: 'レビュー件数', impact: 'ハードフィルタを誰も通らない', ok: function (i) { return i.reviewCount > 0; } },
+    { key: 'reviewAverage', label: 'レビュー平均', impact: '同上', ok: function (i) { return i.reviewAverage > 0; } },
+    { key: 'genreId', label: 'ジャンルID', impact: 'カテゴリ相関が効かない', ok: function (i) { return !!i.genreId; } },
+    { key: 'shopCode', label: 'ショップコード', impact: '1ショップ上限が効かない', ok: function (i) { return !!i.shopCode; } }
+  ];
+
+  log.step('レスポンスの充足率');
+  let broken = 0;
+  checks.forEach(function (c) {
+    const n = items.filter(c.ok).length;
+    const rate = Math.round(n / items.length * 100);
+    const mark = rate >= 80 ? '○' : rate > 0 ? '△' : '×';
+    log.detail(mark + ' ' + log.pad(c.label, 16) + String(rate).padStart(3) + '%  (' + n + '/' + items.length + ')' +
+      (rate < 80 ? '  → ' + c.impact : ''));
+    if (rate < 80) broken += 1;
+  });
+
+  const affiliated = items.filter(function (i) { return /hb\.afl\.rakuten\.co\.jp/.test(i.affiliateUrl); }).length;
+  log.detail((affiliated > 0 ? '○' : '×') + ' アフィリリンク  ' +
+    Math.round(affiliated / items.length * 100) + '%' +
+    (affiliated === 0 ? '  → RAKUTEN_AFFILIATE_ID が未設定か不正' : ''));
+
+  log.step('ハードフィルタの通過率');
+  const passed = items.filter(function (i) { return collectLib.passesHardFilter(i, s.filters) === null; });
+  log.detail(passed.length + '/' + items.length + ' 件が通過（★' + s.filters.minReviewAverage +
+    '以上 / レビュー' + s.filters.minReviewCount + '件以上 / ' + s.filters.priceHardMin + '-' + s.filters.priceHardMax + '円）');
+  if (passed.length === 0) {
+    log.warn('1件も通っていません。キーワードが商材とズレているか、フィルタが厳しすぎます');
+  } else if (passed.length < items.length * 0.15) {
+    log.warn('通過率が低すぎます。このキーワードでは候補が集まりません');
+  }
+
+  log.step('実データのスコア分布（参考値）');
+  const rates = items.map(function (i) { return i.affiliateRate; }).filter(function (r) { return r > 0; }).sort(function (a, b) { return a - b; });
+  if (rates.length) {
+    log.detail('アフィリ報酬率: 最小 ' + rates[0] + '% / 中央 ' + rates[Math.floor(rates.length / 2)] + '% / 最大 ' + rates[rates.length - 1] + '%');
+    log.detail('  → config/strategy.json の adHeat.affiliateRateBase / affiliateRateHot をこの幅に合わせてください');
+  }
+  const prices = passed.map(function (i) { return i.price; }).sort(function (a, b) { return a - b; });
+  if (prices.length) {
+    log.detail('通過商品の価格: 最小 ' + prices[0] + '円 / 中央 ' + prices[Math.floor(prices.length / 2)] + '円 / 最大 ' + prices[prices.length - 1] + '円');
+  }
+
+  log.step(broken === 0 ? '点検完了: 問題なし' : '点検完了: ' + broken + ' 項目に欠損あり');
+  if (broken > 0) {
+    log.detail('src/rakuten/ichiba.js の searchItems が渡しているパラメータを見直してください');
+  }
+}
+
 function usage() {
   log.info([
     '楽天ROOM 運用エンジン',
     '',
     '  node bin/room.js doctor              設定と接続を確認する（最初にこれ）',
     '  node bin/room.js genre [id]          ジャンルIDを調べる',
+    '  node bin/room.js probe [keyword]     実データが想定どおり返るか点検する',
     '  node bin/room.js collect             楽天市場から候補を収集（毎日回す）',
     '  node bin/room.js daily               収集から計画作成までを一気に（cron向け）',
     '  node bin/room.js launch              初動30件の計画を作る',
@@ -305,6 +388,7 @@ async function main() {
       case 'report': return cmdReport();
       case 'trend': return cmdTrend();
       case 'genre': return await cmdGenre(args);
+      case 'probe': return await cmdProbe(args);
       case 'doctor': return await cmdDoctor();
       default: return usage();
     }
