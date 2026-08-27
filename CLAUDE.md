@@ -149,8 +149,15 @@ data URI にすると単一 HTML が 16MB を超えて公開できなくなる�
 
 **Claude Code の web/cloud セッションからは取得できない。**
 egress proxy が `valorant-api.com` を 403 で塞いでいる（ポリシー拒否であって
-回避できるものではない）。取得はローカル環境でやること。
-Windows は `画像を取得.bat` をダブルクリックするだけ。
+回避できるものではない）。取得は次のどちらかでやること。
+
+1. **GitHub Actions**（推奨・PC 作業なし）
+   Actions タブ → 「公式画像の取得」→ Run workflow。
+   GitHub の実行環境からは valorant-api.com に繋がる。
+   取得 → `node build.js` → 変化があればコミット、まで通る。
+   毎月 1 日にも自動で走る（`.github/workflows/fetch-assets.yml`）。
+2. **ローカル** — Windows は `画像を取得.bat` をダブルクリック、
+   Mac は `画像を取得.command`。
 
 ### 公式ミニマップは向きがばらばら
 
