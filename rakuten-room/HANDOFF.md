@@ -1,7 +1,10 @@
 # 引き継ぎ資料 — 楽天ROOM運用エンジン
 
-このドキュメントは、クラウドセッションからローカル環境へ作業を移すためのものです。
-システムの使い方は `README.md`、この文書は **「いま何がどこまで出来ていて、次に何を確かめるべきか」** を扱います。
+このドキュメントは **ローカルのClaudeが読むための技術メモ**です。
+「いま何がどこまで出来ていて、次に何を確かめるべきか」を扱います。
+
+**運用者が手を動かす移行手順は `START-HERE.md` 第1部にあります。**
+そちらが7ステップのチェックリストになっており、この文書はその補足です。
 
 ---
 
@@ -66,31 +69,28 @@
 
 ## 3. 引き継ぎ手順
 
+運用者向けの手順は `START-HERE.md` 第1部（7ステップのチェックリスト）に集約した。
+ターミナルを使う場合の手順だけここに残す。
+
 ```bash
-# 1. クローン（既にあるならフェッチ）
 git clone https://github.com/longcape/claudeamazon.git
 cd claudeamazon
 git checkout claude/rakuten-room-automation-8c13zi
-
-# 2. Node.js 18 以上を確認（依存パッケージは無いので npm install は不要）
-node -v
-
-# 3. 楽天アプリIDを設定
 cd rakuten-room
-cp .env.example .env
-#   RAKUTEN_APP_ID=        ← https://webservice.rakuten.co.jp/ で即時発行
-#   RAKUTEN_AFFILIATE_ID=  ← 楽天アフィリエイトの管理画面から
-
-# 4. テストが通ることを確認
-npm test
-
-# 5. 設定と接続の確認
+cp .env.example .env      # RAKUTEN_APP_ID と RAKUTEN_AFFILIATE_ID を記入
+npm test                  # 29件通ること（依存パッケージは無いので npm install は不要）
 node bin/room.js doctor
+node bin/room.js probe
 ```
 
-`doctor` で「楽天API 応答あり」まで出れば引き継ぎ完了です。
+**運用者はターミナル操作に不慣れである。** コマンドは運用者に打たせず、
+Claude 側で実行すること（`CLAUDE.md` にも明記してある）。
 
----
+### 移行後の注意
+
+運用者はZIPでファイルを取得しているため、**クラウドセッション側のリポジトリとは
+繋がっていない**。両方で編集すると内容が食い違う。移行後の変更はすべてローカル側で行う。
+GitHubと同期したくなった場合は、運用者に代わって git の設定を行うこと。
 
 ## 4. ローカルで最初に確認すべきこと（優先順）
 
