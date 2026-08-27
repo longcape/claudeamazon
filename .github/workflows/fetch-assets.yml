@@ -30,13 +30,13 @@ jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: claude/valorant-tactical-setup-card-iiiog3
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
 
       # 画像の縮小に使う。入れないと 1 枚 1024px のまま取り込まれ、
       # 単一 HTML が公開できない大きさになる
@@ -44,7 +44,20 @@ jobs:
         run: npm install sharp --no-audit --no-fund
 
       - name: 画像を取得する
-        run: node tools/fetch-assets.mjs
+        run: |
+          set -o pipefail
+          node tools/fetch-assets.mjs 2>&1 | tee /tmp/fetch.log
+
+      # 未登録のエージェントやマップの警告は、ログを開かないと気づけない。
+      # 実行結果の画面に出しておく
+      - name: 結果を要約する
+        if: always()
+        run: |
+          {
+            echo '## 公式画像の取得'
+            echo
+            grep -E '^(✓|⚠|  取得できなかった)' /tmp/fetch.log || echo '（要約できるものがありませんでした）'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 配布ファイルを作り直す
         run: node build.js
