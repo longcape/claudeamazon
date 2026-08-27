@@ -2329,6 +2329,134 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 /* 規約が指定している文言。訳文より目立たせておく */
 .app-foot .legal-required { color: var(--muted); }
+
+/* =========================================================
+   分岐ツリー
+   ---------------------------------------------------------
+   線は裏の SVG、ノードは上に絶対配置した HTML の箱。
+   ノード内に <select> を置きたいので、全部 SVG にはしていない。
+   ========================================================= */
+.tree-canvas { overflow: auto; }
+.tree-stage { position: relative; }
+.tree-edges { position: absolute; inset: 0; pointer-events: none; }
+.tree-edge { fill: none; stroke-width: 1.6; }
+.tree-edge-win { stroke: var(--cyan); }
+.tree-edge-loss { stroke: var(--red); }
+
+.tree-node {
+  position: absolute;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  background: #101820;
+  box-sizing: border-box;
+}
+.tree-node[data-side="ATK"] { border-left-color: var(--red); }
+.tree-node[data-side="DEF"] { border-left-color: var(--cyan); }
+.tree-node[data-side="BOTH"] { border-left-color: var(--gold); }
+/* 直前に使った戦術。ツリーの中で今どこにいるか分かるように */
+.tree-node.is-current {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.tree-node h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tree-node h4 b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.tree-branches { display: grid; gap: 4px; }
+.tree-branch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+}
+.tree-branch > span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  font-weight: 700;
+}
+.tree-branch-win > span { background: rgba(53, 198, 232, .18); color: var(--cyan); }
+.tree-branch-loss > span { background: rgba(255, 70, 85, .18); color: var(--red); }
+.tree-branch select {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 5px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .3);
+  color: var(--text);
+  font-size: 11px;
+}
+.tree-branch select:focus { outline: none; border-color: var(--cyan); }
+
+/* ライブ画面に出す「ツリーの次」 */
+.tree-next { margin-bottom: 12px; }
+.tree-next-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gold);
+  font-size: 11px;
+  letter-spacing: .06em;
+}
+.pick.is-tree { border-color: var(--gold); background: rgba(214, 178, 92, .08); }
+.pick.is-tree .pick-score b { font-size: 20px; }
+.pick-others {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .04em;
+}
+
+/* =========================================================
+   構成のプリセット
+   ========================================================= */
+.comp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  min-height: 1px;
+}
+.comp-label { color: var(--muted); font-size: 10.5px; letter-spacing: .04em; }
+.comp-chip,
+.comp-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.comp-chip:hover, .comp-save:hover { color: #fff; border-color: var(--cyan); }
+.comp-save { padding: 4px 9px; border-style: dashed; }
+.comp-icons { display: inline-flex; }
+.comp-icons .avatar-xs { margin-right: -5px; }
+.comp-name {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.avatar-xs { width: 18px; height: 18px; }
 </style>
 </head>
 <body>
@@ -2434,6 +2562,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
               <span class="tag tag-ally" data-i18n="tag.ally">ALLY</span>
               <span id="roster-ally-name">OUR TEAM</span>
             </h3>
+            <div class="comp-bar" id="comp-bar-ally"></div>
             <ul class="slot-list" id="slots-ally"></ul>
           </div>
           <div class="roster-divider" aria-hidden="true"><span>VS</span></div>
@@ -2442,6 +2571,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
               <span class="tag tag-enemy" data-i18n="tag.enemy">ENEMY</span>
               <span id="roster-enemy-name">OPPONENT</span>
             </h3>
+            <div class="comp-bar" id="comp-bar-enemy"></div>
             <ul class="slot-list" id="slots-enemy"></ul>
           </div>
         </div>
@@ -2452,6 +2582,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
           <h2><span class="idx">03</span><span data-i18n="setup.deck.title">TACTIC DECK</span></h2>
           <p class="panel-sub" data-i18n="setup.deck.sub"></p>
           <div class="panel-head-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-tree" data-i18n="tree.open"></button>
             <button class="btn btn-ghost btn-sm" id="btn-cloud" data-i18n="cloud.open" hidden></button>
             <button class="btn btn-ghost btn-sm" id="btn-seed" data-i18n="deck.sample"></button>
             <button class="btn btn-primary btn-sm" id="btn-add-tactic" data-i18n="deck.add"></button>
@@ -2685,6 +2816,26 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
     </div>
     <footer class="modal-foot">
       <button type="button" class="btn btn-ghost btn-danger" id="btn-board-clear" data-i18n="board.clear"></button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-primary" data-close data-i18n="board.done"></button>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ TREE MODAL ============ -->
+<div class="modal" id="modal-tree" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card modal-wide panel-clip" role="dialog" aria-modal="true" aria-labelledby="tree-modal-title">
+    <header class="modal-head">
+      <h2 id="tree-modal-title" data-i18n="tree.title"></h2>
+      <span class="board-tactic-name" data-i18n="tree.sub"></span>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body">
+      <div class="tree-canvas" id="tree-canvas"></div>
+    </div>
+    <footer class="modal-foot">
+      <button type="button" class="btn btn-ghost btn-danger" id="btn-tree-clear" data-i18n="tree.clear"></button>
       <span class="spacer"></span>
       <button type="button" class="btn btn-primary" data-close data-i18n="board.done"></button>
     </footer>
@@ -2961,6 +3112,25 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'filter.both': '両サイド',
   'legal.disclaimer': '（訳）本アプリは Riot Games の「Legal Jibber Jabber」ポリシーに基づき、Riot Games が権利を有するアセットを使用して制作されたファンプロジェクトです。Riot Games はこのプロジェクトを承認・後援していません。',
   'legal.trademark': 'Riot Games および VALORANT に関連するすべての名称・ロゴは Riot Games, Inc. の商標または登録商標です。',
+  'tree.open': '⑂ 分岐ツリー',
+  'tree.title': '分岐ツリー',
+  'tree.sub': '勝ったら / 負けたら 次にどれを出すか',
+  'tree.win': '勝',
+  'tree.loss': '負',
+  'tree.unset': '— 未設定 —',
+  'tree.again': '（同じ戦術をもう一度）',
+  'tree.clear': '分岐をすべて消す',
+  'tree.cleared': '分岐を消しました。',
+  'tree.confirmClear': 'すべての戦術の分岐先を消します。よろしいですか？',
+  'tree.noTactics': '先に戦術を登録してください。',
+  'tree.nextAfter': '{result} のあと、ツリーの次はこれ',
+  'tree.badge': 'ツリー',
+  'tree.others': 'その他の戦術から選ぶ',
+  'comp.label': '保存した構成',
+  'comp.save': '今の構成を保存',
+  'comp.namePrompt': 'この構成の名前を入力してください',
+  'comp.saved': '「{name}」を保存しました。',
+  'comp.limit': '保存できる構成は {n} 個までです。',
   'common.close': '閉じる',
   'common.loading': '読み込み中…',
   'cloud.open': '☁ クラウド',
@@ -3343,6 +3513,25 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'filter.both': 'Both sides',
   'legal.disclaimer': 'A fan project. It doesn\u2019t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.',
   'legal.trademark': 'Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.',
+  'tree.open': '⑂ Branch tree',
+  'tree.title': 'Branch tree',
+  'tree.sub': 'What to call next on a win / on a loss',
+  'tree.win': 'W',
+  'tree.loss': 'L',
+  'tree.unset': '— not set —',
+  'tree.again': '(run the same tactic again)',
+  'tree.clear': 'Clear all branches',
+  'tree.cleared': 'Branches cleared.',
+  'tree.confirmClear': 'Clear the branches on every tactic?',
+  'tree.noTactics': 'Add a tactic first.',
+  'tree.nextAfter': 'After a {result}, the tree says:',
+  'tree.badge': 'TREE',
+  'tree.others': 'Or pick another tactic',
+  'comp.label': 'Saved comps',
+  'comp.save': 'Save this comp',
+  'comp.namePrompt': 'Name this comp',
+  'comp.saved': 'Saved \u201c{name}\u201d.',
+  'comp.limit': 'You can save up to {n} comps.',
   'common.close': 'Close',
   'common.loading': 'Loading…',
   'cloud.open': '☁ Cloud',
@@ -3717,6 +3906,25 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'filter.both': '양쪽 사이드',
   'legal.disclaimer': '(번역) 이 앱은 Riot Games의 \u201cLegal Jibber Jabber\u201d 정책에 따라 Riot Games가 권리를 보유한 애셋을 사용해 제작된 팬 프로젝트입니다. Riot Games는 이 프로젝트를 승인하거나 후원하지 않습니다.',
   'legal.trademark': 'Riot Games 및 VALORANT 관련 모든 명칭 · 로고는 Riot Games, Inc.의 상표 또는 등록상표입니다.',
+  'tree.open': '⑂ 분기 트리',
+  'tree.title': '분기 트리',
+  'tree.sub': '이기면 / 지면 다음에 무엇을 낼지',
+  'tree.win': '승',
+  'tree.loss': '패',
+  'tree.unset': '— 미설정 —',
+  'tree.again': '(같은 전술을 한 번 더)',
+  'tree.clear': '분기 모두 지우기',
+  'tree.cleared': '분기를 지웠습니다.',
+  'tree.confirmClear': '모든 전술의 분기를 지울까요?',
+  'tree.noTactics': '먼저 전술을 등록하세요.',
+  'tree.nextAfter': '{result} 다음, 트리의 추천:',
+  'tree.badge': '트리',
+  'tree.others': '다른 전술에서 고르기',
+  'comp.label': '저장한 조합',
+  'comp.save': '현재 조합 저장',
+  'comp.namePrompt': '이 조합의 이름을 입력하세요',
+  'comp.saved': '\u201c{name}\u201d을(를) 저장했습니다.',
+  'comp.limit': '조합은 {n}개까지 저장할 수 있습니다.',
   'common.close': '닫기',
   'common.loading': '불러오는 중…',
   'cloud.open': '☁ 클라우드',
@@ -5267,6 +5475,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       },
       allies:  [emptySlot(), emptySlot(), emptySlot(), emptySlot(), emptySlot()],
       enemies: [emptySlot(), emptySlot(), emptySlot(), emptySlot(), emptySlot()],
+      /* よく使う 5 人構成。エージェントセレクトの時間を稼ぐためのもの */
+      comps: [],
       tactics: [],
       rounds: [],                     // 確定したラウンドの記録
       pending: null,                  // 現在ラウンドにセット済みの戦術 { tacticId, economy }
@@ -5305,8 +5515,50 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     state.rounds  = Array.isArray(obj.rounds) ? obj.rounds.filter(function (r) {
       return r && (r.result === 'WIN' || r.result === 'LOSS');
     }) : [];
+    state.comps   = normalizeComps(obj.comps);
     state.pending = obj.pending && obj.pending.tacticId ? obj.pending : null;
     state.sideOverrides = obj.sideOverrides && typeof obj.sideOverrides === 'object' ? obj.sideOverrides : {};
+  }
+
+  /* 保存した 5 人構成。上限を切っておかないと
+     押し間違いで際限なく増える */
+  const MAX_COMPS = 12;
+
+  function normalizeComps(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.slice(0, MAX_COMPS).map(function (c) {
+      return {
+        id: String((c && c.id) || uid()),
+        name: String((c && c.name) || '').slice(0, 30),
+        agents: (Array.isArray(c && c.agents) ? c.agents : [])
+          .slice(0, 5)
+          .map(function (a) { return typeof a === 'string' ? a : ''; })
+      };
+    }).filter(function (c) { return c.agents.some(Boolean); });
+  }
+
+  function saveComp(name, agents) {
+    if (state.comps.length >= MAX_COMPS) return null;
+    const comp = normalizeComps([{ name: name, agents: agents }])[0];
+    if (!comp) return null;
+    state.comps.push(comp);
+    save();
+    return comp;
+  }
+
+  function removeComp(id) {
+    state.comps = state.comps.filter(function (c) { return c.id !== id; });
+    save();
+  }
+
+  /** 保存した構成をスロットへ流し込む。プレイヤー名は触らない */
+  function applyComp(team, id) {
+    const comp = state.comps.filter(function (c) { return c.id === id; })[0];
+    if (!comp) return false;
+    const roster = team === 'enemy' ? state.enemies : state.allies;
+    for (let i = 0; i < 5; i++) roster[i].agent = comp.agents[i] || '';
+    save();
+    return true;
   }
 
   function normalizeRoster(arr) {
@@ -5329,8 +5581,17 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       site: String(t.site || '-').slice(0, 8),
       kind: t.kind || 'execute',
       note: String(t.note || '').slice(0, 400),
+      next: normalizeNext(t.next),
       phases: normalizePhases(t)
     };
+  }
+
+  /* 勝敗ごとの次の戦術。指す先が消されていても壊れないよう、
+     ここでは形だけ整えて中身の存在確認は読むときに行う（tree.js） */
+  function normalizeNext(next) {
+    const src = next && typeof next === 'object' ? next : {};
+    const pick = function (v) { return typeof v === 'string' && v ? v.slice(0, 40) : null; };
+    return { win: pick(src.win), loss: pick(src.loss) };
   }
 
   /* 局面（フェーズ）。A フェイク → B 本命 のように時間で分かれる動きを
@@ -5587,6 +5848,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     exportJSON: exportJSON,
     importJSON: importJSON,
     importObject: importObject,
+    saveComp: saveComp,
+    removeComp: removeComp,
+    applyComp: applyComp,
+    MAX_COMPS: MAX_COMPS,
     seedSamples: function () {
       const I = global.VCT_I18N;
       D.SAMPLE_TACTICS.forEach(function (t) {
@@ -5981,6 +6246,235 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   global.VCT_ANALYST = { analyze: analyze };
+})(window);
+</script>
+<script>
+/* ---- assets/js/tree.js ---- */
+/* =========================================================
+   TACTIC TREE — 勝敗で分岐する戦術のつながり
+   ---------------------------------------------------------
+   「この戦術で勝ったら次はこれ、負けたらこれ」を戦術ごとに持たせ、
+   ラウンドの勝敗が付いた時点で次の候補を出せるようにする。
+
+   データ:
+     tactic.next = { win: <tacticId>|null, loss: <tacticId>|null }
+
+   ツリーと言いつつ実際は有向グラフ。
+   「勝ったら同じ形をもう一度」（自分自身へ戻る）や、
+   2 つの戦術が互いを指す形は実戦で普通に出てくるので、
+   循環を禁止せず、描画側で辿り直さないようにして扱う。
+
+   分岐は縛りではなく道しるべ。ライブ画面では
+   ツリーの次を先頭に出したうえで、他の戦術も必ず選べるようにしている。
+   ========================================================= */
+(function (global) {
+  'use strict';
+
+  const RESULTS = ['win', 'loss'];
+
+  /* 描画の寸法。ノードの箱と列の間隔 */
+  const NODE_W = 208;
+  const NODE_H = 78;
+  const COL_GAP = 86;
+  const ROW_GAP = 18;
+  const PAD = 16;
+
+  function esc(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function ensure(tactic) {
+    if (!tactic) return null;
+    if (!tactic.next || typeof tactic.next !== 'object') tactic.next = { win: null, loss: null };
+    RESULTS.forEach(function (r) {
+      if (typeof tactic.next[r] !== 'string' || !tactic.next[r]) tactic.next[r] = null;
+    });
+    return tactic.next;
+  }
+
+  /**
+   * 分岐先の戦術。
+   * 消された戦術を指したままの枝は、存在しない扱いにして黙って無視する。
+   * （消すたびに全戦術を舐めて掃除するより、読むときに確かめる方が安全）
+   */
+  function nextOf(tactics, tactic, result) {
+    const next = ensure(tactic);
+    if (!next) return null;
+    const key = result === 'WIN' || result === 'win' ? 'win' : 'loss';
+    const id = next[key];
+    if (!id) return null;
+    return tactics.filter(function (t) { return t.id === id; })[0] || null;
+  }
+
+  function setNext(tactic, result, id) {
+    const next = ensure(tactic);
+    if (!next) return;
+    const key = result === 'WIN' || result === 'win' ? 'win' : 'loss';
+    next[key] = id || null;
+  }
+
+  /** 分岐がひとつでも設定されているか */
+  function hasBranches(tactics) {
+    return tactics.some(function (t) {
+      const n = ensure(t);
+      return !!(n.win || n.loss);
+    });
+  }
+
+  /* ---------------- 配置 ---------------- */
+
+  /**
+   * 各戦術を「何手目に出てくるか」で列に振り分ける。
+   * 入ってくる枝が無いものを起点にし、そこから幅優先で辿る。
+   * 全部が循環している場合は起点が見つからないので、
+   * 残ったものを順に起点として扱う。
+   */
+  function layout(tactics) {
+    const byId = {};
+    tactics.forEach(function (t) { ensure(t); byId[t.id] = t; });
+
+    const incoming = {};
+    tactics.forEach(function (t) {
+      RESULTS.forEach(function (r) {
+        const id = t.next[r];
+        /* 自分から自分への枝は「入ってくる枝」に数えない。
+           数えると自己ループだけの戦術が起点から外れて消える */
+        if (id && byId[id] && id !== t.id) incoming[id] = (incoming[id] || 0) + 1;
+      });
+    });
+
+    const col = {};
+    const order = [];
+    const queue = [];
+
+    tactics.forEach(function (t) {
+      if (!incoming[t.id]) { col[t.id] = 0; order.push(t.id); queue.push(t.id); }
+    });
+    /* 全部が循環している場合の逃げ道 */
+    if (!queue.length && tactics.length) {
+      col[tactics[0].id] = 0; order.push(tactics[0].id); queue.push(tactics[0].id);
+    }
+
+    while (queue.length) {
+      const id = queue.shift();
+      const t = byId[id];
+      RESULTS.forEach(function (r) {
+        const nid = t.next[r];
+        if (!nid || !byId[nid] || col[nid] !== undefined) return;
+        col[nid] = col[id] + 1;
+        order.push(nid);
+        queue.push(nid);
+      });
+    }
+
+    /* どこからも辿り着けなかったもの（循環の中だけにいる戦術）を拾う */
+    tactics.forEach(function (t) {
+      if (col[t.id] === undefined) { col[t.id] = 0; order.push(t.id); }
+    });
+
+    const rows = {};
+    const nodes = order.map(function (id) {
+      const c = col[id];
+      const row = rows[c] = (rows[c] === undefined ? 0 : rows[c] + 1);
+      return {
+        id: id,
+        tactic: byId[id],
+        col: c,
+        row: row,
+        x: PAD + c * (NODE_W + COL_GAP),
+        y: PAD + row * (NODE_H + ROW_GAP)
+      };
+    });
+
+    const pos = {};
+    nodes.forEach(function (n) { pos[n.id] = n; });
+
+    const edges = [];
+    nodes.forEach(function (n) {
+      RESULTS.forEach(function (r) {
+        const nid = n.tactic.next[r];
+        if (nid && pos[nid]) edges.push({ from: n.id, to: nid, result: r });
+      });
+    });
+
+    const cols = Math.max.apply(null, nodes.map(function (n) { return n.col; }).concat([0])) + 1;
+    const maxRow = Math.max.apply(null, nodes.map(function (n) { return n.row; }).concat([0])) + 1;
+
+    return {
+      nodes: nodes,
+      edges: edges,
+      pos: pos,
+      width: PAD * 2 + cols * NODE_W + (cols - 1) * COL_GAP,
+      height: PAD * 2 + maxRow * NODE_H + (maxRow - 1) * ROW_GAP
+    };
+  }
+
+  /* ---------------- 描画 ---------------- */
+
+  /**
+   * 枝の線。ノードの箱は HTML で置くので、線だけを裏の SVG に描く。
+   * 直線で結ぶと箱の上を横切って読めなくなるため、
+   * 一度右へ出してから縦に降り、そこから左へ入る折れ線にしている。
+   */
+  function edgePath(a, b) {
+    const x1 = a.x + NODE_W;
+    const y1 = a.y + NODE_H / 2;
+    const x2 = b.x;
+    const y2 = b.y + NODE_H / 2;
+
+    /* 自分自身へ戻る枝は、右に出して上を回り込ませる */
+    if (a.id === b.id) {
+      const top = a.y - 10;
+      return 'M' + x1 + ' ' + y1 +
+             ' H' + (x1 + 24) + ' V' + top + ' H' + (a.x - 24) + ' V' + y1 + ' H' + a.x;
+    }
+
+    /* 前の列へ戻る枝は、下を回り込ませる */
+    if (x2 <= x1) {
+      const bottom = Math.max(a.y, b.y) + NODE_H + 12;
+      return 'M' + x1 + ' ' + y1 +
+             ' H' + (x1 + 20) + ' V' + bottom + ' H' + (x2 - 20) + ' V' + y2 + ' H' + x2;
+    }
+
+    const mid = x1 + (x2 - x1) / 2;
+    return 'M' + x1 + ' ' + y1 + ' H' + mid + ' V' + y2 + ' H' + x2;
+  }
+
+  function edgeLayerHTML(plan) {
+    const paths = plan.edges.map(function (e) {
+      const a = plan.pos[e.from];
+      const b = plan.pos[e.to];
+      return '<path class="tree-edge tree-edge-' + e.result + '" d="' + edgePath(a, b) + '" ' +
+             'marker-end="url(#tree-arrow-' + e.result + ')" />';
+    }).join('');
+
+    return '<svg class="tree-edges" width="' + plan.width + '" height="' + plan.height + '" ' +
+             'aria-hidden="true">' +
+             '<defs>' +
+               '<marker id="tree-arrow-win" viewBox="0 0 10 10" refX="9" refY="5" ' +
+                 'markerWidth="5" markerHeight="5" orient="auto-start-reverse">' +
+                 '<path d="M0 0 L10 5 L0 10 z" fill="#35C6E8" /></marker>' +
+               '<marker id="tree-arrow-loss" viewBox="0 0 10 10" refX="9" refY="5" ' +
+                 'markerWidth="5" markerHeight="5" orient="auto-start-reverse">' +
+                 '<path d="M0 0 L10 5 L0 10 z" fill="#FF4655" /></marker>' +
+             '</defs>' + paths +
+           '</svg>';
+  }
+
+  global.VCT_TREE = {
+    RESULTS: RESULTS,
+    NODE_W: NODE_W,
+    NODE_H: NODE_H,
+    ensure: ensure,
+    nextOf: nextOf,
+    setNext: setNext,
+    hasBranches: hasBranches,
+    layout: layout,
+    edgeLayerHTML: edgeLayerHTML,
+    esc: esc
+  };
 })(window);
 </script>
 <script>
@@ -7009,6 +7503,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   function renderRoster() {
+    renderCompBar('ally');
+    renderCompBar('enemy');
     [['ally', 'slots-ally'], ['enemy', 'slots-enemy']].forEach(function (pair) {
       const team = pair[0];
       const list = S.state[team === 'ally' ? 'allies' : 'enemies'];
@@ -7385,6 +7881,100 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
                '<span class="legend-steps">' + steps + '</span>' +
              '</li>';
     }).join('') + '</ul>';
+  }
+
+  /* --- 構成のプリセット --- */
+
+  /**
+   * 保存済みの 5 人構成。
+   * エージェントセレクトの 30 秒で 10 体を選び直すのは間に合わないので、
+   * よく当たる構成を 1 クリックで流し込めるようにしている。
+   */
+  function renderCompBar(team) {
+    const list = S.state.comps || [];
+    const filled = (team === 'enemy' ? S.state.enemies : S.state.allies)
+      .filter(function (s2) { return s2.agent; }).length;
+
+    const chips = list.map(function (c) {
+      const icons = c.agents.filter(Boolean).map(function (id) {
+        return avatarHTML(id, 'avatar-xs');
+      }).join('');
+      return '<button type="button" class="comp-chip" data-comp-apply="' + esc(c.id) + '" ' +
+               'data-comp-team="' + team + '" title="' + esc(c.name) + '">' +
+               '<span class="comp-icons">' + icons + '</span>' +
+               '<span class="comp-name">' + esc(c.name) + '</span>' +
+             '</button>';
+    }).join('');
+
+    /* 保存できるのは 5 人揃っているときだけ。
+       欠けた構成を保存しても呼び出したとき結局埋め直しになる */
+    const save = filled === 5 && list.length < S.MAX_COMPS
+      ? '<button type="button" class="comp-save" data-comp-save="' + team + '">＋ ' +
+          t('comp.save') + '</button>'
+      : '';
+
+    $('comp-bar-' + team).innerHTML =
+      (chips || save ? '<span class="comp-label">' + t('comp.label') + '</span>' : '') + chips + save;
+  }
+
+  /* --- 分岐ツリー --- */
+
+  /**
+   * 戦術の分岐図。
+   * 線は裏の SVG、ノードは HTML の箱。
+   * 全部 SVG で描くと分岐先を選ぶ操作を自前で作ることになるので、
+   * 箱は HTML にして素の <select> を使っている。
+   */
+  function renderTree(uiState) {
+    const T = global.VCT_TREE;
+    const tactics = S.state.tactics;
+    const el = $('tree-canvas');
+
+    if (!tactics.length) {
+      el.innerHTML = '<p class="deck-empty">' + t('tree.noTactics') + '</p>';
+      return;
+    }
+
+    const plan = T.layout(tactics);
+    const nodes = plan.nodes.map(function (n) {
+      return nodeHTML(n, tactics, uiState);
+    }).join('');
+
+    el.innerHTML =
+      '<div class="tree-stage" style="width:' + plan.width + 'px;height:' + plan.height + 'px">' +
+        T.edgeLayerHTML(plan) + nodes +
+      '</div>';
+  }
+
+  function nodeHTML(n, tactics, uiState) {
+    const T = global.VCT_TREE;
+    const tac = n.tactic;
+    const current = uiState && uiState.treeFocusId === tac.id;
+
+    const picker = function (result) {
+      const sel = tac.next[result] || '';
+      const opts = ['<option value="">' + esc(t('tree.unset')) + '</option>'].concat(
+        tactics.map(function (o) {
+          return '<option value="' + esc(o.id) + '"' + (o.id === sel ? ' selected' : '') + '>' +
+                   esc(o.id === tac.id ? t('tree.again') : o.name) + '</option>';
+        })
+      ).join('');
+      return '<label class="tree-branch tree-branch-' + result + '">' +
+               '<span>' + t('tree.' + result) + '</span>' +
+               '<select data-tree-node="' + esc(tac.id) + '" data-tree-result="' + result + '">' +
+                 opts + '</select>' +
+             '</label>';
+    };
+
+    return '<article class="tree-node' + (current ? ' is-current' : '') + '" ' +
+             'data-side="' + esc(tac.side) + '" ' +
+             'style="left:' + n.x + 'px;top:' + n.y + 'px;width:' + T.NODE_W + 'px">' +
+             '<h4>' +
+               '<span class="badge badge-site">' + esc(tac.site || '-') + '</span>' +
+               '<b>' + esc(tac.name) + '</b>' +
+             '</h4>' +
+             '<div class="tree-branches">' + picker('win') + picker('loss') + '</div>' +
+           '</article>';
   }
 
   /* --- クラウド保存 --- */
@@ -7801,11 +8391,38 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       ? '<span class="result-pill ' + (last.result === 'WIN' ? 'win">' + t('stage.prevWin') : 'loss">' + t('stage.prevLoss')) + '</span>'
       : '<span class="result-pill">' + t('stage.start') + '</span>';
 
+    /* 直前ラウンドの結果から、ツリーが指している次の戦術。
+       縛りではなく道しるべなので、先頭に出したうえで
+       他の戦術も必ず選べるようにしておく */
+    const T = global.VCT_TREE;
+    const suggested = last ? T.nextOf(S.state.tactics, S.tacticById(last.tacticId), last.result) : null;
+    const treeHTML = suggested
+      ? '<div class="tree-next">' +
+          '<span class="tree-next-label">' +
+            t('tree.nextAfter', { result: t(last.result === 'WIN' ? 'res.win' : 'res.loss') }) +
+          '</span>' +
+          '<button type="button" class="pick is-tree" data-act="pick" data-id="' + esc(suggested.id) + '">' +
+            '<span class="pick-score good"><b>⑂</b><small>' + t('tree.badge') + '</small></span>' +
+            '<span class="pick-main">' +
+              '<span class="pick-name">' + esc(suggested.name) + sideBadge(suggested.side) +
+                '<span class="badge badge-site">' + esc(suggested.site || '-') + '</span>' +
+              '</span>' +
+              (suggested.note ? '<span class="pick-reasons"><span class="reason">' +
+                esc(suggested.note) + '</span></span>' : '') +
+            '</span>' +
+          '</button>' +
+        '</div>'
+      : '';
+
+    const listLabel = suggested
+      ? '<p class="pick-others">' + t('tree.others') + '</p>'
+      : '';
+
     const body = ranked.length
-      ? '<div class="pick-list">' + ranked.map(function (r, i) {
+      ? treeHTML + listLabel + '<div class="pick-list">' + ranked.map(function (r, i) {
           const st = r.stats;
           return '' +
-            '<button type="button" class="pick' + (i === 0 ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '">' +
+            '<button type="button" class="pick' + (i === 0 && !suggested ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '">' +
               '<span class="pick-score ' + r.tone + '"><b>' + r.score + '</b><small>' + t('pick.score') + '</small></span>' +
               '<span class="pick-main">' +
                 '<span class="pick-name">' + esc(r.tactic.name) + sideBadge(r.tactic.side) +
@@ -8058,6 +8675,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     renderMatchFields: renderMatchFields,
     renderRoster: renderRoster,
     renderCloud: renderCloud,
+    renderTree: renderTree,
+    renderCompBar: renderCompBar,
     renderDeck: renderDeck,
     renderDeckGroupSelect: renderDeckGroupSelect,
     renderReady: renderReady,
@@ -8120,6 +8739,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /* 画面側だけが持つ一時状態 */
+  const TREE = global.VCT_TREE;
+
   const ui = {
     view: 'setup',            // 'setup' | 'live' | 'community'
     deckFilter: 'ALL',
@@ -8138,6 +8759,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     postSort: 'new',
     postMap: '',
     postTacticId: null,
+    treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
     cloudLoading: false,
 
@@ -8217,10 +8839,27 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
+
+  /* 構成の名前の下書き。頭 2 体の略称を並べておくと、
+     あとから一覧で見分けやすい */
+  function suggestCompName(roster) {
+    return roster.map(function (s2) {
+      const a = D.agentById(s2.agent);
+      return a ? a.abbr : '';
+    }).filter(Boolean).slice(0, 3).join('/');
+  }
+
+  /** 埋まっていない次のスロット。無ければ -1 */
+  function nextEmptySlot(team, from) {
+    const list = rosterOf(team);
+    for (let i = from + 1; i < list.length; i++) if (!list[i].agent) return i;
+    for (let i = 0; i <= from; i++) if (!list[i].agent) return i;
+    return -1;
+  }
 
   function openAgentModal(team, index) {
     ui.agentTarget = { team: team, index: index };
@@ -8309,6 +8948,42 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       const a = D.agentById(s.agent);
       return a ? a.name : null;
     }).filter(Boolean);
+  }
+
+  /* ================= 分岐ツリー ================= */
+
+  function openTreeModal() {
+    const last = S.lastRound();
+    ui.treeFocusId = S.state.pending ? S.state.pending.tacticId : (last ? last.tacticId : null);
+    U.renderTree(ui);
+    openModal('modal-tree');
+  }
+
+  function bindTree() {
+    $('btn-tree').addEventListener('click', openTreeModal);
+
+    /* 分岐先の変更。線を引き直すので毎回まるごと描き直す。
+       ノードは数十個までなので、差分更新に踏み込む理由がない */
+    $('tree-canvas').addEventListener('change', function (e) {
+      const sel = e.target.closest('[data-tree-node]');
+      if (!sel) return;
+      const tac = S.tacticById(sel.dataset.treeNode);
+      if (!tac) return;
+      TREE.setNext(tac, sel.dataset.treeResult, sel.value || null);
+      S.save();
+      U.renderTree(ui);
+    });
+
+    $('btn-tree-clear').addEventListener('click', function () {
+      if (!confirm(t('tree.confirmClear'))) return;
+      S.state.tactics.forEach(function (tac) {
+        TREE.setNext(tac, 'win', null);
+        TREE.setNext(tac, 'loss', null);
+      });
+      S.save();
+      U.renderTree(ui);
+      U.toast(t('tree.cleared'));
+    });
   }
 
   /* ================= クラウド保存 ================= */
@@ -8879,6 +9554,31 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       S.save();
     });
 
+    ['comp-bar-ally', 'comp-bar-enemy'].forEach(function (id) {
+      $(id).addEventListener('click', function (e) {
+        const apply = e.target.closest('[data-comp-apply]');
+        if (apply) {
+          S.applyComp(apply.dataset.compTeam, apply.dataset.compApply);
+          ui.analysis = null;
+          ui.aiReview = null;
+          renderAll();
+          return;
+        }
+        const save = e.target.closest('[data-comp-save]');
+        if (!save) return;
+        const team = save.dataset.compSave;
+        const roster = team === 'enemy' ? S.state.enemies : S.state.allies;
+        const name = (prompt(t('comp.namePrompt'), suggestCompName(roster)) || '').trim();
+        if (!name) return;
+        if (!S.saveComp(name, roster.map(function (s2) { return s2.agent; }))) {
+          U.toast(t('comp.limit', { n: S.MAX_COMPS }), 'err');
+          return;
+        }
+        renderAll();
+        U.toast(t('comp.saved', { name: name }), 'ok');
+      });
+    });
+
     ['slots-ally', 'slots-enemy'].forEach(function (id) {
       $(id).addEventListener('click', function (e) {
         const btn = e.target.closest('.slot');
@@ -9210,14 +9910,26 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     $('agent-grid').addEventListener('click', function (e) {
       const opt = e.target.closest('.agent-opt');
       if (!opt || !ui.agentTarget) return;
-      const slot = rosterOf(ui.agentTarget.team)[ui.agentTarget.index];
+      const team = ui.agentTarget.team;
+      const index = ui.agentTarget.index;
+      const slot = rosterOf(team)[index];
       slot.agent = opt.dataset.agent;
       slot.player = $('agent-player').value.trim();
       S.save();
       ui.analysis = null;
       ui.aiReview = null;
-      closeModal('modal-agent');
+
+      /* エージェントセレクトは 30 秒しかない。1 体ごとに閉じて開き直すのでは
+         間に合わないので、空いている次のスロットへそのまま送る。
+         全部埋まったら閉じる */
+      const nextIndex = nextEmptySlot(team, index);
+      if (nextIndex < 0) {
+        closeModal('modal-agent');
+        renderAll();
+        return;
+      }
       renderAll();
+      openAgentModal(team, nextIndex);
     });
 
     $('agent-player').addEventListener('input', function (e) {
@@ -9379,7 +10091,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         return;
       }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;
@@ -9452,6 +10164,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     bindLive();
     bindCommunity();
     bindCloud();
+    bindTree();
     bindBoardEditor();
     bindAgentModal();
     bindTacticModal();

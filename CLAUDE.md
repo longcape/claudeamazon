@@ -59,7 +59,7 @@ node tools/smoke-test.mjs
 ```
 config → i18n → locales(ja/en/ko) → data → agent-traits → abilities
   → portraits → maps-layout → official-assets → store
-  → advisor → analyst → board → share → community → ui → app
+  → advisor → analyst → tree → board → share → community → ui → app
 ```
 
 `official-assets.js` は**自動生成**（`tools/fetch-assets.mjs` が書く）。
@@ -84,6 +84,7 @@ config → i18n → locales(ja/en/ko) → data → agent-traits → abilities
 | `VCT_STORE` | store.js | 状態と localStorage への保存。正規化もここ |
 | `VCT_ADVISOR` | advisor.js | 次ラウンドの戦術推奨スコア |
 | `VCT_ANALYST` | analyst.js | 構成の相性判定（ルールベース） |
+| `VCT_TREE` | tree.js | 勝敗で分岐する戦術のつながりと、その配置計算 |
 | `VCT_BOARD` | board.js | 配置盤のデータ構造と SVG 描画 |
 | `VCT_SHARE` | share.js | X ポスト / クリップボード |
 | `VCT_COMMUNITY` | community.js | Supabase（PostgREST / GoTrue を直接 fetch） |
@@ -102,6 +103,7 @@ config → i18n → locales(ja/en/ko) → data → agent-traits → abilities
 ```js
 tactic = {
   id, name, side: 'ATK'|'DEF'|'BOTH', site, kind, note,
+  next: { win: <tacticId>|null, loss: <tacticId>|null },   // 分岐ツリー
   phases: [                      // 局面。最大 4 枚（board.js の MAX_PHASES）
     {
       id, name,                  // 名前は空でよい。空なら「局面 N」と表示
@@ -185,6 +187,29 @@ egress proxy が `valorant-api.com` を 403 で塞いでいる（ポリシー拒
 手書きで持つと必ず古くなる（実際にネオンのリレーボルトで誤表示した）。
 配置盤では**置いた数と使用順**で意図が伝わるので、表示自体をやめている。
 「チャージ数を出そう」という提案が来ても、この理由で断ること。
+
+### 分岐ツリー
+
+`tactic.next` に「勝ったら次はこれ / 負けたらこれ」を持たせている。
+
+**ツリーと言いつつ実体は有向グラフ。** 「勝ったら同じ形をもう一度」
+（自己ループ）や、2 つの戦術が互いを指す形は実戦で普通に出るので、
+循環を禁止していない。`layout()` は一度置いたノードを辿り直さないことで
+無限ループを避けている。
+
+**消された戦術を指したままの枝は、読むときに存在を確かめて無視する。**
+戦術を消すたびに全件を舐めて掃除する方式にしていない。
+
+**分岐は縛りではなく道しるべ。** ライブ画面ではツリーの次を先頭に出すが、
+その下に必ず全戦術を並べる（`tree.others`）。実戦では相手の対応次第で
+外れるので、閉じ込めると使い物にならない。
+
+### 構成のプリセット
+
+`state.comps` に 5 人構成を保存できる（上限 12）。
+エージェントピッカーは 1 体選ぶと**空いている次のスロットへ自動で送る**。
+エージェントセレクトは 30 秒しかなく、1 体ごとに閉じて開き直すと
+間に合わないため。全部埋まったら閉じる。
 
 ### 配置盤の操作
 
@@ -271,6 +296,7 @@ egress proxy が `valorant-api.com` を 403 で塞いでいる（ポリシー拒
 | 項目 | 状態 |
 | --- | --- |
 | BUY マネー計算 | 未着手（ユーザーが一旦保留と判断） |
+| Riot Games API | **見送り**。ライブの試合データは API に存在せず、試合前の相手情報を見ること（scouting）と、その場で行動を変えるリアルタイム提示が開発者ポリシーで禁止されている。構成は手入力のままにして、入力を速くする方向で解決した。詳細は `docs/LEGAL.md` |
 | 戦術のクラウド保存 | UI まで結線済み。**実際の Supabase では未検証**（この環境からプロジェクトを立てられないため、通信を差し替えた状態でしか確かめていない） |
 
 ### クラウド保存について

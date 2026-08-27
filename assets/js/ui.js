@@ -151,6 +151,8 @@
   }
 
   function renderRoster() {
+    renderCompBar('ally');
+    renderCompBar('enemy');
     [['ally', 'slots-ally'], ['enemy', 'slots-enemy']].forEach(function (pair) {
       const team = pair[0];
       const list = S.state[team === 'ally' ? 'allies' : 'enemies'];
@@ -527,6 +529,100 @@
                '<span class="legend-steps">' + steps + '</span>' +
              '</li>';
     }).join('') + '</ul>';
+  }
+
+  /* --- 構成のプリセット --- */
+
+  /**
+   * 保存済みの 5 人構成。
+   * エージェントセレクトの 30 秒で 10 体を選び直すのは間に合わないので、
+   * よく当たる構成を 1 クリックで流し込めるようにしている。
+   */
+  function renderCompBar(team) {
+    const list = S.state.comps || [];
+    const filled = (team === 'enemy' ? S.state.enemies : S.state.allies)
+      .filter(function (s2) { return s2.agent; }).length;
+
+    const chips = list.map(function (c) {
+      const icons = c.agents.filter(Boolean).map(function (id) {
+        return avatarHTML(id, 'avatar-xs');
+      }).join('');
+      return '<button type="button" class="comp-chip" data-comp-apply="' + esc(c.id) + '" ' +
+               'data-comp-team="' + team + '" title="' + esc(c.name) + '">' +
+               '<span class="comp-icons">' + icons + '</span>' +
+               '<span class="comp-name">' + esc(c.name) + '</span>' +
+             '</button>';
+    }).join('');
+
+    /* 保存できるのは 5 人揃っているときだけ。
+       欠けた構成を保存しても呼び出したとき結局埋め直しになる */
+    const save = filled === 5 && list.length < S.MAX_COMPS
+      ? '<button type="button" class="comp-save" data-comp-save="' + team + '">＋ ' +
+          t('comp.save') + '</button>'
+      : '';
+
+    $('comp-bar-' + team).innerHTML =
+      (chips || save ? '<span class="comp-label">' + t('comp.label') + '</span>' : '') + chips + save;
+  }
+
+  /* --- 分岐ツリー --- */
+
+  /**
+   * 戦術の分岐図。
+   * 線は裏の SVG、ノードは HTML の箱。
+   * 全部 SVG で描くと分岐先を選ぶ操作を自前で作ることになるので、
+   * 箱は HTML にして素の <select> を使っている。
+   */
+  function renderTree(uiState) {
+    const T = global.VCT_TREE;
+    const tactics = S.state.tactics;
+    const el = $('tree-canvas');
+
+    if (!tactics.length) {
+      el.innerHTML = '<p class="deck-empty">' + t('tree.noTactics') + '</p>';
+      return;
+    }
+
+    const plan = T.layout(tactics);
+    const nodes = plan.nodes.map(function (n) {
+      return nodeHTML(n, tactics, uiState);
+    }).join('');
+
+    el.innerHTML =
+      '<div class="tree-stage" style="width:' + plan.width + 'px;height:' + plan.height + 'px">' +
+        T.edgeLayerHTML(plan) + nodes +
+      '</div>';
+  }
+
+  function nodeHTML(n, tactics, uiState) {
+    const T = global.VCT_TREE;
+    const tac = n.tactic;
+    const current = uiState && uiState.treeFocusId === tac.id;
+
+    const picker = function (result) {
+      const sel = tac.next[result] || '';
+      const opts = ['<option value="">' + esc(t('tree.unset')) + '</option>'].concat(
+        tactics.map(function (o) {
+          return '<option value="' + esc(o.id) + '"' + (o.id === sel ? ' selected' : '') + '>' +
+                   esc(o.id === tac.id ? t('tree.again') : o.name) + '</option>';
+        })
+      ).join('');
+      return '<label class="tree-branch tree-branch-' + result + '">' +
+               '<span>' + t('tree.' + result) + '</span>' +
+               '<select data-tree-node="' + esc(tac.id) + '" data-tree-result="' + result + '">' +
+                 opts + '</select>' +
+             '</label>';
+    };
+
+    return '<article class="tree-node' + (current ? ' is-current' : '') + '" ' +
+             'data-side="' + esc(tac.side) + '" ' +
+             'style="left:' + n.x + 'px;top:' + n.y + 'px;width:' + T.NODE_W + 'px">' +
+             '<h4>' +
+               '<span class="badge badge-site">' + esc(tac.site || '-') + '</span>' +
+               '<b>' + esc(tac.name) + '</b>' +
+             '</h4>' +
+             '<div class="tree-branches">' + picker('win') + picker('loss') + '</div>' +
+           '</article>';
   }
 
   /* --- クラウド保存 --- */
@@ -943,11 +1039,38 @@
       ? '<span class="result-pill ' + (last.result === 'WIN' ? 'win">' + t('stage.prevWin') : 'loss">' + t('stage.prevLoss')) + '</span>'
       : '<span class="result-pill">' + t('stage.start') + '</span>';
 
+    /* 直前ラウンドの結果から、ツリーが指している次の戦術。
+       縛りではなく道しるべなので、先頭に出したうえで
+       他の戦術も必ず選べるようにしておく */
+    const T = global.VCT_TREE;
+    const suggested = last ? T.nextOf(S.state.tactics, S.tacticById(last.tacticId), last.result) : null;
+    const treeHTML = suggested
+      ? '<div class="tree-next">' +
+          '<span class="tree-next-label">' +
+            t('tree.nextAfter', { result: t(last.result === 'WIN' ? 'res.win' : 'res.loss') }) +
+          '</span>' +
+          '<button type="button" class="pick is-tree" data-act="pick" data-id="' + esc(suggested.id) + '">' +
+            '<span class="pick-score good"><b>⑂</b><small>' + t('tree.badge') + '</small></span>' +
+            '<span class="pick-main">' +
+              '<span class="pick-name">' + esc(suggested.name) + sideBadge(suggested.side) +
+                '<span class="badge badge-site">' + esc(suggested.site || '-') + '</span>' +
+              '</span>' +
+              (suggested.note ? '<span class="pick-reasons"><span class="reason">' +
+                esc(suggested.note) + '</span></span>' : '') +
+            '</span>' +
+          '</button>' +
+        '</div>'
+      : '';
+
+    const listLabel = suggested
+      ? '<p class="pick-others">' + t('tree.others') + '</p>'
+      : '';
+
     const body = ranked.length
-      ? '<div class="pick-list">' + ranked.map(function (r, i) {
+      ? treeHTML + listLabel + '<div class="pick-list">' + ranked.map(function (r, i) {
           const st = r.stats;
           return '' +
-            '<button type="button" class="pick' + (i === 0 ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '">' +
+            '<button type="button" class="pick' + (i === 0 && !suggested ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '">' +
               '<span class="pick-score ' + r.tone + '"><b>' + r.score + '</b><small>' + t('pick.score') + '</small></span>' +
               '<span class="pick-main">' +
                 '<span class="pick-name">' + esc(r.tactic.name) + sideBadge(r.tactic.side) +
@@ -1200,6 +1323,8 @@
     renderMatchFields: renderMatchFields,
     renderRoster: renderRoster,
     renderCloud: renderCloud,
+    renderTree: renderTree,
+    renderCompBar: renderCompBar,
     renderDeck: renderDeck,
     renderDeckGroupSelect: renderDeckGroupSelect,
     renderReady: renderReady,

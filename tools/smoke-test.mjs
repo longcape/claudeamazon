@@ -59,7 +59,10 @@ page.on('console', (m) => {
   /* フォントの読み込み失敗はオフライン確認時に必ず出るので除く */
   if (m.type() === 'error' && !/ERR_|fonts/.test(m.text())) pageErrors.push(m.text());
 });
-page.on('dialog', (d) => d.accept());
+/* confirm は素通し、prompt は答えを差し替えられるようにしておく。
+   ここで一括して受けるので、個別に on('dialog') を足さないこと（二重応答になる） */
+let promptAnswer = '';
+page.on('dialog', (d) => d.accept(promptAnswer));
 
 await page.goto('file://' + DIST);
 await page.waitForTimeout(600);
@@ -137,14 +140,91 @@ check('Riot 指定の文言が出ている',
    設定済みの挙動は実際の Supabase が要るのでここでは見ない */
 check('未設定ならクラウド保存は隠れる', await page.locator('#btn-cloud').isHidden());
 
+/* ---------------- 構成の入力 ---------------- */
+/* エージェントセレクトは 30 秒。1 体ごとに開き直していては間に合わない */
+console.log('\n構成');
+await page.click('#slots-ally .slot[data-index="0"]');
+await page.waitForTimeout(250);
+for (const a of ALLY) {
+  await page.click(`.agent-opt[data-agent="${a}"]`);
+  await page.waitForTimeout(160);
+}
+const allyPicked = await page.evaluate(() => window.VCT_STORE.state.allies.map((s) => s.agent));
+check('5 クリックで味方 5 人が埋まる', allyPicked.every(Boolean), JSON.stringify(allyPicked));
+check('埋まりきったら閉じる', await page.locator('#modal-agent').isHidden());
+
+await page.click('#slots-enemy .slot[data-index="0"]');
+await page.waitForTimeout(250);
+for (const a of ENEMY) {
+  await page.click(`.agent-opt[data-agent="${a}"]`);
+  await page.waitForTimeout(160);
+}
+
+/* 構成のプリセット。名前は prompt で聞くので受け答えを差し替える */
+promptAnswer = 'テスト構成';
+await page.click('[data-comp-save="ally"]');
+await page.waitForTimeout(400);
+check('構成を保存できる', (await page.locator('#comp-bar-ally .comp-chip').count()) === 1);
+promptAnswer = '';
+
+await page.click('#comp-bar-enemy .comp-chip');
+await page.waitForTimeout(400);
+const applied = await page.evaluate(() => window.VCT_STORE.state.enemies.map((s) => s.agent));
+check('保存した構成を流し込める', JSON.stringify(applied) === JSON.stringify(ALLY),
+  JSON.stringify(applied));
+
+/* 敵構成は戻しておく（この後の相性判定が味方と同じ構成では意味が薄い） */
+await page.evaluate((list) => {
+  list.forEach((a, i) => { window.VCT_STORE.state.enemies[i].agent = a; });
+  window.VCT_STORE.save();
+}, ENEMY);
+await page.reload();
+await page.waitForTimeout(600);
+
+/* ---------------- 分岐ツリー ---------------- */
+console.log('\n分岐ツリー');
+await page.click('#btn-tree');
+await page.waitForTimeout(400);
+check('分岐ツリーが開く', await page.locator('#modal-tree').isVisible());
+const treeNodes = await page.locator('.tree-node').count();
+check('戦術のぶんだけノードが並ぶ', treeNodes === total, `${treeNodes} / ${total}`);
+
+const ids = await page.evaluate(() => window.VCT_STORE.state.tactics.slice(0, 3).map((t) => t.id));
+await page.selectOption(`select[data-tree-node="${ids[0]}"][data-tree-result="win"]`, ids[1]);
+await page.waitForTimeout(250);
+await page.selectOption(`select[data-tree-node="${ids[0]}"][data-tree-result="loss"]`, ids[2]);
+await page.waitForTimeout(250);
+check('分岐を設定すると線が引かれる', (await page.locator('.tree-edge').count()) === 2);
+
+/* 「勝ったら同じ形をもう一度」は実戦で普通に出るので、自己ループを許している */
+await page.selectOption(`select[data-tree-node="${ids[1]}"][data-tree-result="win"]`, ids[1]);
+await page.waitForTimeout(250);
+check('自分自身への分岐も置ける', (await page.locator('.tree-edge').count()) === 3);
+
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+
+/* ---------------- ライブ画面でのツリー連動 ---------------- */
+console.log('\nライブ連動');
+await page.click('#btn-start');
+await page.waitForTimeout(400);
+await page.locator(`[data-act="pick"][data-id="${ids[0]}"]`).click();
+await page.waitForTimeout(400);
+await page.locator('[data-act="result"][data-result="WIN"]').click();
+await page.waitForTimeout(500);
+check('勝敗のあとツリーの次が出る', (await page.locator('.tree-next').count()) === 1);
+/* 分岐は縛りではないので、他の戦術も必ず選べること */
+check('ツリー以外の戦術も選べる', (await page.locator('.pick-list .pick').count()) > 0);
+
+await page.evaluate(() => { window.VCT_STORE.resetMatch && window.VCT_STORE.resetMatch(); });
+await page.reload();
+await page.waitForTimeout(600);
+await page.evaluate(() => { window.VCT_STORE.state.phase = 'setup'; window.VCT_STORE.save(); });
+await page.reload();
+await page.waitForTimeout(600);
+
 /* ---------------- 配置盤を開く ---------------- */
 console.log('\n配置盤');
-for (let i = 0; i < 5; i++) {
-  await page.click(`#slots-ally .slot[data-index="${i}"]`);
-  await page.click(`.agent-opt[data-agent="${ALLY[i]}"]`);
-  await page.click(`#slots-enemy .slot[data-index="${i}"]`);
-  await page.click(`.agent-opt[data-agent="${ENEMY[i]}"]`);
-}
 
 /* 「配置を編集」は 3 か所にある。新規作成中のものが無反応だった事故がある */
 await page.locator('.tcard-board').first().click();

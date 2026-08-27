@@ -29,6 +29,8 @@
       },
       allies:  [emptySlot(), emptySlot(), emptySlot(), emptySlot(), emptySlot()],
       enemies: [emptySlot(), emptySlot(), emptySlot(), emptySlot(), emptySlot()],
+      /* よく使う 5 人構成。エージェントセレクトの時間を稼ぐためのもの */
+      comps: [],
       tactics: [],
       rounds: [],                     // 確定したラウンドの記録
       pending: null,                  // 現在ラウンドにセット済みの戦術 { tacticId, economy }
@@ -67,8 +69,50 @@
     state.rounds  = Array.isArray(obj.rounds) ? obj.rounds.filter(function (r) {
       return r && (r.result === 'WIN' || r.result === 'LOSS');
     }) : [];
+    state.comps   = normalizeComps(obj.comps);
     state.pending = obj.pending && obj.pending.tacticId ? obj.pending : null;
     state.sideOverrides = obj.sideOverrides && typeof obj.sideOverrides === 'object' ? obj.sideOverrides : {};
+  }
+
+  /* 保存した 5 人構成。上限を切っておかないと
+     押し間違いで際限なく増える */
+  const MAX_COMPS = 12;
+
+  function normalizeComps(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.slice(0, MAX_COMPS).map(function (c) {
+      return {
+        id: String((c && c.id) || uid()),
+        name: String((c && c.name) || '').slice(0, 30),
+        agents: (Array.isArray(c && c.agents) ? c.agents : [])
+          .slice(0, 5)
+          .map(function (a) { return typeof a === 'string' ? a : ''; })
+      };
+    }).filter(function (c) { return c.agents.some(Boolean); });
+  }
+
+  function saveComp(name, agents) {
+    if (state.comps.length >= MAX_COMPS) return null;
+    const comp = normalizeComps([{ name: name, agents: agents }])[0];
+    if (!comp) return null;
+    state.comps.push(comp);
+    save();
+    return comp;
+  }
+
+  function removeComp(id) {
+    state.comps = state.comps.filter(function (c) { return c.id !== id; });
+    save();
+  }
+
+  /** 保存した構成をスロットへ流し込む。プレイヤー名は触らない */
+  function applyComp(team, id) {
+    const comp = state.comps.filter(function (c) { return c.id === id; })[0];
+    if (!comp) return false;
+    const roster = team === 'enemy' ? state.enemies : state.allies;
+    for (let i = 0; i < 5; i++) roster[i].agent = comp.agents[i] || '';
+    save();
+    return true;
   }
 
   function normalizeRoster(arr) {
@@ -91,8 +135,17 @@
       site: String(t.site || '-').slice(0, 8),
       kind: t.kind || 'execute',
       note: String(t.note || '').slice(0, 400),
+      next: normalizeNext(t.next),
       phases: normalizePhases(t)
     };
+  }
+
+  /* 勝敗ごとの次の戦術。指す先が消されていても壊れないよう、
+     ここでは形だけ整えて中身の存在確認は読むときに行う（tree.js） */
+  function normalizeNext(next) {
+    const src = next && typeof next === 'object' ? next : {};
+    const pick = function (v) { return typeof v === 'string' && v ? v.slice(0, 40) : null; };
+    return { win: pick(src.win), loss: pick(src.loss) };
   }
 
   /* 局面（フェーズ）。A フェイク → B 本命 のように時間で分かれる動きを
@@ -349,6 +402,10 @@
     exportJSON: exportJSON,
     importJSON: importJSON,
     importObject: importObject,
+    saveComp: saveComp,
+    removeComp: removeComp,
+    applyComp: applyComp,
+    MAX_COMPS: MAX_COMPS,
     seedSamples: function () {
       const I = global.VCT_I18N;
       D.SAMPLE_TACTICS.forEach(function (t) {

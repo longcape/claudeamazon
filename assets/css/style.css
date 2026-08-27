@@ -2319,3 +2319,131 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 /* 規約が指定している文言。訳文より目立たせておく */
 .app-foot .legal-required { color: var(--muted); }
+
+/* =========================================================
+   分岐ツリー
+   ---------------------------------------------------------
+   線は裏の SVG、ノードは上に絶対配置した HTML の箱。
+   ノード内に <select> を置きたいので、全部 SVG にはしていない。
+   ========================================================= */
+.tree-canvas { overflow: auto; }
+.tree-stage { position: relative; }
+.tree-edges { position: absolute; inset: 0; pointer-events: none; }
+.tree-edge { fill: none; stroke-width: 1.6; }
+.tree-edge-win { stroke: var(--cyan); }
+.tree-edge-loss { stroke: var(--red); }
+
+.tree-node {
+  position: absolute;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  background: #101820;
+  box-sizing: border-box;
+}
+.tree-node[data-side="ATK"] { border-left-color: var(--red); }
+.tree-node[data-side="DEF"] { border-left-color: var(--cyan); }
+.tree-node[data-side="BOTH"] { border-left-color: var(--gold); }
+/* 直前に使った戦術。ツリーの中で今どこにいるか分かるように */
+.tree-node.is-current {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.tree-node h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tree-node h4 b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.tree-branches { display: grid; gap: 4px; }
+.tree-branch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+}
+.tree-branch > span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  font-weight: 700;
+}
+.tree-branch-win > span { background: rgba(53, 198, 232, .18); color: var(--cyan); }
+.tree-branch-loss > span { background: rgba(255, 70, 85, .18); color: var(--red); }
+.tree-branch select {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 5px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .3);
+  color: var(--text);
+  font-size: 11px;
+}
+.tree-branch select:focus { outline: none; border-color: var(--cyan); }
+
+/* ライブ画面に出す「ツリーの次」 */
+.tree-next { margin-bottom: 12px; }
+.tree-next-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gold);
+  font-size: 11px;
+  letter-spacing: .06em;
+}
+.pick.is-tree { border-color: var(--gold); background: rgba(214, 178, 92, .08); }
+.pick.is-tree .pick-score b { font-size: 20px; }
+.pick-others {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .04em;
+}
+
+/* =========================================================
+   構成のプリセット
+   ========================================================= */
+.comp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  min-height: 1px;
+}
+.comp-label { color: var(--muted); font-size: 10.5px; letter-spacing: .04em; }
+.comp-chip,
+.comp-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .03);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.comp-chip:hover, .comp-save:hover { color: #fff; border-color: var(--cyan); }
+.comp-save { padding: 4px 9px; border-style: dashed; }
+.comp-icons { display: inline-flex; }
+.comp-icons .avatar-xs { margin-right: -5px; }
+.comp-name {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.avatar-xs { width: 18px; height: 18px; }

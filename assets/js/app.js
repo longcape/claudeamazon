@@ -26,6 +26,8 @@
   }
 
   /* 画面側だけが持つ一時状態 */
+  const TREE = global.VCT_TREE;
+
   const ui = {
     view: 'setup',            // 'setup' | 'live' | 'community'
     deckFilter: 'ALL',
@@ -44,6 +46,7 @@
     postSort: 'new',
     postMap: '',
     postTacticId: null,
+    treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
     cloudLoading: false,
 
@@ -123,10 +126,27 @@
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
+
+  /* 構成の名前の下書き。頭 2 体の略称を並べておくと、
+     あとから一覧で見分けやすい */
+  function suggestCompName(roster) {
+    return roster.map(function (s2) {
+      const a = D.agentById(s2.agent);
+      return a ? a.abbr : '';
+    }).filter(Boolean).slice(0, 3).join('/');
+  }
+
+  /** 埋まっていない次のスロット。無ければ -1 */
+  function nextEmptySlot(team, from) {
+    const list = rosterOf(team);
+    for (let i = from + 1; i < list.length; i++) if (!list[i].agent) return i;
+    for (let i = 0; i <= from; i++) if (!list[i].agent) return i;
+    return -1;
+  }
 
   function openAgentModal(team, index) {
     ui.agentTarget = { team: team, index: index };
@@ -215,6 +235,42 @@
       const a = D.agentById(s.agent);
       return a ? a.name : null;
     }).filter(Boolean);
+  }
+
+  /* ================= 分岐ツリー ================= */
+
+  function openTreeModal() {
+    const last = S.lastRound();
+    ui.treeFocusId = S.state.pending ? S.state.pending.tacticId : (last ? last.tacticId : null);
+    U.renderTree(ui);
+    openModal('modal-tree');
+  }
+
+  function bindTree() {
+    $('btn-tree').addEventListener('click', openTreeModal);
+
+    /* 分岐先の変更。線を引き直すので毎回まるごと描き直す。
+       ノードは数十個までなので、差分更新に踏み込む理由がない */
+    $('tree-canvas').addEventListener('change', function (e) {
+      const sel = e.target.closest('[data-tree-node]');
+      if (!sel) return;
+      const tac = S.tacticById(sel.dataset.treeNode);
+      if (!tac) return;
+      TREE.setNext(tac, sel.dataset.treeResult, sel.value || null);
+      S.save();
+      U.renderTree(ui);
+    });
+
+    $('btn-tree-clear').addEventListener('click', function () {
+      if (!confirm(t('tree.confirmClear'))) return;
+      S.state.tactics.forEach(function (tac) {
+        TREE.setNext(tac, 'win', null);
+        TREE.setNext(tac, 'loss', null);
+      });
+      S.save();
+      U.renderTree(ui);
+      U.toast(t('tree.cleared'));
+    });
   }
 
   /* ================= クラウド保存 ================= */
@@ -785,6 +841,31 @@
       S.save();
     });
 
+    ['comp-bar-ally', 'comp-bar-enemy'].forEach(function (id) {
+      $(id).addEventListener('click', function (e) {
+        const apply = e.target.closest('[data-comp-apply]');
+        if (apply) {
+          S.applyComp(apply.dataset.compTeam, apply.dataset.compApply);
+          ui.analysis = null;
+          ui.aiReview = null;
+          renderAll();
+          return;
+        }
+        const save = e.target.closest('[data-comp-save]');
+        if (!save) return;
+        const team = save.dataset.compSave;
+        const roster = team === 'enemy' ? S.state.enemies : S.state.allies;
+        const name = (prompt(t('comp.namePrompt'), suggestCompName(roster)) || '').trim();
+        if (!name) return;
+        if (!S.saveComp(name, roster.map(function (s2) { return s2.agent; }))) {
+          U.toast(t('comp.limit', { n: S.MAX_COMPS }), 'err');
+          return;
+        }
+        renderAll();
+        U.toast(t('comp.saved', { name: name }), 'ok');
+      });
+    });
+
     ['slots-ally', 'slots-enemy'].forEach(function (id) {
       $(id).addEventListener('click', function (e) {
         const btn = e.target.closest('.slot');
@@ -1116,14 +1197,26 @@
     $('agent-grid').addEventListener('click', function (e) {
       const opt = e.target.closest('.agent-opt');
       if (!opt || !ui.agentTarget) return;
-      const slot = rosterOf(ui.agentTarget.team)[ui.agentTarget.index];
+      const team = ui.agentTarget.team;
+      const index = ui.agentTarget.index;
+      const slot = rosterOf(team)[index];
       slot.agent = opt.dataset.agent;
       slot.player = $('agent-player').value.trim();
       S.save();
       ui.analysis = null;
       ui.aiReview = null;
-      closeModal('modal-agent');
+
+      /* エージェントセレクトは 30 秒しかない。1 体ごとに閉じて開き直すのでは
+         間に合わないので、空いている次のスロットへそのまま送る。
+         全部埋まったら閉じる */
+      const nextIndex = nextEmptySlot(team, index);
+      if (nextIndex < 0) {
+        closeModal('modal-agent');
+        renderAll();
+        return;
+      }
       renderAll();
+      openAgentModal(team, nextIndex);
     });
 
     $('agent-player').addEventListener('input', function (e) {
@@ -1285,7 +1378,7 @@
         return;
       }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;
@@ -1358,6 +1451,7 @@
     bindLive();
     bindCommunity();
     bindCloud();
+    bindTree();
     bindBoardEditor();
     bindAgentModal();
     bindTacticModal();
