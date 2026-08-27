@@ -345,7 +345,10 @@ node bin/room.js trend               上昇ワードの候補を見る
 
 ---
 
-## テスト
+## 開発
+
+`CLAUDE.md` に、壊してはいけない不変条件と既知の落とし穴をまとめてあります。
+Claude Code は `rakuten-room/` 内で起動すればこれを自動で読みます。
 
 ```bash
 npm test
