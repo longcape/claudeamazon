@@ -48,7 +48,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'deck.sample': '샘플 추가',
   'deck.add': '+ 전술 추가',
   'filter.both': '양쪽 사이드',
-  'legal.disclaimer': '이 앱은 Riot Games의 승인을 받지 않았으며, Riot Games 또는 VALORANT의 제작 · 관리에 공식적으로 관여하는 회사 및 관계자의 견해나 의견을 반영하지 않습니다.',
+  'legal.disclaimer': '(번역) 이 앱은 Riot Games의 \u201cLegal Jibber Jabber\u201d 정책에 따라 Riot Games가 권리를 보유한 애셋을 사용해 제작된 팬 프로젝트입니다. Riot Games는 이 프로젝트를 승인하거나 후원하지 않습니다.',
   'legal.trademark': 'Riot Games 및 VALORANT 관련 모든 명칭 · 로고는 Riot Games, Inc.의 상표 또는 등록상표입니다.',
   'common.close': '닫기',
   'common.loading': '불러오는 중…',

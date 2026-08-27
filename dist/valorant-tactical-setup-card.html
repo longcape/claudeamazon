@@ -2327,6 +2327,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   font-size: 11px;
   line-height: 1.7;
 }
+/* 規約が指定している文言。訳文より目立たせておく */
+.app-foot .legal-required { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -2575,8 +2577,12 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 </main>
 
-<!-- Riot の二次利用条件で明記が求められている。消さないこと -->
+<!-- Riot の Legal Jibber Jabber が明記を求めている文言。消さないこと。
+     1 行目は規約が指定している 英文そのままなので、言語を切り替えても英語のまま出す。 -->
 <footer class="app-foot">
+  <p class="legal-required">VALORANT TACTICAL SETUP CARD was created under Riot Games&rsquo;
+    &ldquo;Legal Jibber Jabber&rdquo; policy using assets owned by Riot Games.
+    Riot Games does not endorse or sponsor this project.</p>
   <p data-i18n="legal.disclaimer"></p>
   <p data-i18n="legal.trademark"></p>
 </footer>
@@ -2953,7 +2959,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'deck.sample': 'SAMPLE 追加',
   'deck.add': '+ 戦術を追加',
   'filter.both': '両サイド',
-  'legal.disclaimer': '本アプリは Riot Games の承認を受けたものではなく、Riot Games または VALORANT の制作・管理に公式に関与する同社およびその関係者の見解や意見を反映するものではありません。',
+  'legal.disclaimer': '（訳）本アプリは Riot Games の「Legal Jibber Jabber」ポリシーに基づき、Riot Games が権利を有するアセットを使用して制作されたファンプロジェクトです。Riot Games はこのプロジェクトを承認・後援していません。',
   'legal.trademark': 'Riot Games および VALORANT に関連するすべての名称・ロゴは Riot Games, Inc. の商標または登録商標です。',
   'common.close': '閉じる',
   'common.loading': '読み込み中…',
@@ -3335,7 +3341,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'deck.sample': 'ADD SAMPLES',
   'deck.add': '+ Add tactic',
   'filter.both': 'Both sides',
-  'legal.disclaimer': 'This app isn\u2019t endorsed by Riot Games and doesn\u2019t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.',
+  'legal.disclaimer': 'A fan project. It doesn\u2019t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.',
   'legal.trademark': 'Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.',
   'common.close': 'Close',
   'common.loading': 'Loading…',
@@ -3709,7 +3715,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'deck.sample': '샘플 추가',
   'deck.add': '+ 전술 추가',
   'filter.both': '양쪽 사이드',
-  'legal.disclaimer': '이 앱은 Riot Games의 승인을 받지 않았으며, Riot Games 또는 VALORANT의 제작 · 관리에 공식적으로 관여하는 회사 및 관계자의 견해나 의견을 반영하지 않습니다.',
+  'legal.disclaimer': '(번역) 이 앱은 Riot Games의 \u201cLegal Jibber Jabber\u201d 정책에 따라 Riot Games가 권리를 보유한 애셋을 사용해 제작된 팬 프로젝트입니다. Riot Games는 이 프로젝트를 승인하거나 후원하지 않습니다.',
   'legal.trademark': 'Riot Games 및 VALORANT 관련 모든 명칭 · 로고는 Riot Games, Inc.의 상표 또는 등록상표입니다.',
   'common.close': '닫기',
   'common.loading': '불러오는 중…',

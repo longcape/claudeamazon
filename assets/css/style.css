@@ -2317,3 +2317,5 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   font-size: 11px;
   line-height: 1.7;
 }
+/* 規約が指定している文言。訳文より目立たせておく */
+.app-foot .legal-required { color: var(--muted); }

@@ -48,7 +48,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'deck.sample': 'ADD SAMPLES',
   'deck.add': '+ Add tactic',
   'filter.both': 'Both sides',
-  'legal.disclaimer': 'This app isn\u2019t endorsed by Riot Games and doesn\u2019t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.',
+  'legal.disclaimer': 'A fan project. It doesn\u2019t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.',
   'legal.trademark': 'Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.',
   'common.close': 'Close',
   'common.loading': 'Loading…',

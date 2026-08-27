@@ -126,7 +126,11 @@ await page.waitForTimeout(200);
 /* ---------------- 免責表記 ---------------- */
 /* Riot の二次利用条件で明記が求められている。消えていないか見る */
 const legal = await page.locator('.app-foot').innerText();
-check('免責表記が出ている', /Riot Games/.test(legal), legal.slice(0, 40));
+/* 規約が指定している文言そのままかを見る。言い換えると条件を満たさない */
+check('Riot 指定の文言が出ている',
+  /created under Riot Games\u2019 \u201cLegal Jibber Jabber\u201d policy/.test(legal) &&
+  /does not endorse or sponsor this project/.test(legal),
+  legal.slice(0, 60));
 
 /* ---------------- クラウド保存 ---------------- */
 /* config.js が空のときは丸ごと隠れていること。

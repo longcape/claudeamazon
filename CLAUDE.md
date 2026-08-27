@@ -284,8 +284,21 @@ egress proxy が `valorant-api.com` を 403 で塞いでいる（ポリシー拒
 
 ### 免責表記
 
-`index.html` の `.app-foot` にある。Riot の二次利用条件で明記が
-求められているものなので**消さないこと**。文言は `legal.*` のキー。
+`index.html` の `.app-foot` にある。Riot の Legal Jibber Jabber が
+**文言を指定している**ので、言い換えたり訳文だけにしたりしないこと。
+
+```
+[プロジェクト名] was created under Riot Games' "Legal Jibber Jabber" policy
+using assets owned by Riot Games. Riot Games does not endorse or sponsor
+this project.
+```
+
+この 1 行目は指定どおりの英文をそのまま出す（言語を切り替えても英語のまま）。
+下に各言語の訳を添えているが、訳文は補助であって指定文言の代わりにはならない。
+smoke-test がこの文言を見張っている。
+
+収益化する場合は、これに加えて Developer Portal への登録（Approved）と
+無料枠の提供が要る。詳細は `docs/LEGAL.md`。
 
 ---
 

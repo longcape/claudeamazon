@@ -50,7 +50,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'deck.sample': 'SAMPLE 追加',
   'deck.add': '+ 戦術を追加',
   'filter.both': '両サイド',
-  'legal.disclaimer': '本アプリは Riot Games の承認を受けたものではなく、Riot Games または VALORANT の制作・管理に公式に関与する同社およびその関係者の見解や意見を反映するものではありません。',
+  'legal.disclaimer': '（訳）本アプリは Riot Games の「Legal Jibber Jabber」ポリシーに基づき、Riot Games が権利を有するアセットを使用して制作されたファンプロジェクトです。Riot Games はこのプロジェクトを承認・後援していません。',
   'legal.trademark': 'Riot Games および VALORANT に関連するすべての名称・ロゴは Riot Games, Inc. の商標または登録商標です。',
   'common.close': '閉じる',
   'common.loading': '読み込み中…',
