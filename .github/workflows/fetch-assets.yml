@@ -1,0 +1,66 @@
+# =========================================================
+# 公式画像の取得
+# ---------------------------------------------------------
+# valorant-api.com から画像を取り直して、配布ファイルまで作り直す。
+#
+# GitHub の実行環境からは valorant-api.com に繋がるので、
+# 手元の PC で作業しなくてもここで完結する。
+#
+# 動かし方:
+#   GitHub の Actions タブ → この workflow → Run workflow
+# 毎月 1 日にも自動で走る。要らなければ下の schedule を消すこと。
+#
+# 画像に変化が無かった回はコミットしない。
+# =========================================================
+name: 公式画像の取得
+
+on:
+  workflow_dispatch:          # Actions タブのボタンから手動で
+  schedule:
+    - cron: '0 3 1 * *'       # 毎月 1 日 12:00 (JST)
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-assets
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/valorant-tactical-setup-card-iiiog3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 画像の縮小に使う。入れないと 1 枚 1024px のまま取り込まれ、
+      # 単一 HTML が公開できない大きさになる
+      - name: sharp を入れる
+        run: npm install sharp --no-audit --no-fund
+
+      - name: 画像を取得する
+        run: node tools/fetch-assets.mjs
+
+      - name: 配布ファイルを作り直す
+        run: node build.js
+
+      - name: 変化があればコミットする
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # 生成物だけを対象にする。npm が作った node_modules などは触らない
+          git add assets/img assets/js/official-assets.js dist
+
+          if git diff --cached --quiet; then
+            echo "画像に変化はありませんでした。"
+            exit 0
+          fi
+
+          git commit -m "公式画像を取得し直す (自動実行)"
+          git push
