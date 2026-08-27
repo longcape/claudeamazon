@@ -266,7 +266,6 @@ async function main() {
   /* ---------- 生成 ---------- */
   const out = `/* =========================================================
    OFFICIAL ASSETS （自動生成 — 直接編集しないこと）
-   生成日時: ${new Date().toISOString()}
    生成コマンド: node tools/fetch-assets.mjs${INLINE ? ' --inline' : ''}
    出典: Riot Games / valorant-api.com
    ========================================================= */
