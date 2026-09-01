@@ -198,3 +198,48 @@ test('秘密情報がGit管理対象にも出力にも含まれない', function
     assert.strictEqual(dumped.indexOf(k), -1, '出力に ' + k + ' が含まれない');
   });
 });
+
+test('特定のコレクションが棚を占領しない', function () {
+  /* 実データでは食品がギフト映え・動画適性で有利になり、候補プールの46%が
+     非食品なのに選定結果の90%が食品になった。棚として成立しないので上限を設けている */
+  const caps = strategy.portfolio.maxCollectionShare;
+  assert.ok(caps && Object.keys(caps).length, '占有率の上限が設定されている');
+
+  const pf = portfolio.build(scored(fixtures.candidates(160)), strategy);
+  Object.keys(caps).forEach(function (collection) {
+    [['主力', pf.flagship], ['準主力', pf.secondary], ['ロングテール', pf.longtail]].forEach(function (pair) {
+      const hit = pair[1].filter(function (i) {
+        return (i.giftCollections || []).indexOf(collection) >= 0;
+      }).length;
+      const limit = Math.ceil(caps[collection] * pair[1].length);
+      assert.ok(hit <= limit,
+        pair[0] + 'の「' + collection + '」が上限 ' + limit + ' を超えている: ' + hit);
+    });
+  });
+});
+
+test('紹介文が検証できない断定と誇張を含まない', function () {
+  const copy = require('../src/copy/generate');
+  const trend = { rising: [], decaying: [] };
+  const items = scored(fixtures.candidates(40)).map(function (i, n) {
+    return Object.assign({}, i, { order: n + 1, role: ['bait', 'cv', 'traffic'][n % 3] });
+  });
+  const withCopy = copy.generateAll(items, strategy, copyLexicon, trend);
+
+  withCopy.forEach(function (p) {
+    strategy.copy.banPhrases.forEach(function (w) {
+      assert.strictEqual(p.copy.text.indexOf(w), -1,
+        '禁止語「' + w + '」が紛れている: ' + p.copy.text.slice(0, 40));
+    });
+    assert.ok(p.copy.text.length >= strategy.copy.minLength, '短すぎない');
+    assert.ok(p.copy.text.length <= strategy.copy.maxLength * 2, '長すぎない');
+  });
+
+  /* 同じ文の使い回しが支配的になっていないこと */
+  const bodies = withCopy.map(function (p) {
+    return (p.copy.text.split('\n').find(function (l) { return l.indexOf('へ。') >= 0; }) || '');
+  }).filter(Boolean);
+  const uniq = new Set(bodies).size;
+  assert.ok(uniq >= Math.ceil(bodies.length * 0.3),
+    '悩み→変化の文が使い回しすぎ: ' + uniq + '種 / ' + bodies.length + '件');
+});

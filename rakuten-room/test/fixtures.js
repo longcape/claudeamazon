@@ -2,18 +2,21 @@
 'use strict';
 
 /* コレクション。ソーシャルギフトという1つの棚の中の区分であり、別ジャンルではない */
+/* ショップ周期は商品名の周期(10)と互いに素にする。
+   同じ名前が同じ店に再登場すると dedupe が畳んでしまい、
+   実データには無い衝突がテストだけで起きるため */
 const SUBS = ['address-free', 'sweets', 'price-1000', 'price-3000', 'price-5000', 'occasion'];
 const NAMES = [
   'ソーシャルギフト 焼き菓子 詰め合わせ 化粧箱 誕生日',
-  'eギフト チョコレート アソート 個包装 お礼',
+  'eギフト ハンドクリーム セット 個包装 お礼 化粧箱',
   '住所不要 ギフト コーヒー ドリップ 詰め合わせ',
-  'プチギフト クッキー 個包装 退職 送別 メッセージカード',
+  'プチギフト 入浴剤 アソート 退職 送別 メッセージカード',
   '内祝い スイーツ ギフトボックス のし対応 詰め合わせ',
-  'LINE ギフト プリン セット 化粧箱 母の日',
-  '誕生日 プレゼント 紅茶 ギフト 詰め合わせ ラッピング無料',
+  'LINE ギフト タオル セット 化粧箱 母の日',
+  '誕生日 プレゼント スキンケア ギフト セット ラッピング無料',
   'お礼 プチギフト 焼き菓子 個包装 ギフト包装',
   '出産内祝い タオル ギフト 化粧箱 のし',
-  '選べる eギフト スイーツ 住所不要 食べ比べ'
+  '選べる eギフト ソープ 住所不要 詰め合わせ'
 ];
 
 /* ギフト用途として成立しない商品。NG検査が弾けることを確かめるために使う */
@@ -32,13 +35,13 @@ function makeItem(i, opts) {
   /* ギフトの価格帯は1,000〜2,000 / 3,000前後 / 5,000前後の3コレクションにまたがる */
   const price = o.price !== undefined ? o.price : 1200 + ((i * 371) % 4200);
   return {
-    itemCode: 'shop' + (i % 40) + ':item' + i,
+    itemCode: 'shop' + (i % 41) + ':item' + i,
     name: name,
     cleanName: name,
     core: name.slice(0, 20),
     catchcopy: '',
     price: price,
-    url: 'https://item.rakuten.co.jp/shop' + (i % 40) + '/item' + i + '/',
+    url: 'https://item.rakuten.co.jp/shop' + (i % 41) + '/item' + i + '/',
     affiliateUrl: 'https://hb.afl.rakuten.co.jp/ichiba/xxxx/item' + i,
     images: ['https://thumbnail.image.rakuten.co.jp/a.jpg', 'https://thumbnail.image.rakuten.co.jp/b.jpg', 'https://thumbnail.image.rakuten.co.jp/c.jpg'],
     imageCount: 3,
@@ -46,13 +49,13 @@ function makeItem(i, opts) {
     captionLength: 20 * 22,
     reviewCount: 120 + (i * 53) % 4000,
     reviewAverage: 4.05 + ((i * 7) % 9) / 10,
-    affiliateRate: 2 + (i % 40),
+    affiliateRate: 2 + (i % 41),
     pointRate: 1 + (i % 6),
     pointCampaign: i % 3 === 0,
     pointRateEndTime: '',
-    shopCode: 'shop' + (i % 40),
-    shopName: 'テスト商店' + (i % 40),
-    shopUrl: 'https://www.rakuten.co.jp/shop' + (i % 40) + '/',
+    shopCode: 'shop' + (i % 41),
+    shopName: 'テスト商店' + (i % 41),
+    shopUrl: 'https://www.rakuten.co.jp/shop' + (i % 41) + '/',
     shopOfTheYear: i % 5 === 0,
     genreId: '551167',
     tagIds: [],
