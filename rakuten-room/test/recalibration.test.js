@@ -476,3 +476,56 @@ test('次の投稿への予告が付き、煽り表現を含まない', function
   const last = e.posts.filter(function (p) { return !p.nextRelatedProduct; });
   assert.strictEqual(last.length, e.clusters.length, '各束の最後だけ予告が無い');
 });
+
+/* ---------- 実運用投入（2026-09-02） ---------- */
+
+test('持っている商品を記録できる。購入履歴は取りに行かない', function () {
+  const owned = require('../src/feedback/owned');
+  /* 楽天APIからは取れない情報。本人の申告だけを残す */
+  const rec = owned.mark('shop1:i1', { name: 'テスト商品', note: '去年買った' });
+  assert.strictEqual(rec.ownedByUser, true);
+  assert.strictEqual(rec.originalPhotoCandidate, true, '既定で写真候補にする');
+  assert.strictEqual(rec.canWriteRealReview, true);
+  assert.strictEqual(owned.isOwned('shop1:i1'), true);
+
+  /* 持っていても写真を撮れないことはある */
+  owned.mark('shop2:i2', { photo: false });
+  assert.strictEqual(owned.get('shop2:i2').originalPhotoCandidate, false);
+  assert.strictEqual(owned.photoCandidates().length, 1);
+
+  assert.strictEqual(owned.summary().total, 2);
+  assert.strictEqual(owned.remove('shop1:i1'), true);
+  assert.strictEqual(owned.get('shop1:i1'), null);
+  owned.remove('shop2:i2');
+});
+
+test('実行キットが貼り付けに必要なものを1ファイルへ出す', function () {
+  const render = require('../src/post/render');
+  const copy = require('../src/copy/generate');
+  const e = makeExperiment(false);
+  e.posts = copy.generateAll(e.posts, strategy, copyLexicon, { rising: [], decaying: [] });
+  const md = render.renderExperimentKit(e, strategy);
+
+  /* 実験と通常運用の違いが先頭に書かれている */
+  assert.ok(md.indexOf('初期実験です。通常運用ではありません') >= 0);
+  assert.ok(md.indexOf('この実験が終わったら3投稿を続けないでください') >= 0);
+  assert.ok(md.indexOf('投稿ノルマではありません') >= 0);
+
+  /* 各投稿に必要な項目がある */
+  e.posts.forEach(function (p) {
+    assert.ok(md.indexOf('## ' + p.order + '. ') >= 0, '#' + p.order + ' の見出し');
+    assert.ok(md.indexOf(p.timeJst) >= 0, '投稿時刻');
+    assert.ok(md.indexOf(p.sessionDate) >= 0, 'セッション日');
+  });
+  assert.ok(md.indexOf('24時間後に伝えること') >= 0);
+  assert.ok(md.indexOf('楽天市場のページを開いてもらう理由') >= 0);
+  assert.ok(md.indexOf('次回予告') >= 0);
+});
+
+test('商品コードで商品を照会できる（投稿前の在庫確認に要る）', function () {
+  const ichiba = require('../src/rakuten/ichiba');
+  /* API仕様上 keyword / genreId / itemCode / shopCode のどれかが必須。
+     itemCode を渡せないと投稿直前の販売停止チェックができない */
+  assert.ok(String(ichiba.searchItems).indexOf('itemCode') >= 0,
+    'searchItems が itemCode をAPIへ渡している');
+});

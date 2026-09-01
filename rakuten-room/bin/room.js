@@ -36,6 +36,7 @@ const velocityLib = require('../src/pipeline/velocity');
 const trendLib = require('../src/pipeline/trend');
 const selectLib = require('../src/pipeline/select');
 const feedback = require('../src/feedback/record');
+const owned = require('../src/feedback/owned');
 const queue = require('../src/post/queue');
 const experiment = require('../src/plan/experiment');
 const scoreLib = require('../src/pipeline/score');
@@ -317,9 +318,24 @@ function reportExperiment(s, id) {
 }
 
 /* 時間帯クロスオーバー実験を作る */
+/* 生成済みの実験から、人が貼るための実行キットを出す。自動投稿はしない */
+function cmdExperimentKit(args) {
+  const s = strategy();
+  const id = args.flags.id || ('EXP-' + (args.flags.date || time.dateKey()));
+  const e = store.readJson('experiment-' + id + '.json', null);
+  if (!e) return log.fail('実験 ' + id + ' が見つかりません。先に experiment create を実行してください');
+  const file = store.writeText(
+    'experiment-kit-' + id + '.md', render.renderExperimentKit(e, s));
+  log.step('実行キット');
+  log.detail('out/' + path.basename(file));
+  log.detail(e.posts.length + ' 投稿ぶんの貼り付け用テキストと、24時間後に伝える項目が入っています');
+  log.detail('この実験は初期実験です。終わったら通常運用（1日' + (s.schedule.dailyPostsRange || [1,2]).join('〜') + '投稿）へ戻します');
+}
+
 async function cmdExperiment(args) {
   const sub = args._[1] || 'create';
-  if (sub !== 'create') return log.fail('使い方: node bin/room.js experiment create [--reverse] [--date=YYYY-MM-DD]');
+  if (sub === 'kit') return cmdExperimentKit(args);
+  if (sub !== 'create') return log.fail('使い方: node bin/room.js experiment create|kit [--reverse] [--date=YYYY-MM-DD]');
   const s = strategy();
   const analysis = await pipeline.analyze(s, {
     freshCollect: !!args.flags.fresh,
@@ -423,6 +439,52 @@ async function cmdGenre(args) {
 
 /* 作り直せないデータの退避。Git追跡と二重にして、
    リポジトリごと失う事故と、うっかり削除の両方に備える */
+/* 運用者が持っている商品を記録する。楽天の購入履歴は取りに行かない。
+   本人が申告したものだけを残す */
+function cmdOwned(args) {
+  const target = String(args._[1] || '').trim();
+  if (!target) {
+    const sum = owned.summary();
+    log.step('持っている商品');
+    log.detail('登録 ' + sum.total + ' 件 / 写真を撮れる ' + sum.photoCandidates + ' 件 / 実体験を書ける ' + sum.reviewable + ' 件');
+    owned.photoCandidates().forEach(function (o) {
+      log.detail('  ' + o.itemCode + '  ' + (o.name || '') + (o.note ? '  — ' + o.note : ''));
+    });
+    log.detail('使い方: node bin/room.js owned <商品コード|#投稿番号> [--no-photo] [--note=...]');
+    return;
+  }
+
+  let itemCode = target;
+  let name = args.flags.name;
+  /* #3 のように投稿番号でも指定できる。実行キットの番号をそのまま使えるように */
+  if (target.charAt(0) === '#') {
+    const id = args.flags.id || ('EXP-' + (args.flags.date || time.dateKey()));
+    const e = store.readJson('experiment-' + id + '.json', null);
+    if (!e) return log.fail('実験 ' + id + ' が見つかりません。商品コードで指定してください');
+    const post = e.posts.find(function (x) { return String(x.order) === target.slice(1); });
+    if (!post) return log.fail('投稿 ' + target + ' が実験 ' + id + ' にありません');
+    itemCode = post.itemCode;
+    name = name || post.cleanName;
+  }
+
+  if (args.flags.remove) {
+    const gone = owned.remove(itemCode);
+    return log.step(gone ? itemCode + ' の登録を外しました' : itemCode + ' は登録されていません');
+  }
+
+  const rec = owned.mark(itemCode, {
+    photo: args.flags['no-photo'] ? false : undefined,
+    review: args.flags['no-review'] ? false : undefined,
+    note: args.flags.note,
+    name: name
+  });
+  log.step('登録しました');
+  log.detail(itemCode + (rec.name ? '  ' + String(rec.name).slice(0, 40) : ''));
+  log.detail('オリジナル写真の候補: ' + (rec.originalPhotoCandidate ? 'はい' : 'いいえ') +
+    ' / 実体験を書ける: ' + (rec.canWriteRealReview ? 'はい' : 'いいえ'));
+  log.detail('スコアへはまだ反映しません。12投稿の結果を見てから使い道を決めます');
+}
+
 function cmdBackup(args) {
   const keep = args.flags.keep ? Number(args.flags.keep) : 14;
   const stamp = time.dateKey();
@@ -647,6 +709,7 @@ async function main() {
       case 'genre': return await cmdGenre(args);
       case 'portfolio': return await cmdPortfolio(args);
       case 'probe': return await cmdProbe(args);
+      case 'owned': return cmdOwned(args);
       case 'backup': return cmdBackup(args);
       case 'doctor': return await cmdDoctor();
       default: return usage();
