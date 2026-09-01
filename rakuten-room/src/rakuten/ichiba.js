@@ -73,6 +73,9 @@ function itemsOf(json) {
 async function searchItems(opts) {
   const json = await client.call(EP_SEARCH, {
     keyword: opts.keyword,
+    /* 商品コードでの照会。投稿前に在庫・価格・リンクを1件ずつ確かめるために要る。
+       APIは keyword / genreId / itemCode / shopCode のどれか1つを必須とする */
+    itemCode: opts.itemCode,
     genreId: opts.genreId,
     hits: opts.hits || 30,
     page: opts.page || 1,
