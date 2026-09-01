@@ -29,8 +29,13 @@ function buildUnits(seq) {
   return units;
 }
 
+/* 時刻が未設定の投稿を渡されても検査ごと落とさない。
+   時間割を組む前の商品リストをそのままNG検査へ通す使い方があるため、
+   欠損は「時間帯の判定対象外」として -1 を返す */
 function minutesOf(hhmm) {
+  if (typeof hhmm !== 'string' || hhmm.indexOf(':') < 0) return -1;
   const [h, m] = hhmm.split(':').map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return -1;
   return h * 60 + m;
 }
 

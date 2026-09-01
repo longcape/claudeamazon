@@ -58,7 +58,13 @@ function scale(value, lo, hi) {
   return Math.max(0, Math.min(1, (value - lo) / (hi - lo)));
 }
 
-function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+/* NaN を 0 に潰す。欠損した項目が1つ混じっただけで総合スコアが NaN になり、
+   その商品が並び順から静かに消える事故を防ぐ */
+function clamp01(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
 
 function hash(s) {
   let h = 2166136261;
