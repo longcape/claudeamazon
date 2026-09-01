@@ -37,8 +37,24 @@ function extractFeature(item, lexicon) {
   return null;
 }
 
+/* その商品が実際に置かれる棚札を返す。
+   primarySubTheme は「その商品を連れてきた検索キーワード」であって、
+   商品の属性ではない。プチギフト1000円で検索して出てきた3,240円の商品に
+   「1,000〜2,000円」の棚札が付く事故が実データで起きた。
+   価格帯の棚札は実売価格から引き直す。 */
+function shelfIdFor(item, strategy) {
+  const bands = (strategy.gift && strategy.gift.priceBands) || [];
+  const price = Number(item.price) || 0;
+  const band = bands.find(function (b) { return price >= b.min && price <= b.max; });
+  if (band) {
+    const byLabel = strategy.genre.subThemes.find(function (t) { return t.label === band.label; });
+    if (byLabel) return byLabel.id;
+  }
+  return item.primarySubTheme;
+}
+
 function personaFor(item, lexicon, seed) {
-  const table = lexicon.personas[item.primarySubTheme] || lexicon.personas._default;
+  const table = lexicon.personas[item.shelfId || item.primarySubTheme] || lexicon.personas._default;
   return pick(table, seed, 1);
 }
 
@@ -55,7 +71,7 @@ function problemFor(item, lexicon, feature, seed) {
   if (feature) return feature.problem;
   const pair = fallbackPair(lexicon, seed);
   if (pair) return pair.problem;
-  const table = lexicon.problems[item.primarySubTheme] || lexicon.problems._default;
+  const table = lexicon.problems[item.shelfId || item.primarySubTheme] || lexicon.problems._default;
   return pick(table, seed, 2);
 }
 
@@ -75,11 +91,20 @@ function proofFor(item) {
 }
 
 function hashtags(item, strategy, trend) {
-  const sub = strategy.genre.subThemes.find(function (s) { return s.id === item.primarySubTheme; });
+  /* 棚札は giftCollections（実売価格と商品名から決まる）を優先する。
+     検索キーワード由来の primarySubTheme をそのまま使うと、
+     「プチギフト 1000円」で見つかった3,240円の商品に
+     「#1,000〜2,000円」が付く事故が起きる */
+  const collections = item.giftCollections || [];
   const tags = [];
-  if (sub) tags.push(sub.label.replace(/\s/g, ''));
+  if (collections.length) {
+    tags.push(String(collections[0]).replace(/\s/g, ''));
+  } else {
+    const sub = strategy.genre.subThemes.find(function (t) { return t.id === shelfIdFor(item, strategy); });
+    if (sub) tags.push(sub.label.replace(/\s/g, ''));
+  }
   const rising = (trend.rising || []).filter(function (w) {
-    return (item.cleanName + item.caption.slice(0, 300)).indexOf(w) >= 0;
+    return (item.cleanName + (item.caption || '').slice(0, 300)).indexOf(w) >= 0;
   });
   rising.slice(0, 1).forEach(function (w) { tags.push(w.replace(/\s/g, '')); });
   if (strategy.room.themeTag) tags.push(String(strategy.room.themeTag).replace(/\s/g, ''));
@@ -170,7 +195,8 @@ function fit(copy, strategy) {
 }
 
 function generateAll(seq, strategy, lexicon, trend) {
-  return seq.map(function (item) {
+  return seq.map(function (raw) {
+    const item = Object.assign({}, raw, { shelfId: shelfIdFor(raw, strategy) });
     const copy = fit(compose(item, strategy, lexicon, trend), strategy);
     const check = validateCopy(copy, strategy);
     return Object.assign({}, item, { copy: copy, copyCheck: check });
