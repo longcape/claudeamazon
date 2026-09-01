@@ -341,7 +341,283 @@
       "bRatio": 0.3
     },
     "$videoNote": "動画化優先度はポートフォリオ内の相対順位で決める。絶対値の閾値だと分布がずれた瞬間に大半がAになり、優先度として機能しなくなる。",
-    "dominanceWarningShare": 0.75,
-    "$shareNote": "固定カテゴリ上限は関連商品導線を切るため撤廃。75%超は警告だけ出し、採否は実績と導線の自然さを人が確認する。"
+    "$shareNote": "固定カテゴリ上限は関連商品導線を切るため撤廃。75%超は警告だけ出し、採否は実績と導線の自然さを人が確認する。",
+    "dominance": {
+      "$comment": "占有率警告は商品カテゴリにだけ当てる。場面・相手・価格帯・配送方式は偏りではなくカバレッジ不足として別表示する。",
+      "productCategoryWarn": 0.7,
+      "coverageFacets": [
+        "occasion",
+        "recipient",
+        "priceBand",
+        "deliveryMode"
+      ],
+      "minCoveragePerValue": 3
+    }
+  },
+  "facets": {
+    "$comment": "商品カテゴリ・配送方式・利用場面・相手・価格帯を別の型として持つ。giftCollections はこれらを1本の配列に混ぜていたため、食品56%と誕生日78%へ同じ偏り警告を当ててしまっていた。判定は商品名とキャッチコピーだけを見る（説明文は他商品の案内が混ざる）。",
+    "deliveryMode": {
+      "address_free": [
+        "ソーシャルギフト",
+        "eギフト",
+        "Eギフト",
+        "住所不要",
+        "住所がわからなくても",
+        "住所を知らなくても",
+        "URLで贈る",
+        "LINEで贈る",
+        "デジタルギフト",
+        "ギフトチケット"
+      ],
+      "physical_address": [
+        "のし",
+        "熨斗",
+        "配送日指定",
+        "クール便",
+        "冷凍",
+        "冷蔵",
+        "産直"
+      ]
+    },
+    "productCategory": {
+      "sweets": [
+        "スイーツ",
+        "菓子",
+        "チョコ",
+        "クッキー",
+        "ケーキ",
+        "プリン",
+        "ゼリー",
+        "焼き菓子",
+        "マカロン",
+        "バウムクーヘン",
+        "ワッフル",
+        "羊羹",
+        "せんべい",
+        "アイス",
+        "ドーナツ"
+      ],
+      "beverage": [
+        "コーヒー",
+        "紅茶",
+        "日本茶",
+        "ドリップ",
+        "ティーバッグ",
+        "ジュース",
+        "ビール",
+        "日本酒",
+        "ワイン",
+        "焼酎",
+        "ドリンク"
+      ],
+      "flower": [
+        "フラワー",
+        "花",
+        "プリザーブド",
+        "ブーケ",
+        "花束",
+        "ソープフラワー",
+        "アレンジメント"
+      ],
+      "cosmetic": [
+        "コスメ",
+        "スキンケア",
+        "ハンドクリーム",
+        "化粧品",
+        "美容",
+        "リップ",
+        "ヘアオイル",
+        "香水"
+      ],
+      "bath": [
+        "入浴剤",
+        "バスソルト",
+        "バスボム",
+        "石けん",
+        "石鹸",
+        "ソープ",
+        "バスグッズ"
+      ],
+      "towel": [
+        "タオル",
+        "今治",
+        "ハンカチ",
+        "バスローブ",
+        "ガーゼ"
+      ],
+      "tableware": [
+        "食器",
+        "グラス",
+        "マグカップ",
+        "タンブラー",
+        "箸",
+        "カトラリー",
+        "茶碗",
+        "プレート"
+      ],
+      "message": [
+        "メッセージカード",
+        "名入れ",
+        "名前入り",
+        "オリジナル刻印",
+        "フォトフレーム",
+        "写真立て"
+      ],
+      "food": [
+        "グルメ",
+        "ハム",
+        "肉",
+        "海鮮",
+        "調味料",
+        "スープ",
+        "パン",
+        "ナッツ",
+        "ドライフルーツ",
+        "米"
+      ]
+    },
+    "recipient": {
+      "female": [
+        "女性",
+        "レディース",
+        "彼女",
+        "ママ",
+        "母",
+        "妻",
+        "姉",
+        "娘"
+      ],
+      "male": [
+        "男性",
+        "メンズ",
+        "彼氏",
+        "パパ",
+        "父",
+        "夫",
+        "兄",
+        "息子"
+      ],
+      "coworker": [
+        "職場",
+        "上司",
+        "同僚",
+        "取引先",
+        "ビジネス",
+        "会社"
+      ],
+      "friend": [
+        "友人",
+        "友達",
+        "ともだち"
+      ],
+      "family": [
+        "家族",
+        "ファミリー",
+        "両親",
+        "ご家族"
+      ]
+    }
+  },
+  "cluster": {
+    "$comment": "関連商品の配点。「誕生日」や「3,000円前後」が一致するだけでは関連にしない。候補の78%が誕生日タグを持つため、それだけではほぼ全商品が関連になり識別力がない。買い物目的（配送方式×場面×相手×予算）が揃って初めて導線になる。",
+    "weights": {
+      "deliveryMode": 4,
+      "occasion": 3,
+      "recipient": 2,
+      "priceBand": 1,
+      "complementaryCategory": 3,
+      "sameCategory": 1
+    },
+    "complementary": [
+      [
+        "sweets",
+        "beverage"
+      ],
+      [
+        "flower",
+        "message"
+      ],
+      [
+        "cosmetic",
+        "bath"
+      ],
+      [
+        "towel",
+        "bath"
+      ],
+      [
+        "tableware",
+        "beverage"
+      ]
+    ],
+    "minRelatedScore": 7,
+    "clusterSize": 3
+  },
+  "experiment": {
+    "$comment": "時間帯クロスオーバー実験。時間帯と役割を同時に変えると、差が時間帯由来か役割由来か判定できない。両枠へ同じ役割構成のクラスターを割り当て、次回は割当を反転する。",
+    "posts": 12,
+    "clusters": 4,
+    "postsPerDay": 3,
+    "rolesPerCluster": [
+      "bait",
+      "cv",
+      "traffic"
+    ],
+    "slots": {
+      "evening_21_22": [
+        "21:10",
+        "21:30",
+        "21:50"
+      ],
+      "midnight_00_01": [
+        "00:10",
+        "00:30",
+        "00:50"
+      ]
+    },
+    "jitterMinutes": 0,
+    "sessionCutoverHour": 4,
+    "minPostsPerSlotForWinner": 12
+  },
+  "maturity": {
+    "$comment": "アフィリエイト成果はクリック後89日以内の購入まで発生しうる。投稿直後の成約0は失敗ではなく観測期間未成熟。30日未満の投稿をCV=0として学習へ入れない。",
+    "clickReadyHours": 24,
+    "cvEarlyDays": 7,
+    "cvMatureDays": 30,
+    "finalDays": 89
+  },
+  "scoring": {
+    "$comment": "velocityが未観測のまま順位差を作らないための切り分け。冷開始では料率の直接重みを縮小し、識別力のある軸へ配分する。",
+    "velocityKnownRateThreshold": 0.6,
+    "minSnapshotDays": 2,
+    "rampCollects": 3,
+    "affiliateDominanceThreshold": 0.7,
+    "coldStartWeights": {
+      "affiliate": 0.04,
+      "trust": 0.14,
+      "giftReady": 0.16,
+      "priceFit": 0.13,
+      "versatility": 0.09
+    }
+  },
+  "selection": {
+    "$comment": "固定閾値だけに頼らない。分位で選び、0.58を絶対下限とする。件数が足りなくても0.58未満へ緩和しない（候補不足として止める）。",
+    "quantile": {
+      "flagship": 0.2,
+      "secondary": 0.5,
+      "experiment": 0.25
+    },
+    "absoluteFloor": 0.58
+  },
+  "learning": {
+    "$comment": "「6件で学習開始」は少なすぎた。サンプル不足時は数値を表示しても重みは変えない。",
+    "minTotalPosts": 24,
+    "minPerCell": 6,
+    "minMatureForCv": 30,
+    "minPerCellCv": 5,
+    "minPerSlotForWinner": 12,
+    "minShopPosts": 5,
+    "maxAdjustPerRun": 0.05,
+    "maxAdjustCumulative": 0.15
   }
 }

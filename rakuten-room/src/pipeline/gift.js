@@ -231,7 +231,8 @@ function evaluate(item, strategy, lex) {
       versatility: versat.source
     },
     occasions: versat.occasions,
-    /* 用途の広さ（スコア）は説明文も見るが、棚札は商品名だけで決める */
+    /* 用途の広さ（スコア）は説明文も見るが、棚札と型付きfacetは商品名だけで決める */
+    occasionLabels: occasionsIn(fields(item).head, lex),
     collections: collectionsFor(item, lex, ready.score, occasionsIn(fields(item).head, lex), cfg.priceBands),
     angle: angleFor(versat.occasions, lex),
     reasons: ready.evidence.concat(aff.evidence, look.evidence, video.evidence, versat.evidence)
