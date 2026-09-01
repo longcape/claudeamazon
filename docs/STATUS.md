@@ -71,6 +71,7 @@ node tools/smoke-test.mjs   # 動作確認（playwright が無ければ黙って
 - 書き出し / 読み込み（JSON）
 - 公式画像の取得（`tools/fetch-assets.mjs` + GitHub Actions）
 - Riot 指定の免責表記（`index.html` の `.app-foot`）
+- **docs を現行実装と突き合わせ**（2026-09-01、ローカル環境）。`SETUP.md`（i18n キー数 270→372、クラウド保存が未検証である旨、`main` が空である旨）、`HANDOFF.md`（書き出し・読み込みの場所、git identity と `core.autocrlf` のつまずき）、`FETCH-ASSETS.md`（公式画像は同梱済み、取得完了時の表示、アップロード対象の枚数、Riot の条件）。`LEGAL.md` はずれが無く変更なし
 - **README を現行実装と全文突き合わせ**（2026-09-01、ローカル環境）。表示サイズの段階、`⋯` メニュー、公式画像の同梱、検索・構成プリセット・クラウド保存の追記、免責表記の指定文言化など。READMEだけで「いま何ができて、何が未完成か」が分かる状態にした
 
 ---

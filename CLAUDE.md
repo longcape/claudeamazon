@@ -375,8 +375,10 @@ assets/js/              アプリ本体
 assets/css/style.css    全スタイル
 assets/img/             公式画像（fetch-assets.mjs が落とす）
 tools/fetch-assets.mjs  公式画像の取得
-tools/smoke-test.mjs    動作確認
-docs/SETUP.md           Supabase / AI 寸評のセットアップ
+tools/smoke-test.mjs    動作確認 50 項目
+docs/STATUS.md          進捗と引き継ぎ（最初に読む）
+docs/SETUP.md           Supabase / クラウド保存 / AI 寸評のセットアップ
+docs/LEGAL.md           公開・収益化と Riot の規約
 docs/FETCH-ASSETS.md    画像取得の手順（非エンジニア向けに詳しく）
 docs/HANDOFF.md         ローカル環境への引き継ぎ手順
 supabase/               スキーマと Edge Function

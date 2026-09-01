@@ -140,13 +140,40 @@ node tools/smoke-test.mjs
 
 ### 保存して共有する
 
+初回だけ、コミットする人の名前とメールを登録する（未設定だと
+`Author identity unknown` で止まる）。
+
+```
+git config user.name "longcape"
+git config user.email "自分のメールアドレス"
+```
+
+あとはこの 3 つ。
+
 ```
 git add -A
 git commit -m "変更内容を一行で"
 git push
 ```
 
-Claude Code に「コミットして」と頼めばこの 3 つをやってくれる。
+Claude Code に「コミットして」と頼めばやってくれる。
+**push 先は作業ブランチ `claude/valorant-tactical-setup-card-iiiog3` のみ。**
+
+### Windows は改行コードの設定を変えておく
+
+Git の既定（`core.autocrlf=true`）のまま clone すると、`node build.js` を
+実行するたびに `dist/*.html` が「変更あり」になる。中身は同じで、改行コードが
+違うだけ。気づかずコミットすると `dist/` に CRLF が混入する。
+
+clone した直後に一度だけ実行しておく。
+
+```
+git config core.autocrlf false
+git rm --cached -r -q . && git reset --hard
+```
+
+`画像を取得.bat` は `.gitattributes` で保護されているので、この設定を変えても
+CRLF のまま保たれる（文字化けしない）。
 
 ---
 
@@ -177,8 +204,8 @@ GitHub の Actions タブ → 「公式画像の取得」→ Run workflow を押
 
 移したい場合:
 
-1. 公開 URL 版を開く → 右上の **書き出し** → JSON ファイルが落ちる
-2. ローカルの `index.html` を開く → 右上の **読み込み** → その JSON を選ぶ
+1. 公開 URL 版を開く → 右上の **`⋯` メニュー → 書き出し** → JSON ファイルが落ちる
+2. ローカルの `index.html` を開く → 右上の **`⋯` メニュー → 読み込み** → その JSON を選ぶ
 
 逆向きも同じ手順でできる。
 
@@ -195,12 +222,14 @@ GitHub の Actions タブ → 「公式画像の取得」→ Run workflow を押
 | `node` が見つからない | https://nodejs.org/ja から推奨版を入れる |
 | smoke-test が全部飛ばされる | `npm install -D playwright` がまだ。プロジェクトのフォルダで実行する |
 | push できない | ブランチが違う可能性。`git branch --show-current` で確認する |
+| `Author identity unknown` と出てコミットできない | `git config user.name` と `git config user.email` が未設定。上の「保存して共有する」を参照 |
+| ビルドしただけなのに `dist/` が変更扱いになる | Windows の改行コード。上の「Windows は改行コードの設定を変えておく」を参照 |
 
 ---
 
 ## 公開 URL について
 
-現在の公開ページはこのセッションから発行したもので、
+現在の公開ページはクラウドセッションから発行したもので、
 **ローカルからは更新できない**。ローカルで続けた変更を公開したい場合は、
 ホスティング先を用意することになる。
 
