@@ -58,6 +58,55 @@
     return text.trim();
   }
 
+  /**
+   * 試合が終わったあとの要約。
+   * ラウンド中に投稿する人はいないので、X へ出すのはこちらだけにしている。
+   * 戦術 1 枚より「どう回して何点取ったか」の方が読む側に意味がある。
+   * @param {Object} opts { map, score, rounds, tactics }
+   */
+  function buildMatchText(opts) {
+    const map = D.mapById(opts.map);
+    const used = {};
+    opts.rounds.forEach(function (r) {
+      const rec = used[r.tacticId] = used[r.tacticId] || { win: 0, loss: 0 };
+      if (r.result === 'WIN') rec.win++; else rec.loss++;
+    });
+
+    /* 使った回数が多い順。全部並べると長すぎるので上位だけ */
+    const lines = Object.keys(used).map(function (id) {
+      const tac = opts.tactics.filter(function (x) { return x.id === id; })[0];
+      const r = used[id];
+      return {
+        n: r.win + r.loss,
+        text: (tac ? tac.name : '-') + ' ' + r.win + 'W' + r.loss + 'L'
+      };
+    }).sort(function (a, b) { return b.n - a.n; });
+
+    let body = I.t('share.matchText', {
+      map: map ? map.name : '-',
+      ally: opts.score.ally,
+      enemy: opts.score.enemy
+    });
+
+    for (let i = 0; i < lines.length; i++) {
+      const next = body + '\n' + lines[i].text;
+      if (next.length > MAX_LEN) break;
+      body = next;
+    }
+    return body.trim();
+  }
+
+  function postMatchToX(opts) {
+    openIntent(buildMatchText(opts));
+  }
+
+  function openIntent(text) {
+    const url = 'https://x.com/intent/tweet'
+      + '?text=' + encodeURIComponent(text)
+      + '&hashtags=' + encodeURIComponent(HASHTAGS.join(','));
+    global.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   /** X の Web Intent を開く */
   function postToX(opts) {
     const text = buildText(opts);
@@ -95,5 +144,11 @@
     }
   }
 
-  global.VCT_SHARE = { buildText: buildText, postToX: postToX, copyText: copyText };
+  global.VCT_SHARE = {
+    buildText: buildText,
+    buildMatchText: buildMatchText,
+    postToX: postToX,
+    postMatchToX: postMatchToX,
+    copyText: copyText
+  };
 })(window);

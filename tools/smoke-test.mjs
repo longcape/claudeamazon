@@ -59,10 +59,21 @@ page.on('console', (m) => {
   /* フォントの読み込み失敗はオフライン確認時に必ず出るので除く */
   if (m.type() === 'error' && !/ERR_|fonts/.test(m.text())) pageErrors.push(m.text());
 });
-/* confirm は素通し、prompt は答えを差し替えられるようにしておく。
-   ここで一括して受けるので、個別に on('dialog') を足さないこと（二重応答になる） */
-let promptAnswer = '';
-page.on('dialog', (d) => d.accept(promptAnswer));
+/* 公開ページはサンドボックスの中で動くので、ブラウザが confirm() と prompt() を
+   無視する。ネイティブのダイアログを呼んだ時点でその操作は死ぬので、
+   受け付けずに失敗として記録する。 */
+page.on('dialog', (d) => {
+  pageErrors.push('ネイティブダイアログが呼ばれた: ' + d.type() + ' / ' + d.message());
+  d.dismiss();
+});
+
+/* 自前の確認ダイアログ。決定するなら text を渡す */
+async function answerAsk(text) {
+  await page.waitForSelector('#modal-ask:not([hidden])', { timeout: 3000 });
+  if (text !== undefined) await page.fill('#ask-input', text);
+  await page.click('#ask-ok');
+  await page.waitForTimeout(300);
+}
 
 await page.goto('file://' + DIST);
 await page.waitForTimeout(600);
@@ -126,6 +137,17 @@ for (const mode of ['site', 'kind', 'side']) {
 await page.selectOption('#deck-group', 'none');
 await page.waitForTimeout(200);
 
+/* ---------------- 上部メニュー ---------------- */
+await page.click('#btn-topmenu');
+await page.waitForTimeout(200);
+check('書き出し・読み込みがメニューに入っている',
+  (await page.locator('#topmenu-pop').isVisible()) &&
+  (await page.locator('#topmenu-pop #btn-export').count()) === 1 &&
+  (await page.locator('#topmenu-pop #btn-reset-all').count()) === 1);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
+check('メニューは外を押すと閉じる', await page.locator('#topmenu-pop').isHidden());
+
 /* ---------------- 免責表記 ---------------- */
 /* Riot の二次利用条件で明記が求められている。消えていないか見る */
 const legal = await page.locator('.app-foot').innerText();
@@ -160,12 +182,10 @@ for (const a of ENEMY) {
   await page.waitForTimeout(160);
 }
 
-/* 構成のプリセット。名前は prompt で聞くので受け答えを差し替える */
-promptAnswer = 'テスト構成';
+/* 構成のプリセット。名前は自前のダイアログで聞く */
 await page.click('[data-comp-save="ally"]');
-await page.waitForTimeout(400);
+await answerAsk('テスト構成');
 check('構成を保存できる', (await page.locator('#comp-bar-ally .comp-chip').count()) === 1);
-promptAnswer = '';
 
 await page.click('#comp-bar-enemy .comp-chip');
 await page.waitForTimeout(400);
@@ -215,6 +235,21 @@ await page.waitForTimeout(500);
 check('勝敗のあとツリーの次が出る', (await page.locator('.tree-next').count()) === 1);
 /* 分岐は縛りではないので、他の戦術も必ず選べること */
 check('ツリー以外の戦術も選べる', (await page.locator('.pick-list .pick').count()) > 0);
+
+/* スコアリセット。サンドボックスで confirm が無視されて
+   「押しても何も起きない」状態になっていたことがある */
+check('リセット前にラウンドが残っている',
+  (await page.evaluate(() => window.VCT_STORE.state.rounds.length)) > 0);
+await page.click('#btn-reset-match');
+await page.waitForSelector('#modal-ask:not([hidden])', { timeout: 3000 });
+await page.click('#ask-cancel');
+await page.waitForTimeout(300);
+check('取り消したらリセットされない',
+  (await page.evaluate(() => window.VCT_STORE.state.rounds.length)) > 0);
+await page.click('#btn-reset-match');
+await answerAsk();
+check('スコアリセットが効く',
+  (await page.evaluate(() => window.VCT_STORE.state.rounds.length)) === 0);
 
 await page.evaluate(() => { window.VCT_STORE.resetMatch && window.VCT_STORE.resetMatch(); });
 await page.reload();

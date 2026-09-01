@@ -2457,6 +2457,71 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   white-space: nowrap;
 }
 .avatar-xs { width: 18px; height: 18px; }
+
+/* =========================================================
+   確認・入力ダイアログ
+   ---------------------------------------------------------
+   公開ページはサンドボックスの中で動くので、ブラウザが
+   confirm() と prompt() を無視する。その代わり。
+   他のモーダルの上に重なるので z-index を一段上げている。
+   ========================================================= */
+#modal-ask { z-index: 120; }
+.modal-narrow { width: min(440px, 100%); }
+.ask-message {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.8;
+}
+#ask-input {
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .3);
+  color: #fff;
+  font-size: 13px;
+}
+#ask-input:focus { outline: none; border-color: var(--cyan); }
+
+/* =========================================================
+   上部バーのメニュー
+   ---------------------------------------------------------
+   書き出し・読み込み・初期化はめったに使わないうえ、
+   試合中に押し間違えると痛い。一段隠しておく。
+   ========================================================= */
+.topmenu { position: relative; }
+#btn-topmenu { padding: 8px 12px; letter-spacing: .12em; }
+
+.topmenu-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 170px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  background: #0f171e;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+}
+.topmenu-pop button {
+  display: block;
+  width: 100%;
+  padding: 8px 11px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.topmenu-pop button:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+.topmenu-pop button.is-danger { color: var(--red); }
+.topmenu-pop button.is-danger:hover { background: rgba(255, 70, 85, .12); }
+.topmenu-pop hr { margin: 5px 0; border: 0; border-top: 1px solid var(--line); }
+
+/* コミュニティの検索欄は自分のデッキ検索と同じ見た目でよい */
+#community-query { min-width: 0; }
 </style>
 </head>
 <body>
@@ -2490,9 +2555,18 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
       <span class="lang-globe" aria-hidden="true">🌐</span>
       <select id="lang-select" aria-label="Language"></select>
     </label>
-    <button class="btn btn-ghost" id="btn-export" data-i18n="btn.export" data-i18n-title="btn.export.title">EXPORT</button>
-    <button class="btn btn-ghost" id="btn-import" data-i18n="btn.import" data-i18n-title="btn.import.title">IMPORT</button>
-    <button class="btn btn-ghost btn-danger" id="btn-reset-all" data-i18n="btn.reset" data-i18n-title="btn.reset.title">RESET</button>
+    <!-- 書き出し・読み込み・初期化はめったに使わない。
+         試合中に押し間違えると痛いので、一段隠しておく -->
+    <div class="topmenu">
+      <button class="btn btn-ghost" id="btn-topmenu" aria-haspopup="true" aria-expanded="false"
+        data-i18n-title="menu.title">⋯</button>
+      <div class="topmenu-pop" id="topmenu-pop" hidden>
+        <button type="button" id="btn-export" data-i18n="btn.export"></button>
+        <button type="button" id="btn-import" data-i18n="btn.import"></button>
+        <hr />
+        <button type="button" class="is-danger" id="btn-reset-all" data-i18n="btn.reset"></button>
+      </div>
+    </div>
     <input type="file" id="file-import" accept="application/json,.json" hidden />
   </div>
 </header>
@@ -2697,6 +2771,10 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
             <button class="chip is-active" data-sort="new" data-i18n="community.sortNew"></button>
             <button class="chip" data-sort="top" data-i18n="community.sortTop"></button>
           </div>
+          <div class="deck-search">
+            <input type="search" id="community-query" data-i18n-ph="community.searchPh" />
+            <button type="button" class="deck-search-clear" id="btn-community-clear" hidden aria-label="clear">×</button>
+          </div>
           <select id="community-map" class="community-map"></select>
           <button class="btn btn-primary btn-sm" id="btn-open-post" data-i18n="community.post"></button>
         </div>
@@ -2818,6 +2896,27 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
       <button type="button" class="btn btn-ghost btn-danger" id="btn-board-clear" data-i18n="board.clear"></button>
       <span class="spacer"></span>
       <button type="button" class="btn btn-primary" data-close data-i18n="board.done"></button>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ ASK MODAL ============ -->
+<!-- 公開ページはサンドボックス内で動くため confirm() / prompt() が
+     ブラウザに無視される。確認や入力はすべてこのモーダルで受ける。 -->
+<div class="modal" id="modal-ask" hidden>
+  <div class="modal-backdrop" data-ask-cancel></div>
+  <div class="modal-card modal-narrow panel-clip" role="dialog" aria-modal="true" aria-labelledby="ask-title">
+    <header class="modal-head">
+      <h2 id="ask-title"></h2>
+    </header>
+    <div class="modal-body">
+      <p class="ask-message" id="ask-message"></p>
+      <input type="text" id="ask-input" maxlength="60" hidden />
+    </div>
+    <footer class="modal-foot">
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-ghost" id="ask-cancel" data-ask-cancel></button>
+      <button type="button" class="btn btn-primary" id="ask-ok"></button>
     </footer>
   </div>
 </div>
@@ -3131,6 +3230,16 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'comp.namePrompt': 'この構成の名前を入力してください',
   'comp.saved': '「{name}」を保存しました。',
   'comp.limit': '保存できる構成は {n} 個までです。',
+  'ask.confirm': '確認',
+  'ask.ok': 'OK',
+  'ask.cancel': 'キャンセル',
+  'ask.save': '保存',
+  'ask.delete': '削除する',
+  'ask.reset': 'リセットする',
+  'menu.title': 'データの書き出し・読み込み・初期化',
+  'community.searchPh': 'みんなの戦術を検索（タイトル・本文・投稿者）',
+  'community.noMatch': '条件に合う投稿がありません。',
+  'share.matchText': '{map} {ally}-{enemy}\n使った戦術:',
   'common.close': '閉じる',
   'common.loading': '読み込み中…',
   'cloud.open': '☁ クラウド',
@@ -3152,7 +3261,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'cloud.confirmDelete': '「{name}」を削除します。よろしいですか？',
   'cloud.badPayload': '保存データを読み込めませんでした。',
   'cloud.failed': '通信に失敗しました。{msg}',
-  'deck.searchPh': '戦術名・コール・サイトで検索',
+  'deck.searchPh': '自分の戦術を検索（名前・コール・サイト）',
   'deck.groupBy': 'まとめ方',
   'deck.group.none': 'まとめない',
   'deck.group.site': 'サイト別',
@@ -3532,6 +3641,16 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'comp.namePrompt': 'Name this comp',
   'comp.saved': 'Saved \u201c{name}\u201d.',
   'comp.limit': 'You can save up to {n} comps.',
+  'ask.confirm': 'Confirm',
+  'ask.ok': 'OK',
+  'ask.cancel': 'Cancel',
+  'ask.save': 'Save',
+  'ask.delete': 'Delete',
+  'ask.reset': 'Reset',
+  'menu.title': 'Export, import and reset',
+  'community.searchPh': 'Search shared tactics (title, body, author)',
+  'community.noMatch': 'No post matches.',
+  'share.matchText': '{map} {ally}-{enemy}\nTactics used:',
   'common.close': 'Close',
   'common.loading': 'Loading…',
   'cloud.open': '☁ Cloud',
@@ -3553,7 +3672,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'cloud.confirmDelete': 'Delete "{name}"?',
   'cloud.badPayload': 'Could not read the saved data.',
   'cloud.failed': 'Request failed. {msg}',
-  'deck.searchPh': 'Search name, call or site',
+  'deck.searchPh': 'Search your tactics (name, call, site)',
   'deck.groupBy': 'Group by',
   'deck.group.none': 'No grouping',
   'deck.group.site': 'Site',
@@ -3925,6 +4044,16 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'comp.namePrompt': '이 조합의 이름을 입력하세요',
   'comp.saved': '\u201c{name}\u201d을(를) 저장했습니다.',
   'comp.limit': '조합은 {n}개까지 저장할 수 있습니다.',
+  'ask.confirm': '확인',
+  'ask.ok': '확인',
+  'ask.cancel': '취소',
+  'ask.save': '저장',
+  'ask.delete': '삭제',
+  'ask.reset': '초기화',
+  'menu.title': '내보내기 · 가져오기 · 초기화',
+  'community.searchPh': '공유된 전술 검색 (제목 · 본문 · 작성자)',
+  'community.noMatch': '조건에 맞는 게시물이 없습니다.',
+  'share.matchText': '{map} {ally}-{enemy}\n사용한 전술:',
   'common.close': '닫기',
   'common.loading': '불러오는 중…',
   'cloud.open': '☁ 클라우드',
@@ -3946,7 +4075,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'cloud.confirmDelete': '"{name}"을(를) 삭제할까요?',
   'cloud.badPayload': '저장 데이터를 읽을 수 없습니다.',
   'cloud.failed': '통신에 실패했습니다. {msg}',
-  'deck.searchPh': '전술명 · 콜 · 사이트로 검색',
+  'deck.searchPh': '내 전술 검색 (이름 · 콜 · 사이트)',
   'deck.groupBy': '묶는 방법',
   'deck.group.none': '묶지 않음',
   'deck.group.site': '사이트별',
@@ -6994,6 +7123,55 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     return text.trim();
   }
 
+  /**
+   * 試合が終わったあとの要約。
+   * ラウンド中に投稿する人はいないので、X へ出すのはこちらだけにしている。
+   * 戦術 1 枚より「どう回して何点取ったか」の方が読む側に意味がある。
+   * @param {Object} opts { map, score, rounds, tactics }
+   */
+  function buildMatchText(opts) {
+    const map = D.mapById(opts.map);
+    const used = {};
+    opts.rounds.forEach(function (r) {
+      const rec = used[r.tacticId] = used[r.tacticId] || { win: 0, loss: 0 };
+      if (r.result === 'WIN') rec.win++; else rec.loss++;
+    });
+
+    /* 使った回数が多い順。全部並べると長すぎるので上位だけ */
+    const lines = Object.keys(used).map(function (id) {
+      const tac = opts.tactics.filter(function (x) { return x.id === id; })[0];
+      const r = used[id];
+      return {
+        n: r.win + r.loss,
+        text: (tac ? tac.name : '-') + ' ' + r.win + 'W' + r.loss + 'L'
+      };
+    }).sort(function (a, b) { return b.n - a.n; });
+
+    let body = I.t('share.matchText', {
+      map: map ? map.name : '-',
+      ally: opts.score.ally,
+      enemy: opts.score.enemy
+    });
+
+    for (let i = 0; i < lines.length; i++) {
+      const next = body + '\n' + lines[i].text;
+      if (next.length > MAX_LEN) break;
+      body = next;
+    }
+    return body.trim();
+  }
+
+  function postMatchToX(opts) {
+    openIntent(buildMatchText(opts));
+  }
+
+  function openIntent(text) {
+    const url = 'https://x.com/intent/tweet'
+      + '?text=' + encodeURIComponent(text)
+      + '&hashtags=' + encodeURIComponent(HASHTAGS.join(','));
+    global.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   /** X の Web Intent を開く */
   function postToX(opts) {
     const text = buildText(opts);
@@ -7031,7 +7209,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     }
   }
 
-  global.VCT_SHARE = { buildText: buildText, postToX: postToX, copyText: copyText };
+  global.VCT_SHARE = {
+    buildText: buildText,
+    buildMatchText: buildMatchText,
+    postToX: postToX,
+    postMatchToX: postMatchToX,
+    copyText: copyText
+  };
 })(window);
 </script>
 <script>
@@ -7701,6 +7885,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         '<span class="banner-text">' +
           esc(t(result === 'WIN' ? 'banner.won' : 'banner.lost', { a: sc.ally, b: sc.enemy })) +
         '</span>' +
+        '<button class="btn btn-ghost btn-sm btn-x" data-act="share-x">' + t('share.x') + '</button>' +
         '<button class="btn btn-primary btn-sm" id="btn-next-match">' + t('banner.nextMatch') + '</button>';
     } else if (sc.ally >= 12 || sc.enemy >= 12) {
       banner.hidden = false;
@@ -7779,11 +7964,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       analysisHTML(uiState);
   }
 
+  /* ラウンド中に押されるのはチームへコールを流すときだけ。
+     X へのポストはこの画面に要らない（試合中に誰も呟かない）ので、
+     試合が終わったときのバナーへ移した。 */
   function shareBarHTML() {
     return '' +
       '<div class="share-bar">' +
         '<span class="lc-label">' + t('share.title') + '</span>' +
-        '<button class="btn btn-ghost btn-sm btn-x" data-act="share-x">' + t('share.x') + '</button>' +
         '<button class="btn btn-ghost btn-sm" data-act="share-copy">' + t('share.copy') + '</button>' +
         (global.VCT_COMMUNITY.enabled()
           ? '<button class="btn btn-ghost btn-sm" data-act="share-post">' + t('community.post') + '</button>'
@@ -7881,6 +8068,71 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
                '<span class="legend-steps">' + steps + '</span>' +
              '</li>';
     }).join('') + '</ul>';
+  }
+
+  /* --- 確認・入力ダイアログ --- */
+
+  /**
+   * confirm() / prompt() の代わり。
+   *
+   * 公開ページはサンドボックスの中で動くので、ブラウザが
+   * confirm() と prompt() を無視する。押しても何も起きないボタンに
+   * なってしまうため、自前のモーダルで受ける。
+   *
+   * @param {Object} opts { message, okLabel, danger, input, value, placeholder }
+   * @returns {Promise} 入力ありなら文字列 / なしなら true。取り消しは null
+   */
+  function ask(opts) {
+    const o = opts || {};
+    const modal = $('modal-ask');
+    const input = $('ask-input');
+    const okBtn = $('ask-ok');
+
+    $('ask-title').textContent = o.title || t('ask.confirm');
+    $('ask-message').textContent = o.message || '';
+    $('ask-message').hidden = !o.message;
+    okBtn.textContent = o.okLabel || t('ask.ok');
+    okBtn.classList.toggle('btn-danger', !!o.danger);
+    $('ask-cancel').textContent = t('ask.cancel');
+
+    input.hidden = !o.input;
+    input.value = o.input ? (o.value || '') : '';
+    input.placeholder = o.placeholder || '';
+
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(function () { (o.input ? input : okBtn).focus(); }, 0);
+
+    return new Promise(function (resolve) {
+      function done(value) {
+        modal.hidden = true;
+        document.body.style.overflow = '';
+        modal.removeEventListener('click', onClick);
+        document.removeEventListener('keydown', onKey, true);
+        resolve(value);
+      }
+      function accept() {
+        if (o.input) {
+          const v = input.value.trim();
+          if (!v) { input.focus(); return; }   /* 空では決定させない */
+          done(v);
+          return;
+        }
+        done(true);
+      }
+      function onClick(e) {
+        if (e.target.closest('[data-ask-cancel]')) { done(null); return; }
+        if (e.target.closest('#ask-ok')) accept();
+      }
+      /* Esc と Enter は他のモーダルより先に拾う。
+         重なって開いているとき、下のモーダルまで閉じてしまわないように */
+      function onKey(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); done(null); }
+        else if (e.key === 'Enter') { e.stopPropagation(); accept(); }
+      }
+      modal.addEventListener('click', onClick);
+      document.addEventListener('keydown', onKey, true);
+    });
   }
 
   /* --- 構成のプリセット --- */
@@ -8519,9 +8771,20 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       }).join('');
   }
 
-  function renderPosts(posts, status) {
+  function renderPosts(posts, status, query) {
     const grid = $('post-grid');
     const empty = $('post-empty');
+
+    /* 検索は取ってきたぶんを手元で絞る。
+       自分のデッキ検索（renderDeck）とは別物なので、当てる先も文言も分けている */
+    if (query && Array.isArray(posts)) {
+      const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+      posts = posts.filter(function (p) {
+        const hay = [p.title, p.body, p.map, p.author_name].join(' ').toLowerCase();
+        return words.every(function (w) { return hay.indexOf(w) >= 0; });
+      });
+      if (!posts.length) { status = t('community.noMatch'); }
+    }
 
     if (status) {
       grid.innerHTML = '';
@@ -8674,6 +8937,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     renderSideToggle: renderSideToggle,
     renderMatchFields: renderMatchFields,
     renderRoster: renderRoster,
+    ask: ask,
     renderCloud: renderCloud,
     renderTree: renderTree,
     renderCompBar: renderCompBar,
@@ -8758,6 +9022,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     posts: [],
     postSort: 'new',
     postMap: '',
+    postQuery: '',            // コミュニティ側の検索語（自分のデッキとは別物）
     postTacticId: null,
     treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
@@ -8797,7 +9062,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function renderCommunity() {
     U.renderAccount();
     U.renderCommunityMapFilter(ui.postMap);
-    U.renderPosts(ui.posts);
+    U.renderPosts(ui.posts, null, ui.postQuery);
   }
 
   function renderAll() {
@@ -8950,6 +9215,35 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     }).filter(Boolean);
   }
 
+  /* ================= 上部メニュー ================= */
+
+  function bindTopMenu() {
+    const pop = $('topmenu-pop');
+    const btn = $('btn-topmenu');
+
+    function close() {
+      pop.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      pop.hidden = !pop.hidden;
+      btn.setAttribute('aria-expanded', String(!pop.hidden));
+    });
+
+    /* 中の項目を押したら閉じる。外を押しても閉じる */
+    pop.addEventListener('click', function () { close(); });
+    document.addEventListener('click', function (e) {
+      if (pop.hidden) return;
+      if (e.target.closest('.topmenu')) return;
+      close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+  }
+
   /* ================= 分岐ツリー ================= */
 
   function openTreeModal() {
@@ -8975,14 +9269,16 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
 
     $('btn-tree-clear').addEventListener('click', function () {
-      if (!confirm(t('tree.confirmClear'))) return;
-      S.state.tactics.forEach(function (tac) {
-        TREE.setNext(tac, 'win', null);
-        TREE.setNext(tac, 'loss', null);
+      U.ask({ message: t('tree.confirmClear'), danger: true }).then(function (ok) {
+        if (!ok) return;
+        S.state.tactics.forEach(function (tac) {
+          TREE.setNext(tac, 'win', null);
+          TREE.setNext(tac, 'loss', null);
+        });
+        S.save();
+        U.renderTree(ui);
+        U.toast(t('tree.cleared'));
       });
-      S.save();
-      U.renderTree(ui);
-      U.toast(t('tree.cleared'));
     });
   }
 
@@ -9052,45 +9348,62 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
       if (act === 'load') {
         /* 読み込むと手元の内容が丸ごと入れ替わる。取り返しがつかないので確認する */
-        if (!confirm(t('cloud.confirmLoad', { name: saved.name }))) return;
-        try {
-          S.importObject(saved.payload);
-        } catch (err) {
-          U.toast(t('cloud.badPayload'), 'err');
-          return;
-        }
-        closeModal('modal-cloud');
-        ui.analysis = null;
-        ui.aiReview = null;
-        renderAll();
-        U.toast(t('cloud.loaded', { name: saved.name }), 'ok');
+        U.ask({ message: t('cloud.confirmLoad', { name: saved.name }), danger: true })
+          .then(function (ok) {
+            if (!ok) return;
+            try {
+              S.importObject(saved.payload);
+            } catch (err) {
+              U.toast(t('cloud.badPayload'), 'err');
+              return;
+            }
+            closeModal('modal-cloud');
+            ui.analysis = null;
+            ui.aiReview = null;
+            renderAll();
+            U.toast(t('cloud.loaded', { name: saved.name }), 'ok');
+          });
         return;
       }
 
       if (act === 'overwrite') {
-        if (!confirm(t('cloud.confirmOverwrite', { name: saved.name }))) return;
-        btn.disabled = true;
-        C.updateSetup(saved.id, saved.name, JSON.parse(S.exportJSON())).then(function () {
-          U.toast(t('cloud.saved'), 'ok');
-          refreshCloudList();
-        }, function (err) {
-          btn.disabled = false;
-          U.toast(cloudError(err), 'err');
+        U.ask({ message: t('cloud.confirmOverwrite', { name: saved.name }) }).then(function (ok) {
+          if (!ok) return;
+          btn.disabled = true;
+          C.updateSetup(saved.id, saved.name, JSON.parse(S.exportJSON())).then(function () {
+            U.toast(t('cloud.saved'), 'ok');
+            refreshCloudList();
+          }, function (err) {
+            btn.disabled = false;
+            U.toast(cloudError(err), 'err');
+          });
         });
         return;
       }
 
       if (act === 'delete') {
-        if (!confirm(t('cloud.confirmDelete', { name: saved.name }))) return;
-        C.deleteSetup(saved.id).then(function () {
-          U.toast(t('cloud.deleted'), 'ok');
-          refreshCloudList();
-        }, function (err) { U.toast(cloudError(err), 'err'); });
+        U.ask({ message: t('cloud.confirmDelete', { name: saved.name }), danger: true })
+          .then(function (ok) {
+            if (!ok) return;
+            C.deleteSetup(saved.id).then(function () {
+              U.toast(t('cloud.deleted'), 'ok');
+              refreshCloudList();
+            }, function (err) { U.toast(cloudError(err), 'err'); });
+          });
       }
     });
   }
 
   /* ================= 配置盤 ================= */
+
+  /* 局面を切り替えたり中身を消したりしたら、
+     選択・パレットの選択・描きかけのルートは全部落とす */
+  function resetBoardSelection() {
+    ui.armed = null;
+    ui.selectedMarkId = null;
+    ui.routeTeam = null;
+    ui.draftRoute = [];
+  }
 
   /** いま編集している局面の盤面 */
   function curPhase() {
@@ -9147,17 +9460,21 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         ui.phaseIndex = BOARD.phases(ui.boardTactic).length - 1;
       } else if (act === 'del') {
         const label = curPhase().name || t('board.phaseN', { n: ui.phaseIndex + 1 });
-        if (!confirm(t('board.confirmPhaseDel', { name: label }))) return;
-        BOARD.removePhase(ui.boardTactic, ui.phaseIndex);
-        ui.phaseIndex = Math.max(0, ui.phaseIndex - 1);
+        U.ask({ message: t('board.confirmPhaseDel', { name: label }), danger: true })
+          .then(function (ok) {
+            if (!ok) return;
+            BOARD.removePhase(ui.boardTactic, ui.phaseIndex);
+            ui.phaseIndex = Math.max(0, ui.phaseIndex - 1);
+            resetBoardSelection();
+            commitBoard();
+            refreshBoard();
+          });
+        return;
       } else {
         return;
       }
 
-      ui.armed = null;
-      ui.selectedMarkId = null;
-      ui.routeTeam = null;
-      ui.draftRoute = [];
+      resetBoardSelection();
       commitBoard();
       refreshBoard();
     });
@@ -9214,14 +9531,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     $('btn-board-clear').addEventListener('click', function () {
       if (!ui.boardTactic) return;
-      if (!confirm(t('board.confirmClear'))) return;
-      BOARD.clearBoard(curPhase());
-      ui.selectedMarkId = null;
-      ui.armed = null;
-      ui.routeTeam = null;
-      ui.draftRoute = [];
-      commitBoard();
-      refreshBoard();
+      U.ask({ message: t('board.confirmClear'), danger: true }).then(function (ok) {
+        if (!ok) return;
+        BOARD.clearBoard(curPhase());
+        resetBoardSelection();
+        commitBoard();
+        refreshBoard();
+      });
     });
 
     bindBoardCanvas();
@@ -9568,14 +9884,21 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         if (!save) return;
         const team = save.dataset.compSave;
         const roster = team === 'enemy' ? S.state.enemies : S.state.allies;
-        const name = (prompt(t('comp.namePrompt'), suggestCompName(roster)) || '').trim();
-        if (!name) return;
-        if (!S.saveComp(name, roster.map(function (s2) { return s2.agent; }))) {
-          U.toast(t('comp.limit', { n: S.MAX_COMPS }), 'err');
-          return;
-        }
-        renderAll();
-        U.toast(t('comp.saved', { name: name }), 'ok');
+        U.ask({
+          title: t('comp.save'),
+          message: t('comp.namePrompt'),
+          input: true,
+          value: suggestCompName(roster),
+          okLabel: t('ask.save')
+        }).then(function (name) {
+          if (!name) return;
+          if (!S.saveComp(name, roster.map(function (s2) { return s2.agent; }))) {
+            U.toast(t('comp.limit', { n: S.MAX_COMPS }), 'err');
+            return;
+          }
+          renderAll();
+          U.toast(t('comp.saved', { name: name }), 'ok');
+        });
       });
     });
 
@@ -9699,9 +10022,6 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         renderLive();
       } else if (act === 'ai-review') {
         runAiReview();
-      } else if (act === 'share-x') {
-        const opts = shareOpts();
-        if (opts) SHARE.postToX(opts);
       } else if (act === 'share-copy') {
         const opts = shareOpts();
         if (opts) {
@@ -9733,23 +10053,32 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     /* 決着バナー内のボタンは再描画で作り直されるため、委譲で拾う */
     $('match-banner').addEventListener('click', function (e) {
-      if (!e.target.closest('#btn-next-match')) return;
-      if (!confirm(t('confirm.resetMatch'))) return;
-      S.resetMatch();
-      ui.analysis = null;
-      ui.aiReview = null;
-      renderLive();
-      U.toast(t('toast.matchReset'));
+      if (e.target.closest('[data-act="share-x"]')) {
+        SHARE.postMatchToX({
+          map: S.state.match.map,
+          score: S.score(),
+          rounds: S.state.rounds,
+          tactics: S.state.tactics
+        });
+        return;
+      }
+      if (e.target.closest('#btn-next-match')) askResetMatch();
     });
 
-    $('btn-reset-match').addEventListener('click', function () {
-      if (!confirm(t('confirm.resetMatch'))) return;
-      S.resetMatch();
-      ui.analysis = null;
-      ui.aiReview = null;
-      renderLive();
-      U.toast(t('toast.matchReset'));
-    });
+    $('btn-reset-match').addEventListener('click', askResetMatch);
+  }
+
+  /** スコアだけ消して同じ構成・戦術で次の試合へ */
+  function askResetMatch() {
+    U.ask({ message: t('confirm.resetMatch'), okLabel: t('ask.reset'), danger: true })
+      .then(function (ok) {
+        if (!ok) return;
+        S.resetMatch();
+        ui.analysis = null;
+        ui.aiReview = null;
+        renderLive();
+        U.toast(t('toast.matchReset'));
+      });
   }
 
   /* ================= コミュニティ ================= */
@@ -9761,7 +10090,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     U.renderPosts([], t('common.loading'));
     C.listPosts({ sort: ui.postSort, map: ui.postMap }).then(function (rows) {
       ui.posts = Array.isArray(rows) ? rows : [];
-      U.renderPosts(ui.posts);
+      U.renderPosts(ui.posts, null, ui.postQuery);
     }, function (err) {
       U.renderPosts([], t('community.postFailed', { msg: err.message }));
     });
@@ -9807,6 +10136,22 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       loadPosts();
     });
 
+    /* コミュニティの検索。取ってきた投稿を手元で絞るだけなので、
+       打つたびに読み直さない（自分のデッキ検索と同じ操作感にする） */
+    $('community-query').addEventListener('input', function (e) {
+      ui.postQuery = e.target.value;
+      $('btn-community-clear').hidden = !ui.postQuery;
+      U.renderPosts(ui.posts, null, ui.postQuery);
+    });
+
+    $('btn-community-clear').addEventListener('click', function () {
+      ui.postQuery = '';
+      $('community-query').value = '';
+      $('btn-community-clear').hidden = true;
+      U.renderPosts(ui.posts, null, ui.postQuery);
+      $('community-query').focus();
+    });
+
     $('btn-open-post').addEventListener('click', function () { openPostModal(null); });
 
     $('community-account').addEventListener('click', function (e) {
@@ -9827,7 +10172,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       if (el.dataset.act === 'like') {
         C.likePost(post.id).then(function (likes) {
           post.likes = typeof likes === 'number' ? likes : (post.likes || 0) + 1;
-          U.renderPosts(ui.posts);
+          U.renderPosts(ui.posts, null, ui.postQuery);
         }, function (err) { U.toast(err.message, 'err'); });
       } else if (el.dataset.act === 'import-post') {
         S.addTactic({
@@ -10003,12 +10348,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     $('btn-delete-tactic').addEventListener('click', function () {
       if (!ui.editingTacticId) return;
       const tac = S.tacticById(ui.editingTacticId);
-      if (!confirm(t('confirm.deleteTactic', { name: tac ? tac.name : '' }))) return;
-      S.removeTactic(ui.editingTacticId);
-      ui.editingTacticId = null;
-      closeModal('modal-tactic');
-      renderAll();
-      U.toast(t('toast.tacticDeleted'));
+      U.ask({
+        message: t('confirm.deleteTactic', { name: tac ? tac.name : '' }),
+        okLabel: t('ask.delete'),
+        danger: true
+      }).then(function (ok) {
+        if (!ok) return;
+        S.removeTactic(ui.editingTacticId);
+        ui.editingTacticId = null;
+        closeModal('modal-tactic');
+        renderAll();
+        U.toast(t('toast.tacticDeleted'));
+      });
     });
   }
 
@@ -10138,13 +10489,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
 
     $('btn-reset-all').addEventListener('click', function () {
-      if (!confirm(t('confirm.resetAll'))) return;
-      S.resetAll();
-      ui.deckFilter = 'ALL';
-      ui.view = 'setup';
-      ui.analysis = null;
-      renderAll();
-      U.toast(t('toast.resetAll'));
+      U.ask({ message: t('confirm.resetAll'), okLabel: t('ask.reset'), danger: true })
+        .then(function (ok) {
+          if (!ok) return;
+          S.resetAll();
+          ui.deckFilter = 'ALL';
+          ui.deckQuery = '';
+          ui.view = 'setup';
+          ui.analysis = null;
+          ui.aiReview = null;
+          renderAll();
+          U.toast(t('toast.resetAll'));
+        });
     });
   }
 
@@ -10164,6 +10520,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     bindLive();
     bindCommunity();
     bindCloud();
+    bindTopMenu();
     bindTree();
     bindBoardEditor();
     bindAgentModal();

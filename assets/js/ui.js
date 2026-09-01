@@ -349,6 +349,7 @@
         '<span class="banner-text">' +
           esc(t(result === 'WIN' ? 'banner.won' : 'banner.lost', { a: sc.ally, b: sc.enemy })) +
         '</span>' +
+        '<button class="btn btn-ghost btn-sm btn-x" data-act="share-x">' + t('share.x') + '</button>' +
         '<button class="btn btn-primary btn-sm" id="btn-next-match">' + t('banner.nextMatch') + '</button>';
     } else if (sc.ally >= 12 || sc.enemy >= 12) {
       banner.hidden = false;
@@ -427,11 +428,13 @@
       analysisHTML(uiState);
   }
 
+  /* ラウンド中に押されるのはチームへコールを流すときだけ。
+     X へのポストはこの画面に要らない（試合中に誰も呟かない）ので、
+     試合が終わったときのバナーへ移した。 */
   function shareBarHTML() {
     return '' +
       '<div class="share-bar">' +
         '<span class="lc-label">' + t('share.title') + '</span>' +
-        '<button class="btn btn-ghost btn-sm btn-x" data-act="share-x">' + t('share.x') + '</button>' +
         '<button class="btn btn-ghost btn-sm" data-act="share-copy">' + t('share.copy') + '</button>' +
         (global.VCT_COMMUNITY.enabled()
           ? '<button class="btn btn-ghost btn-sm" data-act="share-post">' + t('community.post') + '</button>'
@@ -529,6 +532,71 @@
                '<span class="legend-steps">' + steps + '</span>' +
              '</li>';
     }).join('') + '</ul>';
+  }
+
+  /* --- 確認・入力ダイアログ --- */
+
+  /**
+   * confirm() / prompt() の代わり。
+   *
+   * 公開ページはサンドボックスの中で動くので、ブラウザが
+   * confirm() と prompt() を無視する。押しても何も起きないボタンに
+   * なってしまうため、自前のモーダルで受ける。
+   *
+   * @param {Object} opts { message, okLabel, danger, input, value, placeholder }
+   * @returns {Promise} 入力ありなら文字列 / なしなら true。取り消しは null
+   */
+  function ask(opts) {
+    const o = opts || {};
+    const modal = $('modal-ask');
+    const input = $('ask-input');
+    const okBtn = $('ask-ok');
+
+    $('ask-title').textContent = o.title || t('ask.confirm');
+    $('ask-message').textContent = o.message || '';
+    $('ask-message').hidden = !o.message;
+    okBtn.textContent = o.okLabel || t('ask.ok');
+    okBtn.classList.toggle('btn-danger', !!o.danger);
+    $('ask-cancel').textContent = t('ask.cancel');
+
+    input.hidden = !o.input;
+    input.value = o.input ? (o.value || '') : '';
+    input.placeholder = o.placeholder || '';
+
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(function () { (o.input ? input : okBtn).focus(); }, 0);
+
+    return new Promise(function (resolve) {
+      function done(value) {
+        modal.hidden = true;
+        document.body.style.overflow = '';
+        modal.removeEventListener('click', onClick);
+        document.removeEventListener('keydown', onKey, true);
+        resolve(value);
+      }
+      function accept() {
+        if (o.input) {
+          const v = input.value.trim();
+          if (!v) { input.focus(); return; }   /* 空では決定させない */
+          done(v);
+          return;
+        }
+        done(true);
+      }
+      function onClick(e) {
+        if (e.target.closest('[data-ask-cancel]')) { done(null); return; }
+        if (e.target.closest('#ask-ok')) accept();
+      }
+      /* Esc と Enter は他のモーダルより先に拾う。
+         重なって開いているとき、下のモーダルまで閉じてしまわないように */
+      function onKey(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); done(null); }
+        else if (e.key === 'Enter') { e.stopPropagation(); accept(); }
+      }
+      modal.addEventListener('click', onClick);
+      document.addEventListener('keydown', onKey, true);
+    });
   }
 
   /* --- 構成のプリセット --- */
@@ -1167,9 +1235,20 @@
       }).join('');
   }
 
-  function renderPosts(posts, status) {
+  function renderPosts(posts, status, query) {
     const grid = $('post-grid');
     const empty = $('post-empty');
+
+    /* 検索は取ってきたぶんを手元で絞る。
+       自分のデッキ検索（renderDeck）とは別物なので、当てる先も文言も分けている */
+    if (query && Array.isArray(posts)) {
+      const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+      posts = posts.filter(function (p) {
+        const hay = [p.title, p.body, p.map, p.author_name].join(' ').toLowerCase();
+        return words.every(function (w) { return hay.indexOf(w) >= 0; });
+      });
+      if (!posts.length) { status = t('community.noMatch'); }
+    }
 
     if (status) {
       grid.innerHTML = '';
@@ -1322,6 +1401,7 @@
     renderSideToggle: renderSideToggle,
     renderMatchFields: renderMatchFields,
     renderRoster: renderRoster,
+    ask: ask,
     renderCloud: renderCloud,
     renderTree: renderTree,
     renderCompBar: renderCompBar,

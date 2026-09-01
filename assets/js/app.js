@@ -45,6 +45,7 @@
     posts: [],
     postSort: 'new',
     postMap: '',
+    postQuery: '',            // コミュニティ側の検索語（自分のデッキとは別物）
     postTacticId: null,
     treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
@@ -84,7 +85,7 @@
   function renderCommunity() {
     U.renderAccount();
     U.renderCommunityMapFilter(ui.postMap);
-    U.renderPosts(ui.posts);
+    U.renderPosts(ui.posts, null, ui.postQuery);
   }
 
   function renderAll() {
@@ -237,6 +238,35 @@
     }).filter(Boolean);
   }
 
+  /* ================= 上部メニュー ================= */
+
+  function bindTopMenu() {
+    const pop = $('topmenu-pop');
+    const btn = $('btn-topmenu');
+
+    function close() {
+      pop.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      pop.hidden = !pop.hidden;
+      btn.setAttribute('aria-expanded', String(!pop.hidden));
+    });
+
+    /* 中の項目を押したら閉じる。外を押しても閉じる */
+    pop.addEventListener('click', function () { close(); });
+    document.addEventListener('click', function (e) {
+      if (pop.hidden) return;
+      if (e.target.closest('.topmenu')) return;
+      close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+    });
+  }
+
   /* ================= 分岐ツリー ================= */
 
   function openTreeModal() {
@@ -262,14 +292,16 @@
     });
 
     $('btn-tree-clear').addEventListener('click', function () {
-      if (!confirm(t('tree.confirmClear'))) return;
-      S.state.tactics.forEach(function (tac) {
-        TREE.setNext(tac, 'win', null);
-        TREE.setNext(tac, 'loss', null);
+      U.ask({ message: t('tree.confirmClear'), danger: true }).then(function (ok) {
+        if (!ok) return;
+        S.state.tactics.forEach(function (tac) {
+          TREE.setNext(tac, 'win', null);
+          TREE.setNext(tac, 'loss', null);
+        });
+        S.save();
+        U.renderTree(ui);
+        U.toast(t('tree.cleared'));
       });
-      S.save();
-      U.renderTree(ui);
-      U.toast(t('tree.cleared'));
     });
   }
 
@@ -339,45 +371,62 @@
 
       if (act === 'load') {
         /* 読み込むと手元の内容が丸ごと入れ替わる。取り返しがつかないので確認する */
-        if (!confirm(t('cloud.confirmLoad', { name: saved.name }))) return;
-        try {
-          S.importObject(saved.payload);
-        } catch (err) {
-          U.toast(t('cloud.badPayload'), 'err');
-          return;
-        }
-        closeModal('modal-cloud');
-        ui.analysis = null;
-        ui.aiReview = null;
-        renderAll();
-        U.toast(t('cloud.loaded', { name: saved.name }), 'ok');
+        U.ask({ message: t('cloud.confirmLoad', { name: saved.name }), danger: true })
+          .then(function (ok) {
+            if (!ok) return;
+            try {
+              S.importObject(saved.payload);
+            } catch (err) {
+              U.toast(t('cloud.badPayload'), 'err');
+              return;
+            }
+            closeModal('modal-cloud');
+            ui.analysis = null;
+            ui.aiReview = null;
+            renderAll();
+            U.toast(t('cloud.loaded', { name: saved.name }), 'ok');
+          });
         return;
       }
 
       if (act === 'overwrite') {
-        if (!confirm(t('cloud.confirmOverwrite', { name: saved.name }))) return;
-        btn.disabled = true;
-        C.updateSetup(saved.id, saved.name, JSON.parse(S.exportJSON())).then(function () {
-          U.toast(t('cloud.saved'), 'ok');
-          refreshCloudList();
-        }, function (err) {
-          btn.disabled = false;
-          U.toast(cloudError(err), 'err');
+        U.ask({ message: t('cloud.confirmOverwrite', { name: saved.name }) }).then(function (ok) {
+          if (!ok) return;
+          btn.disabled = true;
+          C.updateSetup(saved.id, saved.name, JSON.parse(S.exportJSON())).then(function () {
+            U.toast(t('cloud.saved'), 'ok');
+            refreshCloudList();
+          }, function (err) {
+            btn.disabled = false;
+            U.toast(cloudError(err), 'err');
+          });
         });
         return;
       }
 
       if (act === 'delete') {
-        if (!confirm(t('cloud.confirmDelete', { name: saved.name }))) return;
-        C.deleteSetup(saved.id).then(function () {
-          U.toast(t('cloud.deleted'), 'ok');
-          refreshCloudList();
-        }, function (err) { U.toast(cloudError(err), 'err'); });
+        U.ask({ message: t('cloud.confirmDelete', { name: saved.name }), danger: true })
+          .then(function (ok) {
+            if (!ok) return;
+            C.deleteSetup(saved.id).then(function () {
+              U.toast(t('cloud.deleted'), 'ok');
+              refreshCloudList();
+            }, function (err) { U.toast(cloudError(err), 'err'); });
+          });
       }
     });
   }
 
   /* ================= 配置盤 ================= */
+
+  /* 局面を切り替えたり中身を消したりしたら、
+     選択・パレットの選択・描きかけのルートは全部落とす */
+  function resetBoardSelection() {
+    ui.armed = null;
+    ui.selectedMarkId = null;
+    ui.routeTeam = null;
+    ui.draftRoute = [];
+  }
 
   /** いま編集している局面の盤面 */
   function curPhase() {
@@ -434,17 +483,21 @@
         ui.phaseIndex = BOARD.phases(ui.boardTactic).length - 1;
       } else if (act === 'del') {
         const label = curPhase().name || t('board.phaseN', { n: ui.phaseIndex + 1 });
-        if (!confirm(t('board.confirmPhaseDel', { name: label }))) return;
-        BOARD.removePhase(ui.boardTactic, ui.phaseIndex);
-        ui.phaseIndex = Math.max(0, ui.phaseIndex - 1);
+        U.ask({ message: t('board.confirmPhaseDel', { name: label }), danger: true })
+          .then(function (ok) {
+            if (!ok) return;
+            BOARD.removePhase(ui.boardTactic, ui.phaseIndex);
+            ui.phaseIndex = Math.max(0, ui.phaseIndex - 1);
+            resetBoardSelection();
+            commitBoard();
+            refreshBoard();
+          });
+        return;
       } else {
         return;
       }
 
-      ui.armed = null;
-      ui.selectedMarkId = null;
-      ui.routeTeam = null;
-      ui.draftRoute = [];
+      resetBoardSelection();
       commitBoard();
       refreshBoard();
     });
@@ -501,14 +554,13 @@
 
     $('btn-board-clear').addEventListener('click', function () {
       if (!ui.boardTactic) return;
-      if (!confirm(t('board.confirmClear'))) return;
-      BOARD.clearBoard(curPhase());
-      ui.selectedMarkId = null;
-      ui.armed = null;
-      ui.routeTeam = null;
-      ui.draftRoute = [];
-      commitBoard();
-      refreshBoard();
+      U.ask({ message: t('board.confirmClear'), danger: true }).then(function (ok) {
+        if (!ok) return;
+        BOARD.clearBoard(curPhase());
+        resetBoardSelection();
+        commitBoard();
+        refreshBoard();
+      });
     });
 
     bindBoardCanvas();
@@ -855,14 +907,21 @@
         if (!save) return;
         const team = save.dataset.compSave;
         const roster = team === 'enemy' ? S.state.enemies : S.state.allies;
-        const name = (prompt(t('comp.namePrompt'), suggestCompName(roster)) || '').trim();
-        if (!name) return;
-        if (!S.saveComp(name, roster.map(function (s2) { return s2.agent; }))) {
-          U.toast(t('comp.limit', { n: S.MAX_COMPS }), 'err');
-          return;
-        }
-        renderAll();
-        U.toast(t('comp.saved', { name: name }), 'ok');
+        U.ask({
+          title: t('comp.save'),
+          message: t('comp.namePrompt'),
+          input: true,
+          value: suggestCompName(roster),
+          okLabel: t('ask.save')
+        }).then(function (name) {
+          if (!name) return;
+          if (!S.saveComp(name, roster.map(function (s2) { return s2.agent; }))) {
+            U.toast(t('comp.limit', { n: S.MAX_COMPS }), 'err');
+            return;
+          }
+          renderAll();
+          U.toast(t('comp.saved', { name: name }), 'ok');
+        });
       });
     });
 
@@ -986,9 +1045,6 @@
         renderLive();
       } else if (act === 'ai-review') {
         runAiReview();
-      } else if (act === 'share-x') {
-        const opts = shareOpts();
-        if (opts) SHARE.postToX(opts);
       } else if (act === 'share-copy') {
         const opts = shareOpts();
         if (opts) {
@@ -1020,23 +1076,32 @@
 
     /* 決着バナー内のボタンは再描画で作り直されるため、委譲で拾う */
     $('match-banner').addEventListener('click', function (e) {
-      if (!e.target.closest('#btn-next-match')) return;
-      if (!confirm(t('confirm.resetMatch'))) return;
-      S.resetMatch();
-      ui.analysis = null;
-      ui.aiReview = null;
-      renderLive();
-      U.toast(t('toast.matchReset'));
+      if (e.target.closest('[data-act="share-x"]')) {
+        SHARE.postMatchToX({
+          map: S.state.match.map,
+          score: S.score(),
+          rounds: S.state.rounds,
+          tactics: S.state.tactics
+        });
+        return;
+      }
+      if (e.target.closest('#btn-next-match')) askResetMatch();
     });
 
-    $('btn-reset-match').addEventListener('click', function () {
-      if (!confirm(t('confirm.resetMatch'))) return;
-      S.resetMatch();
-      ui.analysis = null;
-      ui.aiReview = null;
-      renderLive();
-      U.toast(t('toast.matchReset'));
-    });
+    $('btn-reset-match').addEventListener('click', askResetMatch);
+  }
+
+  /** スコアだけ消して同じ構成・戦術で次の試合へ */
+  function askResetMatch() {
+    U.ask({ message: t('confirm.resetMatch'), okLabel: t('ask.reset'), danger: true })
+      .then(function (ok) {
+        if (!ok) return;
+        S.resetMatch();
+        ui.analysis = null;
+        ui.aiReview = null;
+        renderLive();
+        U.toast(t('toast.matchReset'));
+      });
   }
 
   /* ================= コミュニティ ================= */
@@ -1048,7 +1113,7 @@
     U.renderPosts([], t('common.loading'));
     C.listPosts({ sort: ui.postSort, map: ui.postMap }).then(function (rows) {
       ui.posts = Array.isArray(rows) ? rows : [];
-      U.renderPosts(ui.posts);
+      U.renderPosts(ui.posts, null, ui.postQuery);
     }, function (err) {
       U.renderPosts([], t('community.postFailed', { msg: err.message }));
     });
@@ -1094,6 +1159,22 @@
       loadPosts();
     });
 
+    /* コミュニティの検索。取ってきた投稿を手元で絞るだけなので、
+       打つたびに読み直さない（自分のデッキ検索と同じ操作感にする） */
+    $('community-query').addEventListener('input', function (e) {
+      ui.postQuery = e.target.value;
+      $('btn-community-clear').hidden = !ui.postQuery;
+      U.renderPosts(ui.posts, null, ui.postQuery);
+    });
+
+    $('btn-community-clear').addEventListener('click', function () {
+      ui.postQuery = '';
+      $('community-query').value = '';
+      $('btn-community-clear').hidden = true;
+      U.renderPosts(ui.posts, null, ui.postQuery);
+      $('community-query').focus();
+    });
+
     $('btn-open-post').addEventListener('click', function () { openPostModal(null); });
 
     $('community-account').addEventListener('click', function (e) {
@@ -1114,7 +1195,7 @@
       if (el.dataset.act === 'like') {
         C.likePost(post.id).then(function (likes) {
           post.likes = typeof likes === 'number' ? likes : (post.likes || 0) + 1;
-          U.renderPosts(ui.posts);
+          U.renderPosts(ui.posts, null, ui.postQuery);
         }, function (err) { U.toast(err.message, 'err'); });
       } else if (el.dataset.act === 'import-post') {
         S.addTactic({
@@ -1290,12 +1371,18 @@
     $('btn-delete-tactic').addEventListener('click', function () {
       if (!ui.editingTacticId) return;
       const tac = S.tacticById(ui.editingTacticId);
-      if (!confirm(t('confirm.deleteTactic', { name: tac ? tac.name : '' }))) return;
-      S.removeTactic(ui.editingTacticId);
-      ui.editingTacticId = null;
-      closeModal('modal-tactic');
-      renderAll();
-      U.toast(t('toast.tacticDeleted'));
+      U.ask({
+        message: t('confirm.deleteTactic', { name: tac ? tac.name : '' }),
+        okLabel: t('ask.delete'),
+        danger: true
+      }).then(function (ok) {
+        if (!ok) return;
+        S.removeTactic(ui.editingTacticId);
+        ui.editingTacticId = null;
+        closeModal('modal-tactic');
+        renderAll();
+        U.toast(t('toast.tacticDeleted'));
+      });
     });
   }
 
@@ -1425,13 +1512,18 @@
     });
 
     $('btn-reset-all').addEventListener('click', function () {
-      if (!confirm(t('confirm.resetAll'))) return;
-      S.resetAll();
-      ui.deckFilter = 'ALL';
-      ui.view = 'setup';
-      ui.analysis = null;
-      renderAll();
-      U.toast(t('toast.resetAll'));
+      U.ask({ message: t('confirm.resetAll'), okLabel: t('ask.reset'), danger: true })
+        .then(function (ok) {
+          if (!ok) return;
+          S.resetAll();
+          ui.deckFilter = 'ALL';
+          ui.deckQuery = '';
+          ui.view = 'setup';
+          ui.analysis = null;
+          ui.aiReview = null;
+          renderAll();
+          U.toast(t('toast.resetAll'));
+        });
     });
   }
 
@@ -1451,6 +1543,7 @@
     bindLive();
     bindCommunity();
     bindCloud();
+    bindTopMenu();
     bindTree();
     bindBoardEditor();
     bindAgentModal();

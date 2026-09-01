@@ -2447,3 +2447,68 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   white-space: nowrap;
 }
 .avatar-xs { width: 18px; height: 18px; }
+
+/* =========================================================
+   確認・入力ダイアログ
+   ---------------------------------------------------------
+   公開ページはサンドボックスの中で動くので、ブラウザが
+   confirm() と prompt() を無視する。その代わり。
+   他のモーダルの上に重なるので z-index を一段上げている。
+   ========================================================= */
+#modal-ask { z-index: 120; }
+.modal-narrow { width: min(440px, 100%); }
+.ask-message {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.8;
+}
+#ask-input {
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, .3);
+  color: #fff;
+  font-size: 13px;
+}
+#ask-input:focus { outline: none; border-color: var(--cyan); }
+
+/* =========================================================
+   上部バーのメニュー
+   ---------------------------------------------------------
+   書き出し・読み込み・初期化はめったに使わないうえ、
+   試合中に押し間違えると痛い。一段隠しておく。
+   ========================================================= */
+.topmenu { position: relative; }
+#btn-topmenu { padding: 8px 12px; letter-spacing: .12em; }
+
+.topmenu-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 170px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  background: #0f171e;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+}
+.topmenu-pop button {
+  display: block;
+  width: 100%;
+  padding: 8px 11px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.topmenu-pop button:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+.topmenu-pop button.is-danger { color: var(--red); }
+.topmenu-pop button.is-danger:hover { background: rgba(255, 70, 85, .12); }
+.topmenu-pop hr { margin: 5px 0; border: 0; border-top: 1px solid var(--line); }
+
+/* コミュニティの検索欄は自分のデッキ検索と同じ見た目でよい */
+#community-query { min-width: 0; }

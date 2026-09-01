@@ -41,9 +41,18 @@
       <span class="lang-globe" aria-hidden="true">🌐</span>
       <select id="lang-select" aria-label="Language"></select>
     </label>
-    <button class="btn btn-ghost" id="btn-export" data-i18n="btn.export" data-i18n-title="btn.export.title">EXPORT</button>
-    <button class="btn btn-ghost" id="btn-import" data-i18n="btn.import" data-i18n-title="btn.import.title">IMPORT</button>
-    <button class="btn btn-ghost btn-danger" id="btn-reset-all" data-i18n="btn.reset" data-i18n-title="btn.reset.title">RESET</button>
+    <!-- 書き出し・読み込み・初期化はめったに使わない。
+         試合中に押し間違えると痛いので、一段隠しておく -->
+    <div class="topmenu">
+      <button class="btn btn-ghost" id="btn-topmenu" aria-haspopup="true" aria-expanded="false"
+        data-i18n-title="menu.title">⋯</button>
+      <div class="topmenu-pop" id="topmenu-pop" hidden>
+        <button type="button" id="btn-export" data-i18n="btn.export"></button>
+        <button type="button" id="btn-import" data-i18n="btn.import"></button>
+        <hr />
+        <button type="button" class="is-danger" id="btn-reset-all" data-i18n="btn.reset"></button>
+      </div>
+    </div>
     <input type="file" id="file-import" accept="application/json,.json" hidden />
   </div>
 </header>
@@ -248,6 +257,10 @@
             <button class="chip is-active" data-sort="new" data-i18n="community.sortNew"></button>
             <button class="chip" data-sort="top" data-i18n="community.sortTop"></button>
           </div>
+          <div class="deck-search">
+            <input type="search" id="community-query" data-i18n-ph="community.searchPh" />
+            <button type="button" class="deck-search-clear" id="btn-community-clear" hidden aria-label="clear">×</button>
+          </div>
           <select id="community-map" class="community-map"></select>
           <button class="btn btn-primary btn-sm" id="btn-open-post" data-i18n="community.post"></button>
         </div>
@@ -369,6 +382,27 @@
       <button type="button" class="btn btn-ghost btn-danger" id="btn-board-clear" data-i18n="board.clear"></button>
       <span class="spacer"></span>
       <button type="button" class="btn btn-primary" data-close data-i18n="board.done"></button>
+    </footer>
+  </div>
+</div>
+
+<!-- ============ ASK MODAL ============ -->
+<!-- 公開ページはサンドボックス内で動くため confirm() / prompt() が
+     ブラウザに無視される。確認や入力はすべてこのモーダルで受ける。 -->
+<div class="modal" id="modal-ask" hidden>
+  <div class="modal-backdrop" data-ask-cancel></div>
+  <div class="modal-card modal-narrow panel-clip" role="dialog" aria-modal="true" aria-labelledby="ask-title">
+    <header class="modal-head">
+      <h2 id="ask-title"></h2>
+    </header>
+    <div class="modal-body">
+      <p class="ask-message" id="ask-message"></p>
+      <input type="text" id="ask-input" maxlength="60" hidden />
+    </div>
+    <footer class="modal-foot">
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-ghost" id="ask-cancel" data-ask-cancel></button>
+      <button type="button" class="btn btn-primary" id="ask-ok"></button>
     </footer>
   </div>
 </div>
