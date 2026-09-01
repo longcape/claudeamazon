@@ -53,8 +53,7 @@ function observe(scored, strategy) {
 }
 
 function save(rows, limit) {
-  const path = require('path');
-  const file = path.join(store.ROOT, 'config', 'trend-words.json');
+  const file = store.configPath('trend-words.json');
   const cfg = store.readJson(file, { rising: [], decaying: [], auto: { observed: {} } });
   if (!cfg.auto) cfg.auto = { observed: {} };
 
@@ -75,8 +74,7 @@ function save(rows, limit) {
 
 /* 前回観測からの伸びが大きい語＝昇格候補 */
 function risingCandidates(limit) {
-  const path = require('path');
-  const cfg = store.readJson(path.join(store.ROOT, 'config', 'trend-words.json'), { auto: { observed: {} } });
+  const cfg = store.readJson(store.configPath('trend-words.json'), { auto: { observed: {} } });
   const observed = (cfg.auto && cfg.auto.observed) || {};
   const already = new Set(cfg.rising || []);
   const out = [];

@@ -16,6 +16,16 @@ const DATA_DIR = process.env.ROOM_DATA_DIR
 const OUT_DIR = process.env.ROOM_OUT_DIR
   ? path.resolve(process.env.ROOM_OUT_DIR)
   : path.join(ROOT, 'out');
+/* 設定ディレクトリも差し替え可能にする。
+   trend の観測結果は config/trend-words.json へ書き戻されるため、
+   ここが固定だとテスト実行が実運用の設定ファイルを汚す。 */
+const CONFIG_DIR = process.env.ROOM_CONFIG_DIR
+  ? path.resolve(process.env.ROOM_CONFIG_DIR)
+  : path.join(ROOT, 'config');
+
+function configPath(name) {
+  return path.join(CONFIG_DIR, name);
+}
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -53,12 +63,12 @@ function listData(prefix) {
 }
 
 function loadStrategy() {
-  return readJson(path.join(ROOT, 'config', 'strategy.json'), null) ||
+  return readJson(configPath('strategy.json'), null) ||
     (function () { throw new Error('config/strategy.json が見つかりません'); })();
 }
 
 function loadTrendWords() {
-  return readJson(path.join(ROOT, 'config', 'trend-words.json'), { rising: [], decaying: [] });
+  return readJson(configPath('trend-words.json'), { rising: [], decaying: [] });
 }
 
-module.exports = { ROOT, DATA_DIR, OUT_DIR, readJson, writeJson, writeText, listData, loadStrategy, loadTrendWords, ensureDir };
+module.exports = { ROOT, DATA_DIR, OUT_DIR, CONFIG_DIR, configPath, readJson, writeJson, writeText, listData, loadStrategy, loadTrendWords, ensureDir };

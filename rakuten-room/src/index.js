@@ -70,7 +70,7 @@ async function analyze(strategy, opts) {
     log.detail('取り直す場合は --fresh を付けてください');
   }
 
-  const lexicon = store.readJson(require('path').join(store.ROOT, 'config', 'copy-lexicon.json'), null);
+  const lexicon = store.readJson(store.configPath('copy-lexicon.json'), null);
   const trend = store.loadTrendWords();
   const genre = await genreDescendants(strategy);
   const vel = velocityLib.buildVelocityIndex(strategy);

@@ -2,13 +2,12 @@
 require('./setup');
 const test = require('node:test');
 const assert = require('node:assert');
-const path = require('path');
 const store = require('../src/util/store');
 const copy = require('../src/copy/generate');
 const fixtures = require('./fixtures');
 
 const strategy = store.loadStrategy();
-const lexicon = store.readJson(path.join(store.ROOT, 'config', 'copy-lexicon.json'), null);
+const lexicon = store.readJson(store.configPath('copy-lexicon.json'), null);
 const trend = store.loadTrendWords();
 
 function withRole(i, role) {
