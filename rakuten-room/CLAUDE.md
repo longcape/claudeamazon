@@ -47,15 +47,34 @@ node bin/room.js plan       # 通常運用の計画
 
 ## 環境
 
-- `.env` に `RAKUTEN_APP_ID` が必要（`RAKUTEN_AFFILIATE_ID` は任意だが実運用では必須）
+- `.env` に `RAKUTEN_APP_ID` / `RAKUTEN_ACCESS_KEY` / `RAKUTEN_APP_URL` の3つが必要
+  （`RAKUTEN_AFFILIATE_ID` は任意だが実運用では必須）
 - `ANTHROPIC_API_KEY` があれば紹介文をLLMで自然化する（任意・未設定でも完結する）
 - `data/` は `.gitignore` 対象。**消すと売上速度と投稿履歴が失われる**。定期バックアップを促すこと
 - `ROOM_DATA_DIR` / `ROOM_OUT_DIR` で保存先を差し替えられる（テストはこれを使う）
 
 ## 既知の落とし穴
 
-- 楽天APIの `field` は `0`（全情報取得）で固定。`1` にすると商品説明とアフィリ報酬率が落ち、
-  スコアが静かに壊れる
+- **楽天APIは2026年に移行済み。仕様は必ず公式ドキュメントで確認すること**（記憶で書くと壊れる）
+  - 旧 `app.rakuten.co.jp/services/api/...` は2026-02-09に停止。現行は `openapi.rakuten.co.jp` 配下で
+    APIごとに接頭辞が違う（`ichibams` / `ichibaranking` / `ichibagt`）
+  - アプリIDはUUID形式。数字20桁だったのは旧仕様
+  - `applicationId` 単体では通らない。`accessKey` との併用が必須（本エンジンはヘッダで送る）
+  - **`Origin` ヘッダが必須。** ゲートウェイはこれを「アクセス元」として読み、アプリ設定の
+    **「許可されたウェブサイト」**（Application URL ではない）と照合する。`RAKUTEN_APP_URL` がその値。
+    送らないと `REQUEST_CONTEXT_BODY_HTTP_REFERRER_MISSING`、合わないと `HTTP_REFERRER_NOT_ALLOWED` で403。
+    **`Referer` ヘッダは見ていない**（実測で確認済み）
+  - `field` は意味が変わった。旧「0=全情報取得」ではなく **新「0=広めに検索 / 1=絞って検索」**。
+    返すフィールドの制御は `elements` に移り、未指定なら全項目返る。**`field` は渡さないこと**
+  - ランキングの `period` は `realtime` のみ。`daily` は廃止
+  - ジャンル応答は `current`/`genreName`/`parents` → `genre`/`nameJa`/`ancestors`。商品の `tagIds` は `attributeIds`
+- **`config/strategy.json` の genre は実在確認をすること。** 初期値の `rootGenreId: 100938` は
+  「インテリア・寝具・収納」ではなく **ダイエット・健康** だった（インテリア・寝具・収納は `100804`）。
+  `node bin/room.js genre 0` で必ず実物を引くこと
+- **商品のジャンルIDは3〜4階層目に付く。** 直下の子だけで所属を判定すると候補の7割が「圏外」になり、
+  aiFitのカテゴリ相関とNG1が同時に壊れる。`src/index.js` の `genreDescendants` は祖先まで辿る実装
+- **`data/` はGit管理外。消えると復元できない。** 2026-09-01にフォルダ消失で定点観測2日分を失った。
+  コードはGitHubのブランチから復旧できたが `data/` は戻らなかった
 - レートは1リクエスト1.1秒（`src/rakuten/client.js`）。429が続くなら間隔を上げる
 - 初日は売上速度が未計測なのでスコアが低く出る。選定基準の自動緩和はこのための仕組みで、
   初回に緩むのは正常
