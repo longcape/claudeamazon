@@ -1,6 +1,26 @@
 # rakuten-room — 楽天ROOM運用エンジン
 
-## 2026-09-02 再設計（この節を旧記述より優先）
+## 2026-09-02 再較正（この節を最優先）
+
+**投稿実績がまだ無い。実績があるものとして重みを確定しない。**
+いま実装してあるのは「正しく比較するための計測設計」であって、較正結果ではない。
+
+- スコアには位相がある。`cold_start` では velocity を全商品同じ中立値にし、順位差へ使わない。
+  velocity既知率60%以上かつ有効スナップショット2日以上で `observed` へ移り、3回の collect でランプする。
+- 料率は候補の77%が4%で、順位付けに効いていない。70%以上が同値なら有効重みを自動で半減する。
+- 選定は分位ベース（主力上位20% / 準主力上位50%）。**絶対下限0.58は件数不足でも下げない。**
+- 商品属性は型付きfacet（deliveryMode / productCategory / occasion / recipient / priceBand）。
+  占有率の警告は **productCategory にだけ** 当てる。場面・相手・価格帯・配送方式は
+  偏りではなくカバレッジ不足として別に出す。
+- 関連商品は配点で決める。「誕生日が一致」だけでは関連にしない（候補の78%が持つタグのため）。
+- 時間帯の比較は `room experiment create`。12投稿4クラスター、両枠の役割構成は同一。
+  次回は `--reverse` で割当を反転する。**実験中は時刻のゆらぎを入れない。**
+- 成果には成熟がある（24時間 / 7日 / 30日 / 89日）。
+  **30日未満の投稿をCV=0として学習へ入れない。** 確定CVが明示されていれば成熟前でも使う。
+- 学習ゲートは全体24投稿・同一セル6投稿・CVは成熟30件・時間帯の勝者は各枠12投稿。
+  1回の変更幅±5%、累積±15%。サンプル不足時は数値を出しても重みは変えない。
+
+## 2026-09-02 再設計（乱立回避と関連導線）
 
 - `portfolio` の100商品は候補プールであり、100投稿のノルマではない。
 - 初動は30件一括ではなく6件、通常も1日最大3件。反応を記録してから次を選ぶ。
@@ -46,14 +66,20 @@
 ## コマンド
 
 ```bash
-npm test                     # 43件。変更したら必ず通す
-node bin/room.js doctor      # 設定と接続
-node bin/room.js probe       # 実データの充足率を点検
-node bin/room.js collect     # 候補収集。定点観測を1日分残す（毎日）
-node bin/room.js portfolio   # 100商品の台帳（主力20/準主力30/ロングテール50）
-node bin/room.js launch      # 初動30件の投稿計画
-node bin/room.js plan        # 通常運用の投稿計画
-node bin/room.js backup      # 作り直せないデータの退避
+npm test                              # 70件。変更したら必ず通す
+node bin/room.js doctor               # 設定・接続・スコアリング位相・学習ゲート
+node bin/room.js probe                # 実データの充足率を点検
+node bin/room.js collect              # 候補収集。定点観測を1日分残す（毎日）
+node bin/room.js portfolio            # 100商品の台帳（候補プール。投稿ノルマではない）
+node bin/room.js experiment create     # 時間帯クロスオーバー実験（12投稿）
+node bin/room.js experiment create --reverse   # 次回。時間帯の割当を反転する
+node bin/room.js launch               # 初動6件の検証計画
+node bin/room.js plan                 # 通常運用の投稿計画
+node bin/room.js record 1,2 --outbound-clicks=30 --unique-users=18 --cv-pending=1
+node bin/room.js report                # 観測指標と学習ゲート
+node bin/room.js report --maturity     # 成果の成熟段階
+node bin/room.js report --experiment=EXP-2026-09-03
+node bin/room.js backup               # 作り直せないデータの退避
 ```
 
 ## 壊してはいけない不変条件
@@ -64,7 +90,12 @@ node bin/room.js backup      # 作り直せないデータの退避
    `test/pipeline.test.js` の該当テストがこれを固定している。
 2. **棚ならし(`src/plan/shelf.js`)は同じ役割どうししか入れ替えない。** 役割をまたぐと1が壊れる。
 3. **紹介文には「誰の/どんな悩みが/どう変わるか」が必ず入る。** 欠けたら NG検査が計画ごと止める。
-4. **初動30件は全件ゴールデンタイム(20-23時 JST)。** 時刻はJST固定オフセットで計算する（`src/util/time.js`）。
+4. 時刻はJST固定オフセットで計算する（`src/util/time.js`）。
+5. **実験の2枠は役割構成を同一に保つ。** 時間帯と役割を同時に変えると、
+   差が時間帯によるものか役割によるものか判定できない。`test/recalibration.test.js` が固定している。
+6. **未成熟な投稿のCVを0として学習へ入れない。** アフィリエイト成果はクリック後89日以内の
+   購入まで発生しうるため、直後の成約0は失敗を意味しない。
+7. **絶対下限0.58は件数不足でも下げない。** 埋まらない場合は候補不足として報告する。
 
 ## 変更するとき
 
