@@ -121,8 +121,10 @@ function build(scored, strategy) {
 
   const label = function (list, tier) {
     return list.map(function (item) {
-      const vp = giftLib.videoPriority(item.total, (item.giftScores || {}).videoFit || 0);
-      return Object.assign({}, item, { tier: tier, videoPriority: vp });
+      return Object.assign({}, item, {
+        tier: tier,
+        videoPriorityValue: giftLib.videoPriorityValue(item.total, (item.giftScores || {}).videoFit || 0)
+      });
     });
   };
 
@@ -130,6 +132,17 @@ function build(scored, strategy) {
   const secondary = label(second.picked, '準主力');
   const longtail = label(tail.picked, 'ロングテール');
   const all = flagship.concat(secondary, longtail);
+
+  /* 動画化優先度はポートフォリオ内の相対順位で振る。
+     制作できる本数は限られるので、Aは常に上位の一定割合に保つ */
+  const vp = cfg.videoPriority || { aRatio: 0.2, bRatio: 0.3 };
+  const ordered = all.slice().sort(function (a, b) { return b.videoPriorityValue - a.videoPriorityValue; });
+  const aCount = Math.round(ordered.length * vp.aRatio);
+  const bCount = Math.round(ordered.length * vp.bRatio);
+  ordered.forEach(function (item, i) {
+    const rank = i < aCount ? 'A' : (i < aCount + bCount ? 'B' : 'C');
+    item.videoPriority = giftLib.videoPriority(item.total, (item.giftScores || {}).videoFit || 0, rank);
+  });
 
   return {
     flagship: flagship,

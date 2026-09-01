@@ -109,7 +109,7 @@
   "adHeat": {
     "$comment": "『広告が燃えている＝販促投資されている優遇商品』の代理指標。楽天は広告出稿量を公開しないため、投資の痕跡から推定する。",
     "affiliateRateBase": 2,
-    "affiliateRateHot": 8,
+    "affiliateRateHot": 5,
     "pointRateBase": 1,
     "pointRateHot": 10,
     "couponWords": [
@@ -129,7 +129,8 @@
     ],
     "rerankBonus": 0.1,
     "rerankBonusMax": 0.4,
-    "rankingBonus": 0.25
+    "rankingBonus": 0.25,
+    "$rateNote": "2026-09-01 ギフト系8キーワード480件で実測。報酬率の出現値は2/3/4%。旧「キッチンと収納」では全件3%で横並びだったが、ギフトでは分散があるため指標として生きている。"
   },
   "velocity": {
     "$comment": "『直近の売上が動いている』の実測。レビュー件数のスナップショット差分＝売れているスピード。",
@@ -323,6 +324,11 @@
     "minGiftReady": 0.3,
     "maxPerShop": 4,
     "maxFlagshipPerCollection": 6,
-    "maxSecondaryPerCollection": 10
+    "maxSecondaryPerCollection": 10,
+    "videoPriority": {
+      "aRatio": 0.2,
+      "bRatio": 0.3
+    },
+    "$videoNote": "動画化優先度はポートフォリオ内の相対順位で決める。絶対値の閾値だと分布がずれた瞬間に大半がAになり、優先度として機能しなくなる。"
   }
 }

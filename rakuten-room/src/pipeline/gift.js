@@ -176,12 +176,25 @@ function angleFor(occasions, lex) {
 
 /* ---------- 動画化優先度 ---------- */
 /* 総合スコアが高くても画が持たなければ動画は作れない。
-   逆に画が持っても売れなければ意味がない。両方を見る */
-function videoPriority(total, videoFitScore) {
-  const v = total * 0.45 + videoFitScore * 0.55;
-  if (v >= 0.62) return { rank: 'A', label: '最優先で動画化', value: v };
-  if (v >= 0.48) return { rank: 'B', label: '余力があれば動画化', value: v };
-  return { rank: 'C', label: '動画化しない（ROOM掲載のみ）', value: v };
+   逆に画が持っても売れなければ意味がない。両方を見る。
+
+   ここでは素点だけを出す。A/B/C の割り当ては固定の閾値ではなく、
+   ポートフォリオ内の相対順位で決める（portfolio.js）。
+   絶対値で切ると、戦略やジャンルが変わって分布がずれた瞬間に
+   「100件中85件がA」のような、優先度として機能しない結果になる */
+function videoPriorityValue(total, videoFitScore) {
+  return (Number(total) || 0) * 0.45 + (Number(videoFitScore) || 0) * 0.55;
+}
+
+const VIDEO_RANKS = {
+  A: '最優先で動画化',
+  B: '余力があれば動画化',
+  C: '動画化しない（ROOM掲載のみ）'
+};
+
+function videoPriority(total, videoFitScore, rank) {
+  const r = rank || 'C';
+  return { rank: r, label: VIDEO_RANKS[r], value: videoPriorityValue(total, videoFitScore) };
 }
 
 /* ---------- まとめ ---------- */
@@ -217,5 +230,5 @@ function evaluate(item, strategy, lex) {
 
 module.exports = {
   evaluate, giftReady, affiliate, giftLook, videoFit, versatility,
-  collectionsFor, angleFor, videoPriority, priceBand
+  collectionsFor, angleFor, videoPriority, videoPriorityValue, VIDEO_RANKS, priceBand
 };

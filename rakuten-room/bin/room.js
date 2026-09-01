@@ -336,7 +336,10 @@ async function cmdDoctor() {
     try {
       const g = await ichiba.genre(s.genre.rootGenreId);
       log.detail('楽天API 応答あり: ' + g.name + ' / 子ジャンル ' + g.children.length + ' 件');
-      if (!g.name) log.warn('ジャンルIDが正しくない可能性があります。room genre 0 で探してください');
+      /* rootGenreId が 0 は全ジャンル横断の正常な設定。名前が空でも異常ではない */
+      if (!g.name && String(s.genre.rootGenreId) !== '0') {
+        log.warn('ジャンルIDが正しくない可能性があります。room genre 0 で探してください');
+      }
     } catch (e) {
       log.warn('楽天APIに繋がりません: ' + e.message);
     }
