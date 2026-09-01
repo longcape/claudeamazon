@@ -15,10 +15,13 @@ window.VCT_CONFIG = {
   /* Supabase の anon / publishable key */
   SUPABASE_ANON_KEY: '',
 
-  /* ログイン方法。competitive シーンでの導線を優先し Discord を既定にしている */
-  AUTH_PROVIDERS: ['discord'],
+  /* 表示するログインプロバイダ。ここに入れたものだけボタンが出る。
+     Supabase の Authentication → Providers で有効にしていないものを入れると、
+     押した先で必ず失敗するので入れないこと。
+     Discord を使うときは、Supabase 側で有効にしてから ['discord'] に戻す。 */
+  AUTH_PROVIDERS: [],
 
-  /* メールのマジックリンクも併用するか */
+  /* メールのマジックリンクを出すか。false にするとメール欄ごと消える */
   AUTH_EMAIL: true,
 
   /* AI 寸評を返す Edge Function 名（supabase/functions/ 以下） */

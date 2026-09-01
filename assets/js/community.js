@@ -135,9 +135,12 @@
   }
 
   function signInWithEmail(email) {
-    return request('/auth/v1/otp', {
+    /* GoTrue はリダイレクト先を本文ではなくクエリの redirect_to から読む。
+       本文の options に入れても無視され、プロジェクトの Site URL へ飛ばされる。 */
+    const redirect = encodeURIComponent(location.origin + location.pathname);
+    return request('/auth/v1/otp?redirect_to=' + redirect, {
       method: 'POST',
-      body: { email: email, create_user: true, options: { email_redirect_to: location.origin + location.pathname } }
+      body: { email: email, create_user: true }
     });
   }
 

@@ -70,12 +70,20 @@ create index if not exists saved_setups_user_idx on public.saved_setups (user_id
 create or replace function public.touch_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at := now();
   return new;
 end;
 $$;
+
+-- トリガからしか呼ばれない。REST の /rpc/ 経由で外から叩ける状態にしない。
+-- 既定では PUBLIC に EXECUTE が付くので、そちらも落とす
+-- （anon と authenticated は PUBLIC のメンバーなので、PUBLIC を残すと revoke が効かない）。
+-- トリガの実行時に EXECUTE 権限は再チェックされないため、これで動作は変わらない。
+revoke all on function public.touch_updated_at() from public;
+revoke all on function public.touch_updated_at() from anon, authenticated;
 
 drop trigger if exists saved_setups_touch on public.saved_setups;
 create trigger saved_setups_touch
@@ -86,11 +94,19 @@ create trigger saved_setups_touch
 -- レート制限 — 匿名投稿の連投を防ぐ
 -- 同一 IP から 1 時間あたり 10 件までに制限する。
 -- =========================================================
+
+-- digest() を使うため pgcrypto を有効化する。
+-- 関数より先に置くこと（後述の search_path が extensions を指す前提になる）。
+create extension if not exists pgcrypto with schema extensions;
+
 create or replace function public.enforce_post_rate_limit()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+-- pgcrypto は extensions スキーマに入る。search_path を public だけに絞ると
+-- digest() が見つからず、tactic_posts への insert が必ず失敗する。
+-- （実際にこれで匿名投稿が丸ごと通らない状態になっていた）
+set search_path = public, extensions
 as $$
 declare
   v_ip    text;
@@ -116,8 +132,10 @@ begin
 end;
 $$;
 
--- digest() を使うため pgcrypto を有効化する
-create extension if not exists pgcrypto with schema extensions;
+-- トリガからしか呼ばれない。REST の /rpc/ 経由で外から叩ける状態にしない。
+-- PUBLIC の EXECUTE も落とす（残すと anon / authenticated への revoke が効かない）。
+revoke all on function public.enforce_post_rate_limit() from public;
+revoke all on function public.enforce_post_rate_limit() from anon, authenticated;
 
 drop trigger if exists tactic_posts_rate_limit on public.tactic_posts;
 create trigger tactic_posts_rate_limit
@@ -157,6 +175,9 @@ begin
 end;
 $$;
 
+-- いいねは未ログインでも押せる仕様なので、ここは意図して公開している。
+-- Supabase の advisor が「anon から SECURITY DEFINER を呼べる」と警告するが、
+-- 直接の読み書きを RLS で塞いだうえで、この RPC だけを入口にしているため意図どおり。
 grant execute on function public.like_post(uuid, text) to anon, authenticated;
 
 -- =========================================================

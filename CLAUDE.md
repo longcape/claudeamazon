@@ -257,6 +257,25 @@ Esc / Enter は capture で拾って、後ろのモーダルまで閉じない�
 smoke-test は `dialog` イベントを検出したら失敗する。
 native ダイアログが混ざったら機械的に落ちるので、この形を崩さないこと。
 
+### Supabase の関数まわりで踏んだもの
+
+**pgcrypto は `extensions` スキーマにいる。** `enforce_post_rate_limit` が `digest()` を
+呼ぶのに `set search_path = public` としていたため、`function digest(text, unknown) does not exist`
+で `tactic_posts` への insert が必ず失敗していた。**匿名投稿は一度も成功していなかった。**
+`set search_path = public, extensions` にすること。
+
+**トリガ関数の EXECUTE を落とすときは PUBLIC も落とす。**
+`revoke ... from anon, authenticated` だけでは効かない。関数には既定で PUBLIC に EXECUTE が
+付いており、anon と authenticated はその PUBLIC のメンバーなので、実質そのまま呼べてしまう。
+`revoke all on function ... from public` を先に書く。
+トリガの発火時に EXECUTE 権限は再チェックされないので、これで動作は変わらない。
+
+**ログイン手段は `config.js` の `AUTH_PROVIDERS` / `AUTH_EMAIL` だけで決める。**
+以前はどちらもどこからも参照されない死んだ設定で、Discord ボタンが HTML 直書きで常に出ていた。
+Supabase 側で有効にしていないプロバイダのボタンは、押した先で必ず失敗する。
+プロバイダを増やすときは `index.html` に `data-provider` 付きのボタンを足して、
+`AUTH_PROVIDERS` に ID を入れるだけでよい（クリックは委譲で拾っている）。
+
 ### CSS
 
 - `[hidden] { display: none !important; }` が必要。
@@ -335,12 +354,21 @@ git rm --cached -r -q . && git reset --hard
 | --- | --- |
 | BUY マネー計算 | 未着手（ユーザーが一旦保留と判断） |
 | Riot Games API | **見送り**。ライブの試合データは API に存在せず、試合前の相手情報を見ること（scouting）と、その場で行動を変えるリアルタイム提示が開発者ポリシーで禁止されている。構成は手入力のままにして、入力を速くする方向で解決した。詳細は `docs/LEGAL.md` |
-| 戦術のクラウド保存 | UI まで結線済み。**実際の Supabase では未検証**（この環境からプロジェクトを立てられないため、通信を差し替えた状態でしか確かめていない） |
+| 戦術のクラウド保存 | **2026-09-01 に実地検証済み。**保存 / 一覧 / 上書き / 削除 / 読み込み、未ログイン時の誘導、他人の行が読めないことまで実際の Supabase で確認した。詳細は `docs/STATUS.md` |
 
 ### クラウド保存について
 
 `saved_setups` に `exportJSON()` と同じ形（state 丸ごと）を入れている。
 読み込むと手元の内容が**丸ごと入れ替わる**ので、必ず confirm を挟むこと。
+
+**`config.js` は空のままコミットする。** 接続情報を書いた状態でコミットすると、
+smoke-test の「未設定ならクラウド保存は隠れる」が必ず落ちる。この項目は
+「設定していない人の画面にボタンが出ない」ことを守っているので、通すために
+テストを緩めない。接続情報は使う人が自分の値を入れる（`docs/SETUP.md`）。
+
+**マジックリンクのリダイレクト先はクエリの `redirect_to` で渡す。**
+GoTrue は本文の `options.email_redirect_to` を読まない。本文に入れると黙って
+無視され、プロジェクトの Site URL へ飛ばされてアプリに戻ってこられない。
 
 `config.js` が空のときはボタンごと隠れる。未ログインで押した場合は
 一覧を引かずにログインへ誘導する（RLS で自分の行しか引けないため、

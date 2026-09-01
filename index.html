@@ -480,13 +480,21 @@
     </header>
     <div class="modal-body">
       <p class="login-note" data-i18n="community.loginNeeded"></p>
-      <button class="btn btn-discord" id="btn-login-discord" data-i18n="community.loginDiscord"></button>
-      <div class="login-sep"><span>—</span></div>
-      <div class="field">
-        <label for="login-email" data-i18n="community.loginEmail"></label>
-        <input type="email" id="login-email" placeholder="you@example.com" />
+      <!-- どのログイン手段を出すかは config.js の AUTH_PROVIDERS / AUTH_EMAIL が決める。
+           Supabase 側で有効にしていないプロバイダのボタンを出すと、押しても失敗するだけになる。
+           プロバイダを増やすときは data-provider 付きのボタンをここへ足す -->
+      <div class="login-providers" id="login-providers">
+        <button class="btn btn-discord" id="btn-login-discord" data-provider="discord"
+          data-i18n="community.loginDiscord"></button>
       </div>
-      <button class="btn btn-ghost" id="btn-login-email" data-i18n="community.loginEmail"></button>
+      <div class="login-sep" id="login-sep"><span>—</span></div>
+      <div id="login-email-block">
+        <div class="field">
+          <label for="login-email" data-i18n="community.loginEmail"></label>
+          <input type="email" id="login-email" placeholder="you@example.com" />
+        </div>
+        <button class="btn btn-ghost" id="btn-login-email" data-i18n="community.loginEmail"></button>
+      </div>
     </div>
   </div>
 </div>

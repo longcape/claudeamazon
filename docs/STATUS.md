@@ -64,6 +64,27 @@ node tools/smoke-test.mjs   # 動作確認（playwright が無ければ黙って
 - **分岐ツリー**（`tree.js`）。勝敗で次の戦術へ分岐。実体は有向グラフで自己ループ可
 - ライブ画面ではツリーの次を先頭に出したうえで、**必ず全戦術も並べる**（縛りにしない）
 
+### クラウド保存（`saved_setups`）— **2026-09-01 実地検証済み**
+
+実際の Supabase プロジェクトに対して通した。**もう「未検証」ではない。**
+
+| 確認したこと | 結果 |
+| --- | --- |
+| 保存（`POST /rest/v1/saved_setups`） | 201 |
+| 一覧（`GET ...?select=*&order=updated_at.desc`） | 200 |
+| 上書き（`PATCH ...?id=eq.<id>`） | 200。`updated_at` がトリガで更新される |
+| 削除（`DELETE ...?id=eq.<id>`） | 本人なら 1 行削除される |
+| 読み込み | `importObject()` に保存済み payload を通して復元を確認 |
+| 置換前の確認 | `U.ask()` のアプリ内モーダルが出る（native ダイアログではない） |
+| `payload` の中身 | `exportJSON()` と同じ 10 キー（version / phase / match / allies / enemies / comps / tactics / rounds / pending / sideOverrides） |
+| 未ログインでボタンを押す | 一覧を引かずログインへ誘導。Supabase へのリクエストは 0 件 |
+| 未ログインで `saved_setups` を読む | `200 []`（RLS で行が見えない） |
+| 未ログインで `saved_setups` へ書く | `401` row-level security policy 違反 |
+| 他人の行を読む / 更新する / 削除する | 一覧 0 件・ID 直指定 0 件・UPDATE 0 行・DELETE 0 行 |
+
+RLS は `saved_setups_all`（`for all to authenticated using (user_id = auth.uid())`）が
+意図どおり効いている。`tactic_likes` と `ai_usage` も直接読めないことを確認済み。
+
 ### その他
 - 戦術の検索・グループ分け（サイト / 種別 / サイド）
 - 構成プリセット（`state.comps`、上限 12）と入力の高速化
@@ -96,26 +117,10 @@ node tools/smoke-test.mjs   # 動作確認（playwright が無ければ黙って
 | 項目 | メモ |
 | --- | --- |
 | **BUY マネー計算** | ユーザーが「一旦よい」と判断して保留。着手していない |
-| **クラウド保存の実地検証** | UI・通信コードは結線済みだが、**実際の Supabase では未検証**（下記「保留」） |
 
 ---
 
 ## ■ 保留
-
-### クラウド保存（`saved_setups`）— 未検証
-
-`exportJSON()` と同じ形（state 丸ごと）を保存する。UI まで結線済み。
-**実際の Supabase プロジェクトに対しては一度も通していない。**
-このクラウド環境から Supabase プロジェクトを立てられないため、
-通信を差し替えた状態でしか確かめていない。
-
-- 読み込むと手元の内容が**丸ごと入れ替わる**ので、必ず確認を挟むこと（実装済み）
-- `config.js` が空のときはボタンごと隠れる
-- 未ログインで押した場合は一覧を引かずにログインへ誘導する
-  （RLS で自分の行しか引けないため、未ログインでは必ず空になる）
-
-**次の担当がやること**: `docs/SETUP.md` の手順で Supabase を立て、
-`assets/js/config.js` に URL と anon key を入れて、保存 → 一覧 → 読み込み → 削除を通す。
 
 ### Riot Games API — 見送り（結論済み）
 
@@ -144,6 +149,9 @@ node tools/smoke-test.mjs   # 動作確認（playwright が無ければ黙って
 | 配置盤が再描画のたびに縮む | `fitBoardSize` が「今の高さ」を基準にしていて縮小のループが起きた | **`max-height`** から予算を引く |
 | 免責表記が条件を満たしていない | Riot は**文言を指定している**。自分の言葉で書き直すと不可 | 指定どおりの英文を言語設定に関係なく常に表示。smoke-test で見張っている |
 | Actions の自動コミットが毎回空 | 生成物に生成日時を書いていた | 日時の行をやめた |
+| **匿名の戦術投稿が丸ごと通らない** | レート制限トリガが `digest()`（pgcrypto）を呼ぶが、pgcrypto は `extensions` スキーマにいる。関数の `search_path` を `public` だけに絞っていたため `function digest(text, unknown) does not exist` で insert が必ず失敗していた。コミュニティ投稿は一度も成功したことがなかった | `set search_path = public, extensions` に直した。匿名投稿 201 / いいね RPC / 重複いいねの無視まで実測で確認済み |
+| トリガ関数が REST の RPC として外から叩けた | `revoke ... from anon, authenticated` だけでは足りない。**PUBLIC に EXECUTE が付いたまま**で、anon と authenticated は PUBLIC のメンバーなので実質そのまま呼べる | `revoke all ... from public` も入れた。`/rest/v1/rpc/` から 404 になることを確認済み |
+| Discord ボタンが押しても必ず失敗する | Supabase 側で Discord を有効にしていないのに、ボタンが HTML 直書きで常に出ていた。`config.js` の `AUTH_PROVIDERS` はどこからも参照されない死んだ設定だった | `AUTH_PROVIDERS` と `AUTH_EMAIL` で表示を出し分けるようにし、既定を `[]` にした |
 
 ### 既知の制約（不具合ではない）
 
@@ -181,11 +189,20 @@ node tools/smoke-test.mjs   # 動作確認（playwright が無ければ黙って
 
 上から順に。
 
-1. **クラウド保存を実際の Supabase で検証する**（`docs/SETUP.md` の手順 → `config.js` に接続情報 → 保存/一覧/読み込み/削除を通す）
-   → 未検証のまま「使える」と書いてある唯一の機能なので、ここが最優先。
-   Supabase プロジェクトの作成と接続情報の取得はユーザー操作が要る。
-2. BUY マネー計算 — ユーザーが再開を決めたら着手
-3. 公開先の常設化を検討する（GitHub Pages 等。現在の URL はクラウドセッション発行で、ローカルから更新できない）
+1. BUY マネー計算 — ユーザーが再開を決めたら着手
+2. 公開先の常設化を検討する（GitHub Pages 等。現在の URL はクラウドセッション発行で、ローカルから更新できない）
+3. Discord ログインを使うなら、Supabase の Authentication → Providers で有効にしてから
+   `config.js` の `AUTH_PROVIDERS` を `['discord']` に戻す。**コードの変更は要らない。**
+
+> Supabase の advisor は 2026-09-01 に対応済み。残っているのは意図どおりのものだけ
+> （`like_post` / `report_post` を anon に公開、`ai_usage` にポリシーを作らない）。
+> 別途 `auth_leaked_password_protection` が WARN で出るが、このアプリはパスワードを使わず
+> マジックリンクだけなので実害はない。気になるならダッシュボードのトグルで有効にできる。
+
+> `supabase/schema.sql` は 2026-09-01 に `valorant-setup-card` プロジェクトへ適用済み。
+> Project URL と publishable key は取得済み（値は管理資料に書かない）。
+> **`assets/js/config.js` は空のままリポジトリに置く。**接続情報を入れてコミットすると、
+> smoke-test の「未設定ならクラウド保存は隠れる」が必ず落ちる。使う人が自分の値を入れる。
 
 ### 作業するときの必須ルール
 

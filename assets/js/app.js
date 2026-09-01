@@ -1143,6 +1143,25 @@
     return analysis;
   }
 
+  /* ログイン手段の出し分け。
+     Supabase 側で有効にしていないプロバイダのボタンを出しても、押した先で失敗するだけ。
+     実際 Discord を有効化しないまま出していて、押すと必ず落ちる状態になっていた。
+     出すかどうかは config.js の AUTH_PROVIDERS / AUTH_EMAIL だけで決める。 */
+  function applyAuthConfig() {
+    const providers = CFG.AUTH_PROVIDERS || [];
+    let shown = 0;
+    $('login-providers').querySelectorAll('[data-provider]').forEach(function (btn) {
+      const on = providers.indexOf(btn.dataset.provider) >= 0;
+      btn.hidden = !on;
+      if (on) shown += 1;
+    });
+    const email = CFG.AUTH_EMAIL !== false;
+    $('login-providers').hidden = shown === 0;
+    $('login-email-block').hidden = !email;
+    /* 区切り線は上下の両方があるときだけ意味がある */
+    $('login-sep').hidden = !(shown > 0 && email);
+  }
+
   function bindCommunity() {
     $('community-sort').addEventListener('click', function (e) {
       const chip = e.target.closest('.chip');
@@ -1241,8 +1260,14 @@
       });
     });
 
-    $('btn-login-discord').addEventListener('click', function () {
-      C.signInWithProvider('discord');
+    applyAuthConfig();
+
+    /* ボタンごとに登録せず委譲しておく。プロバイダを増やしても
+       index.html にボタンを足すだけで済む */
+    $('login-providers').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-provider]');
+      if (!btn) return;
+      C.signInWithProvider(btn.dataset.provider);
     });
 
     $('btn-login-email').addEventListener('click', function () {

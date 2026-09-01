@@ -2986,13 +2986,21 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
     </header>
     <div class="modal-body">
       <p class="login-note" data-i18n="community.loginNeeded"></p>
-      <button class="btn btn-discord" id="btn-login-discord" data-i18n="community.loginDiscord"></button>
-      <div class="login-sep"><span>—</span></div>
-      <div class="field">
-        <label for="login-email" data-i18n="community.loginEmail"></label>
-        <input type="email" id="login-email" placeholder="you@example.com" />
+      <!-- どのログイン手段を出すかは config.js の AUTH_PROVIDERS / AUTH_EMAIL が決める。
+           Supabase 側で有効にしていないプロバイダのボタンを出すと、押しても失敗するだけになる。
+           プロバイダを増やすときは data-provider 付きのボタンをここへ足す -->
+      <div class="login-providers" id="login-providers">
+        <button class="btn btn-discord" id="btn-login-discord" data-provider="discord"
+          data-i18n="community.loginDiscord"></button>
       </div>
-      <button class="btn btn-ghost" id="btn-login-email" data-i18n="community.loginEmail"></button>
+      <div class="login-sep" id="login-sep"><span>—</span></div>
+      <div id="login-email-block">
+        <div class="field">
+          <label for="login-email" data-i18n="community.loginEmail"></label>
+          <input type="email" id="login-email" placeholder="you@example.com" />
+        </div>
+        <button class="btn btn-ghost" id="btn-login-email" data-i18n="community.loginEmail"></button>
+      </div>
     </div>
   </div>
 </div>
@@ -3018,10 +3026,13 @@ window.VCT_CONFIG = {
   /* Supabase の anon / publishable key */
   SUPABASE_ANON_KEY: '',
 
-  /* ログイン方法。competitive シーンでの導線を優先し Discord を既定にしている */
-  AUTH_PROVIDERS: ['discord'],
+  /* 表示するログインプロバイダ。ここに入れたものだけボタンが出る。
+     Supabase の Authentication → Providers で有効にしていないものを入れると、
+     押した先で必ず失敗するので入れないこと。
+     Discord を使うときは、Supabase 側で有効にしてから ['discord'] に戻す。 */
+  AUTH_PROVIDERS: [],
 
-  /* メールのマジックリンクも併用するか */
+  /* メールのマジックリンクを出すか。false にするとメール欄ごと消える */
   AUTH_EMAIL: true,
 
   /* AI 寸評を返す Edge Function 名（supabase/functions/ 以下） */
@@ -7349,9 +7360,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   function signInWithEmail(email) {
-    return request('/auth/v1/otp', {
+    /* GoTrue はリダイレクト先を本文ではなくクエリの redirect_to から読む。
+       本文の options に入れても無視され、プロジェクトの Site URL へ飛ばされる。 */
+    const redirect = encodeURIComponent(location.origin + location.pathname);
+    return request('/auth/v1/otp?redirect_to=' + redirect, {
       method: 'POST',
-      body: { email: email, create_user: true, options: { email_redirect_to: location.origin + location.pathname } }
+      body: { email: email, create_user: true }
     });
   }
 
@@ -10112,6 +10126,25 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     return analysis;
   }
 
+  /* ログイン手段の出し分け。
+     Supabase 側で有効にしていないプロバイダのボタンを出しても、押した先で失敗するだけ。
+     実際 Discord を有効化しないまま出していて、押すと必ず落ちる状態になっていた。
+     出すかどうかは config.js の AUTH_PROVIDERS / AUTH_EMAIL だけで決める。 */
+  function applyAuthConfig() {
+    const providers = CFG.AUTH_PROVIDERS || [];
+    let shown = 0;
+    $('login-providers').querySelectorAll('[data-provider]').forEach(function (btn) {
+      const on = providers.indexOf(btn.dataset.provider) >= 0;
+      btn.hidden = !on;
+      if (on) shown += 1;
+    });
+    const email = CFG.AUTH_EMAIL !== false;
+    $('login-providers').hidden = shown === 0;
+    $('login-email-block').hidden = !email;
+    /* 区切り線は上下の両方があるときだけ意味がある */
+    $('login-sep').hidden = !(shown > 0 && email);
+  }
+
   function bindCommunity() {
     $('community-sort').addEventListener('click', function (e) {
       const chip = e.target.closest('.chip');
@@ -10210,8 +10243,14 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       });
     });
 
-    $('btn-login-discord').addEventListener('click', function () {
-      C.signInWithProvider('discord');
+    applyAuthConfig();
+
+    /* ボタンごとに登録せず委譲しておく。プロバイダを増やしても
+       index.html にボタンを足すだけで済む */
+    $('login-providers').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-provider]');
+      if (!btn) return;
+      C.signInWithProvider(btn.dataset.provider);
     });
 
     $('btn-login-email').addEventListener('click', function () {

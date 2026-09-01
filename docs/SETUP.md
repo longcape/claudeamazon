@@ -53,6 +53,10 @@ COMMUNITY タブは、この 2 つが埋まっているときだけ表示され�
 競技シーンとの相性を優先して Discord を既定のログイン方法にしています。
 匿名でも投稿はできますが、**セットアップの保存と投稿の編集・削除にはログインが必要**です。
 
+> **既定では Discord ボタンは出ません。** `config.js` の `AUTH_PROVIDERS` が `[]` だからです。
+> Supabase 側で有効にしていないプロバイダのボタンを出すと押した先で必ず失敗するので、
+> 下の設定を済ませてから `AUTH_PROVIDERS: ['discord']` に戻してください。コードの変更は要りません。
+
 1. [Discord Developer Portal](https://discord.com/developers/applications) で New Application を作成
 2. **OAuth2** タブの Redirects に、Supabase の
    `https://<プロジェクトID>.supabase.co/auth/v1/callback` を追加
