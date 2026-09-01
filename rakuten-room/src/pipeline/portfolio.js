@@ -121,6 +121,16 @@ function tally(items, field) {
   return out;
 }
 
+function dominanceWarnings(items, threshold) {
+  if (!items.length || !threshold) return [];
+  const counts = tally(items, 'giftCollections');
+  return Object.keys(counts).filter(function (k) {
+    return counts[k] / items.length > threshold;
+  }).map(function (k) {
+    return { collection: k, count: counts[k], share: counts[k] / items.length };
+  });
+}
+
 /* scored は score.scoreAll の出力（total 降順）を想定する */
 function build(scored, strategy) {
   const cfg = strategy.portfolio;
@@ -192,6 +202,7 @@ function build(scored, strategy) {
       eligible: eligible.length,
       rejectedByGiftReady: rejected,
       collections: tally(all, 'giftCollections'),
+      dominanceWarnings: dominanceWarnings(all, cfg.dominanceWarningShare),
       videoPriority: tally(all.map(function (i) { return { r: i.videoPriority.rank }; }), 'r'),
       shops: Object.keys(tally(all, 'shopCode')).length
     }
@@ -220,4 +231,4 @@ function toRows(portfolio) {
   });
 }
 
-module.exports = { build, toRows, flagshipRank, pickTop, pickCoverage };
+module.exports = { build, toRows, flagshipRank, pickTop, pickCoverage, dominanceWarnings };

@@ -85,7 +85,7 @@ test('評価取りと売上のペアは日をまたいで分断されない', fu
   });
 });
 
-test('隠しスコアの代理指標が計算できる', function () {
+test('動画由来の3仮説に対応する観測指標が計算できる', function () {
   const entries = [
     { role: 'bait', likes: 100, clicks: 40, conversions: 0, revenue: 0 },
     { role: 'cv', likes: 60, clicks: 30, conversions: 3, revenue: 7000 },
@@ -96,6 +96,14 @@ test('隠しスコアの代理指標が計算できる', function () {
   assert.strictEqual(h.CV誘導.value, 4 / 90);
   assert.strictEqual(h.外部送客.value, 20 / 90);
   assert.strictEqual(h.売上金額, 9000);
+});
+
+test('関連コレクションを持つ商品がペアとして優先される', function () {
+  const baitA = Object.assign(post(1200, 'bait', 'a'), { itemCode: 'ba', giftCollections: ['食べもの・スイーツ'] });
+  const baitB = Object.assign(post(1300, 'bait', 'b'), { itemCode: 'bb', giftCollections: ['実用品・コスメ'] });
+  const cv = Object.assign(post(3000, 'cv', 'x'), { itemCode: 'cv', giftCollections: ['実用品・コスメ'] });
+  const pair = sequence.buildPairs([baitA, baitB], [cv]).pairs[0];
+  assert.strictEqual(pair.posts[0].itemCode, 'bb');
 });
 
 test('価格帯の判定が境界で正しい', function () {

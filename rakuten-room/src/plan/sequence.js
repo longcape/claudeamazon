@@ -1,10 +1,9 @@
 /* =========================================================
    SEQUENCE — 投稿の並び（導線設計）
    ---------------------------------------------------------
-   楽天ROOMは直前の行動リズムを強く引き継ぐ。評価取り投稿で
-   クリックと回遊を起こした直後に売上投稿を置くと、初速
-   クリック・成約率・CV誘導スコアが乗る。
-   よってここでの絶対規則は「売上投稿は必ず評価取りの直後」。
+   関連商品を続けるとROOM内の比較・回遊を作りやすい、という
+   攻略動画由来の仮説を検証する。楽天公式の内部仕様ではない。
+   計画内では比較可能な〈入口＋成約候補〉の小単位を作る。
 
    パターン文字列を頭から消費していく方式だと、末尾で
    評価取りが尽きて売上が連続する事故が起きる。そこで先に
@@ -26,6 +25,16 @@ function groupByRole(picked) {
 
 /* 売上商品には、同じ棚（サブテーマ）の評価取りを充てる。
    直前に見せたものと地続きなほど、行動リズムがそのまま乗る。 */
+function relationScore(a, b) {
+  const ac = new Set(a.giftCollections || []);
+  const ao = new Set(a.giftOccasions || []);
+  let score = 0;
+  (b.giftCollections || []).forEach(function (v) { if (ac.has(v)) score += 3; });
+  (b.giftOccasions || []).forEach(function (v) { if (ao.has(v)) score += 2; });
+  if (a.primarySubTheme && a.primarySubTheme === b.primarySubTheme) score += 1;
+  return score;
+}
+
 function buildPairs(baits, cvs) {
   const pairs = [];
   const pool = baits.slice();
@@ -40,8 +49,12 @@ function buildPairs(baits, cvs) {
 
   ordered.forEach(function (cv) {
     if (!pool.length) return;
-    let idx = pool.findIndex(function (b) { return b.primarySubTheme === cv.primarySubTheme; });
-    if (idx < 0) idx = 0;
+    let idx = 0;
+    let best = -1;
+    pool.forEach(function (b, i) {
+      const score = relationScore(b, cv);
+      if (score > best) { best = score; idx = i; }
+    });
     const bait = pool.splice(idx, 1)[0];
     pairs.push({ kind: 'pair', subTheme: cv.primarySubTheme, posts: [bait, cv] });
   });
@@ -158,7 +171,7 @@ function arrange(picked, strategy) {
         burstSubTheme: currentSub,
         burstIndex: run,
         /* 直前の投稿と同じ棚なら、紹介文で明示的に導線を張る */
-        linkPrev: prev && prev.primarySubTheme === post.primarySubTheme ? prev.core : null
+        linkPrev: prev && relationScore(prev, post) > 0 ? prev.core : null
       }));
     });
   });
@@ -204,4 +217,4 @@ function auditSequence(seq, strategy) {
   };
 }
 
-module.exports = { arrange, auditSequence, groupByRole, buildPairs, orderPairs, takeDivider };
+module.exports = { arrange, auditSequence, groupByRole, buildPairs, orderPairs, takeDivider, relationScore };

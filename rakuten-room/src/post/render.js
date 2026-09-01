@@ -47,7 +47,7 @@ function renderPost(post) {
 
 function renderPlan(plan, report) {
   const lines = [];
-  lines.push('# 楽天ROOM 投稿台本 — ' + (plan.kind === 'launch' ? '初動30件' : '通常運用') + '（' + plan.startDate + '〜）');
+  lines.push('# 楽天ROOM 投稿台本 — ' + (plan.kind === 'launch' ? '初動検証' : '通常運用') + '（' + plan.startDate + '〜）');
   lines.push('');
   lines.push('生成: ' + time.stamp(new Date()) + ' JST　/　投稿数: ' + plan.posts.length + '　/　日数: ' + plan.days);
   lines.push('');

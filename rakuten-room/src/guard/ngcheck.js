@@ -95,7 +95,7 @@ function check(posts, strategy, opts) {
     (i.level === 'error' ? blockers : warnings).push('NG5/リズム ' + i.message);
   });
   if (scheduleReport.hotTimeRate < 0.5) {
-    warnings.push('NG5 ゴールデンタイム(20-23時)の投稿が ' + pct(scheduleReport.hotTimeRate) + ' しかない');
+    warnings.push('NG5 仮説テスト枠(' + strategy.schedule.hotTime.start + '-' + strategy.schedule.hotTime.end + ')の投稿が ' + pct(scheduleReport.hotTimeRate) + ' しかない');
   }
 
   /* --- 6 AI最適化 --- */

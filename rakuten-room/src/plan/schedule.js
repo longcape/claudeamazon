@@ -1,9 +1,8 @@
 /* =========================================================
    SCHEDULE — 投稿時刻の割り当て
    ---------------------------------------------------------
-   ゴールデンタイムは20:00-23:00（JST）。ホットタイムには
-   全投稿を流し込む。日中のスロットは、夜に効かせるための
-   露出の下地づくりとして少数だけ置く。
+   時間帯は公式仕様ではなく動画由来の検証仮説。
+   21:00-22:00 と 00:00-01:00 を少量で比較する。
    重要: 評価取り→売上 のペアを時間で分断してはいけない。
    ペアを1つの「ユニット」として扱い、ユニット単位で
    スロットへ落とす。
@@ -115,7 +114,7 @@ function assignTimes(seq, strategy, opts) {
           const base = group.times[slotIdx];
           let at = base;
           if (group.kind === 'hot') {
-            /* ゆらぎでゴールデンタイムの外へ出てしまっては本末転倒なので内側に収める */
+            /* 比較条件を保つため、ゆらぎは検証枠の内側に収める */
             const lo = minutesOf(strategy.schedule.hotTime.start);
             const hi = minutesOf(strategy.schedule.hotTime.end);
             at = Math.max(lo, Math.min(hi, base + jitter(post.itemCode + dateKey, strategy.schedule.hotTime.jitterMinutes)));

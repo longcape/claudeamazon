@@ -27,7 +27,7 @@ async function buildLaunch(extra) {
   }, extra || {}));
 }
 
-test('初動プランがちょうど30件になる', async function () {
+test('初動プランが設定された小さな検証単位になる', async function () {
   const plan = await buildLaunch();
   assert.strictEqual(plan.posts.length, strategy.launch.size);
 });
@@ -42,11 +42,13 @@ test('売上投稿は必ず評価取り投稿の直後に来る', async function
   });
 });
 
-test('初動は全件がゴールデンタイム(20-23時)に入る', async function () {
+test('初動は動画仮説の検証枠(21-22時または0-1時)に入る', async function () {
   const plan = await buildLaunch();
   plan.posts.forEach(function (p) {
     const m = schedule.minutesOf(p.timeJst);
-    assert.ok(m >= schedule.minutesOf('20:00') && m <= schedule.minutesOf('23:00'),
+    const evening = m >= schedule.minutesOf('21:00') && m <= schedule.minutesOf('22:00');
+    const midnight = m >= schedule.minutesOf('00:00') && m <= schedule.minutesOf('01:00');
+    assert.ok(evening || midnight,
       '#' + p.order + ' が ' + p.timeJst);
   });
 });

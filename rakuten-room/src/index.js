@@ -206,7 +206,7 @@ async function buildPlan(strategy, opts) {
   const mixSource = isLaunch ? strategy.launch.mix : null;
   const mix = options.mix || mixSource || scaleMix(strategy.launch.mix, size);
 
-  log.step((isLaunch ? '初動30件' : '通常運用') + 'の選定: ' + size + ' 件');
+  log.step((isLaunch ? '初動検証' : '通常運用') + 'の選定: ' + size + ' 件');
   const selection = selectLib.selectSet(analysis.scored, strategy, {
     size: size,
     mix: mix,

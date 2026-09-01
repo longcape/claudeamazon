@@ -199,43 +199,28 @@
     }
   },
   "schedule": {
-    "$comment": "ゴールデンタイム20時〜23時。ホットタイムは全投稿を流し込む。",
+    "$comment": "投稿時刻は動画由来の仮説。21〜22時と0〜1時を少量で比較し、実績で更新する。公式仕様ではない。",
     "timezone": "Asia/Tokyo",
     "hotTime": {
-      "start": "20:00",
-      "end": "23:00",
-      "intervalMinutes": 7,
+      "start": "21:00",
+      "end": "22:00",
+      "intervalMinutes": 20,
       "jitterMinutes": 2
     },
     "warmupSlots": [
       {
-        "at": "07:40",
+        "at": "00:20",
         "count": 1,
-        "roles": [
-          "bait"
-        ]
-      },
-      {
-        "at": "12:20",
-        "count": 2,
         "roles": [
           "bait",
           "traffic"
         ]
-      },
-      {
-        "at": "18:10",
-        "count": 2,
-        "roles": [
-          "bait",
-          "cv"
-        ]
       }
     ],
-    "dailyPosts": 22
+    "dailyPosts": 3
   },
   "sequence": {
-    "$comment": "評価→売上→評価→売上。売上投稿は必ず評価取り投稿の直後に置く（ROOMは直前の行動リズムを引き継ぐ）。",
+    "$comment": "関連商品を小さな導線単位で並べる実験設定。役割ペアの効果は動画由来の仮説であり、公式仕様ではない。",
     "pattern": [
       "bait",
       "cv",
@@ -252,20 +237,20 @@
     "trafficEveryN": 7
   },
   "launch": {
-    "$comment": "アルゴリズムは最初の30件に極端に重い比重を置く。ここだけ別ルールで組み、全件をゴールデンタイムに寄せる。",
-    "size": 30,
+    "$comment": "初動も乱立させず、6件の小さな検証単位で開始する。反応を記録してから次を選ぶ。",
+    "size": 6,
     "mix": {
-      "bait": 14,
-      "cv": 12,
-      "traffic": 4
+      "bait": 3,
+      "cv": 2,
+      "traffic": 1
     },
     "minSelectionScore": 0.62,
     "subThemeSpread": {
       "minSubThemes": 3,
       "maxSubThemes": 7
     },
-    "postsPerDay": 10,
-    "hotTimeOnly": true
+    "postsPerDay": 3,
+    "hotTimeOnly": false
   },
   "shelf": {
     "$comment": "NG行動④『投稿順によるルーム全体のブランド破壊』の防止。商品棚として並びを整える。",
@@ -343,7 +328,7 @@
     "minGiftReadyForPost": 0.3
   },
   "portfolio": {
-    "$comment": "100商品ポートフォリオ。主力はSNSで繰り返し訴求するため動画適性を重く見る。ロングテールはスコア順ではなく、用途・価格の穴埋めを優先する。",
+    "$comment": "100商品は投稿ノルマではなく候補プール。主力はSNSで繰り返し訴求するため動画適性を重く見る。投稿計画は別途、少量ずつ作る。",
     "flagship": 20,
     "secondary": 30,
     "longtail": 50,
@@ -356,9 +341,7 @@
       "bRatio": 0.3
     },
     "$videoNote": "動画化優先度はポートフォリオ内の相対順位で決める。絶対値の閾値だと分布がずれた瞬間に大半がAになり、優先度として機能しなくなる。",
-    "maxCollectionShare": {
-      "食べもの・スイーツ": 0.55
-    },
-    "$shareNote": "商材カテゴリにあたるコレクションの占有率の上限。層ごとに数える。誕生日・お礼のような場面のタグは複数商品にまたがって当然なので上限を設けない。食品は詰め合わせ・化粧箱・個包装の語でギフト映えと動画適性が高く出るため、放置すると棚が食品だけになる（実測で選定結果の90%、主力は100%が食品だった）。"
+    "dominanceWarningShare": 0.75,
+    "$shareNote": "固定カテゴリ上限は関連商品導線を切るため撤廃。75%超は警告だけ出し、採否は実績と導線の自然さを人が確認する。"
   }
 }

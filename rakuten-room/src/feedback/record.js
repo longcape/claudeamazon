@@ -1,8 +1,9 @@
 /* =========================================================
    FEEDBACK — 実績の記録と学習
    ---------------------------------------------------------
-   楽天ROOMの内部スコア（CV誘導・閲覧誘導・外部送客）は
-   外から読めない。読めない以上、こちらで代理指標を積む。
+   「CV誘導・閲覧誘導・外部送客」は攻略動画由来の仮説名であり、
+   楽天公式が内部スコアとして公開した名称ではない。
+   ここでは検証可能な運用指標として代理値を積む。
      閲覧誘導スコアの代理 = クリック / いいね
      CV誘導スコアの代理   = 成約 / クリック
      外部送客スコアの代理 = 送客投稿のクリック総量
@@ -64,7 +65,7 @@ function record(plan, orders, metrics, strategy) {
 
 function safeRate(num, den) { return den > 0 ? num / den : 0; }
 
-/* 楽天ROOMの隠しスコア3種の代理指標 */
+/* 動画由来の3仮説に対応する観測指標。内部スコアの存在は仮定しない。 */
 function hiddenScores(entries) {
   const sum = function (key, filter) {
     return entries.filter(filter || function () { return true; })

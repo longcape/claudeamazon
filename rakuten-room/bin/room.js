@@ -2,13 +2,13 @@
 /* =========================================================
    楽天ROOM 運用エンジン — CLI
      collect  楽天市場から候補を収集し、定点観測を1日分残す
-     launch   初動30件の計画を作る（最重要）
+     launch   初動6件の検証計画を作る
      plan     通常運用の計画を作る
      next     これから出す投稿を確認する
      now      投稿時刻が来たものを出す（アダプタ経由）
      done     投稿済みにする
      record   実績（いいね/クリック/成約）を記録する
-     report   隠しスコアの代理指標と学習状況を見る
+     report   動画由来の仮説指標と学習状況を見る
      trend    上昇ワードの候補を見る
      genre    ジャンルIDを調べる
      doctor   設定と接続を確認する
@@ -162,6 +162,9 @@ async function cmdPortfolio(args) {
   log.step("コレクション別の件数");
   Object.keys(sum.collections).sort(function (a, b) { return sum.collections[b] - sum.collections[a]; })
     .forEach(function (k) { log.detail(k + ": " + sum.collections[k] + " 件"); });
+  (sum.dominanceWarnings || []).forEach(function (w) {
+    log.warn(w.collection + ' が候補プールの ' + Math.round(w.share * 100) + '%。固定除外はせず、関連導線と実績を人が確認してください');
+  });
 
   log.step("動画化優先度");
   ["A", "B", "C"].forEach(function (r) {
@@ -223,7 +226,7 @@ function cmdReport() {
   const sum = feedback.summarize(s);
   if (!sum.entries) return log.info('実績がまだありません。record コマンドで入れてください');
 
-  log.step('隠しスコアの代理指標（' + sum.entries + ' 件の実績から）');
+  log.step('動画由来の3仮説に対応する観測指標（' + sum.entries + ' 件の実績から）');
   Object.keys(sum.hidden).forEach(function (k) {
     const v = sum.hidden[k];
     if (typeof v === 'number') { log.detail(k + ': ' + v.toLocaleString('ja-JP')); return; }
@@ -437,13 +440,13 @@ function usage() {
     '  node bin/room.js probe [keyword]     実データが想定どおり返るか点検する',
     '  node bin/room.js collect             楽天市場から候補を収集（毎日回す）',
     '  node bin/room.js daily               収集から計画作成までを一気に（cron向け）',
-    '  node bin/room.js launch              初動30件の計画を作る',
+    '  node bin/room.js launch              初動6件の検証計画を作る',
     '  node bin/room.js plan [--days=3]     通常運用の計画を作る',
     '  node bin/room.js next [--count=5]    これから出す投稿を見る',
     '  node bin/room.js now [--adapter=..]  投稿時刻が来たものを出す',
     '  node bin/room.js done 1,2,3          投稿済みにする',
     '  node bin/room.js record 1 --clicks=30 --cv=1 --likes=12 --revenue=2480',
-    '  node bin/room.js report              隠しスコアの代理指標を見る',
+    '  node bin/room.js report              動画由来の仮説指標を見る',
     '  node bin/room.js trend               上昇ワードの候補を見る',
     '',
     '共通フラグ: --fresh（収集し直す） --nocheck（再検索を省く） --nollm（LLM整形を切る） --again（投稿済み商品も許す）'

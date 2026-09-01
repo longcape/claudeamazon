@@ -199,23 +199,14 @@ test('秘密情報がGit管理対象にも出力にも含まれない', function
   });
 });
 
-test('特定のコレクションが棚を占領しない', function () {
-  /* 実データでは食品がギフト映え・動画適性で有利になり、候補プールの46%が
-     非食品なのに選定結果の90%が食品になった。棚として成立しないので上限を設けている */
-  const caps = strategy.portfolio.maxCollectionShare;
-  assert.ok(caps && Object.keys(caps).length, '占有率の上限が設定されている');
-
-  const pf = portfolio.build(scored(fixtures.candidates(160)), strategy);
-  Object.keys(caps).forEach(function (collection) {
-    [['主力', pf.flagship], ['準主力', pf.secondary], ['ロングテール', pf.longtail]].forEach(function (pair) {
-      const hit = pair[1].filter(function (i) {
-        return (i.giftCollections || []).indexOf(collection) >= 0;
-      }).length;
-      const limit = Math.ceil(caps[collection] * pair[1].length);
-      assert.ok(hit <= limit,
-        pair[0] + 'の「' + collection + '」が上限 ' + limit + ' を超えている: ' + hit);
-    });
-  });
+test('固定カテゴリ上限で関連商品のまとまりを切らない', function () {
+  assert.strictEqual(strategy.portfolio.maxCollectionShare, undefined);
+  assert.ok(strategy.portfolio.dominanceWarningShare > 0.5);
+  const warnings = portfolio.dominanceWarnings([
+    { giftCollections: ['食品'] }, { giftCollections: ['食品'] },
+    { giftCollections: ['食品'] }, { giftCollections: ['雑貨'] }
+  ], 0.7);
+  assert.strictEqual(warnings[0].collection, '食品');
 });
 
 test('紹介文が検証できない断定と誇張を含まない', function () {
