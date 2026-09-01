@@ -37,6 +37,8 @@ const trendLib = require('../src/pipeline/trend');
 const selectLib = require('../src/pipeline/select');
 const feedback = require('../src/feedback/record');
 const queue = require('../src/post/queue');
+const experiment = require('../src/plan/experiment');
+const scoreLib = require('../src/pipeline/score');
 const render = require('../src/post/render');
 const adapters = require('../src/post/adapters');
 const ichiba = require('../src/rakuten/ichiba');
@@ -162,9 +164,30 @@ async function cmdPortfolio(args) {
   log.step("コレクション別の件数");
   Object.keys(sum.collections).sort(function (a, b) { return sum.collections[b] - sum.collections[a]; })
     .forEach(function (k) { log.detail(k + ": " + sum.collections[k] + " 件"); });
-  (sum.dominanceWarnings || []).forEach(function (w) {
-    log.warn(w.collection + ' が候補プールの ' + Math.round(w.share * 100) + '%。固定除外はせず、関連導線と実績を人が確認してください');
+  /* 占有率の警告は商品カテゴリにだけ当てる。
+     利用場面や価格帯が広いことは偏りではないので、不足として別に出す */
+  (sum.categoryDominance || []).forEach(function (w) {
+    log.warn('商品カテゴリ ' + w.productCategory + ' が ' + Math.round(w.share * 100) +
+      '%。固定除外はせず、関連導線と実績を人が確認してください');
   });
+
+  log.step('カバレッジ（不足を見る。占有率の警告対象ではない）');
+  Object.keys(sum.coverage || {}).forEach(function (facet) {
+    const c = sum.coverage[facet];
+    const top = Object.keys(c.counts).sort(function (a, b) { return c.counts[b] - c.counts[a]; })
+      .slice(0, 4).map(function (k) { return k + ' ' + c.counts[k]; }).join(' / ');
+    log.detail(log.pad(facet, 16) + (top || '該当なし'));
+    if (c.thin.length) log.detail(log.pad('', 16) + '手薄: ' + c.thin.join(', '));
+  });
+
+  const selInfo = sum.selection || {};
+  log.step('選定');
+  log.detail('絶対下限 ' + selInfo.absoluteFloor + ' / 主力の分位境界 ' + selInfo.flagshipFloor +
+    ' / 準主力 ' + selInfo.secondaryFloor);
+  if (selInfo.belowFloor) log.detail('下限未満で除外: ' + selInfo.belowFloor + ' 件（緩和はしません）');
+  if (selInfo.outsideFlagshipQuantile) {
+    log.detail('主力のうち分位の外から補った件数: ' + selInfo.outsideFlagshipQuantile + ' 件（下限は割っていません）');
+  }
 
   log.step("動画化優先度");
   ["A", "B", "C"].forEach(function (r) {
@@ -206,32 +229,158 @@ function cmdRecord(args) {
   if (!plan) return log.fail('計画がありません');
   const orders = String(args._[1] || '').split(/[,\s]+/).map(Number).filter(Boolean);
   if (!orders.length) {
-    return log.fail('使い方: node bin/room.js record 1,2 --likes=12 --clicks=30 --cv=1 --revenue=2480');
+    log.fail('使い方: node bin/room.js record 1,2 --outbound-clicks=30 --unique-users=18 --cv-pending=1');
+    log.detail('確定した成果を入れるとき: --cv-confirmed=1 --revenue-confirmed=2480');
+    log.detail('観測時点を指定するとき  : --as-of=2026-10-05');
+    log.detail('旧来の --clicks --cv --revenue も引き続き使えます');
+    return;
   }
+  const num = function (a, b) {
+    if (args.flags[a] !== undefined) return Number(args.flags[a]);
+    if (b && args.flags[b] !== undefined) return Number(args.flags[b]);
+    return undefined;
+  };
   const metrics = {
     likes: Number(args.flags.likes) || 0,
-    clicks: Number(args.flags.clicks) || 0,
-    conversions: Number(args.flags.cv) || 0,
-    revenue: Number(args.flags.revenue) || 0
+    /* 外部送客クリック。旧 --clicks も受ける */
+    outboundClicks: num('outbound-clicks', 'clicks'),
+    clicks: num('outbound-clicks', 'clicks'),
+    uniqueUsers: num('unique-users'),
+    cvPending: num('cv-pending', 'cv'),
+    cvConfirmed: num('cv-confirmed'),
+    revenuePending: num('revenue-pending', 'revenue'),
+    revenueConfirmed: num('revenue-confirmed'),
+    asOf: args.flags['as-of'] ? new Date(args.flags['as-of'] + 'T12:00:00+09:00').toISOString() : undefined,
+    dataSource: args.flags.source || 'manual'
   };
   const added = feedback.record(plan, orders, metrics, s);
   log.step(added.length + ' 件の実績を記録しました');
   added.forEach(function (e) {
-    log.detail('#' + e.date + ' ' + e.timeJst + ' [' + e.role + '] ' + e.name + ' → クリック' + e.clicks + ' 成約' + e.conversions);
+    const cv = e.conversionsConfirmed !== null
+      ? '確定成約' + e.conversionsConfirmed
+      : '保留成約' + e.conversionsPending;
+    log.detail('#' + e.date + ' ' + e.timeJst + ' [' + e.role + '] ' + e.name +
+      ' → 外部クリック' + e.outboundClicks + ' ' + cv + ' / 成熟 ' + e.maturity);
+  });
+  const immature = added.filter(function (e) {
+    return e.maturity !== 'cv_mature' && e.maturity !== 'final' && e.conversionsConfirmed === null;
+  });
+  if (immature.length) {
+    log.detail(immature.length + ' 件はまだ成熟していません。成約0はこの時点では失敗を意味しません');
+    log.detail('（アフィリエイト成果はクリック後89日以内の購入まで発生しうるため）');
+  }
+}
+
+function reportMaturity(sum) {
+  log.step('成果の成熟');
+  log.detail('アフィリエイト成果はクリック後89日以内の購入まで発生しうる。');
+  log.detail('投稿直後の成約0は失敗ではなく、観測期間が未成熟なだけである。');
+  const label = { click_ready: '24時間後 クリック評価可', cv_early: '7日後 早期CV参考値', cv_mature: '30日後 CV学習開始', final: '89日後以降 最終値' };
+  Object.keys(sum.maturity).forEach(function (k) {
+    log.detail(log.pad(label[k] || k, 30) + ' ' + String(sum.maturity[k]).padStart(3) + ' 件');
   });
 }
 
-function cmdReport() {
+function reportExperiment(s, id) {
+  const data = feedback.load(s);
+  const rows = data.entries.filter(function (e) { return e.experimentId === id; });
+  if (!rows.length) return log.fail('実験 ' + id + ' の実績がありません');
+
+  log.step('実験 ' + id + '（' + rows.length + ' 投稿）');
+  const slots = {};
+  rows.forEach(function (e) {
+    const k = e.slotVariant || 'control';
+    const b = slots[k] || { n: 0, clicks: 0, roles: {}, mature: 0, cv: 0 };
+    b.n += 1;
+    b.clicks += Number(e.outboundClicks) || 0;
+    b.roles[e.role] = (b.roles[e.role] || 0) + 1;
+    if (feedback.isCvUsable(e)) { b.mature += 1; b.cv += Number(e.conversionsConfirmed) || 0; }
+    slots[k] = b;
+  });
+
+  Object.keys(slots).forEach(function (k) {
+    const b = slots[k];
+    log.detail(log.pad(k, 16) + ' ' + b.n + '投稿 / 外部クリック ' + b.clicks +
+      ' / クリック per 投稿 ' + (b.clicks / b.n).toFixed(2) + ' / 役割 ' + JSON.stringify(b.roles));
+  });
+
+  const need = (s.experiment || {}).minPostsPerSlotForWinner || 12;
+  const ready = Object.keys(slots).every(function (k) { return slots[k].n >= need; });
+  log.step('判定');
+  if (!ready) {
+    log.detail('各枠 ' + need + ' 投稿に達していないため、勝者は決めません。');
+    log.detail('現在: ' + Object.keys(slots).map(function (k) { return k + ' ' + slots[k].n; }).join(' / '));
+  } else {
+    log.detail('各枠が判定に必要な件数に達しました。区間が重なる場合は保留としてください。');
+  }
+  log.detail('次の実験では時間帯の割当を反転してください（room experiment create --reverse）');
+}
+
+/* 時間帯クロスオーバー実験を作る */
+async function cmdExperiment(args) {
+  const sub = args._[1] || 'create';
+  if (sub !== 'create') return log.fail('使い方: node bin/room.js experiment create [--reverse] [--date=YYYY-MM-DD]');
+  const s = strategy();
+  const analysis = await pipeline.analyze(s, {
+    freshCollect: !!args.flags.fresh,
+    crosscheck: args.flags.nocheck ? false : true
+  });
+  const e = experiment.create(analysis.scored, s, {
+    startDate: args.flags.date || time.dateKey(),
+    reverse: !!args.flags.reverse
+  });
+  const check = experiment.audit(e, s);
+
+  log.step('実験 ' + e.experimentId);
+  log.detail(e.note);
+  log.detail('投稿 ' + e.posts.length + ' 件 / クラスター ' + e.clusters.length + ' 個 / 1日 ' + e.target.postsPerDay + ' 投稿');
+  Object.keys(e.bySlot).forEach(function (k) {
+    log.detail(log.pad(k, 16) + ' ' + e.bySlot[k].count + '投稿 役割 ' + JSON.stringify(e.bySlot[k].roles));
+  });
+
+  log.step('検査');
+  if (check.ok) log.detail('両枠の役割構成が同一。比較条件として成立しています');
+  else check.issues.forEach(function (i) { log.warn(i); });
+
+  log.step('投稿する順番');
+  e.posts.forEach(function (p) {
+    log.info('  #' + String(p.order).padStart(2) + ' ' + p.date + ' ' + p.timeJst +
+      '  [' + p.slotVariant + '] ' + render.ROLE_LABEL[p.role] + '  ' + p.price.toLocaleString('ja-JP') + '円');
+    log.info('      ' + p.cleanName.slice(0, 44));
+  });
+
+  const file = store.writeJson('experiment-' + e.experimentId + '.json', e);
+  log.step('保存');
+  log.detail('data/' + path.basename(file));
+  log.detail('勝者判定には各枠 ' + e.winnerReadyAt + ' 投稿が要ります。今回は片枠6投稿です');
+}
+
+function cmdReport(args) {
   const s = strategy();
   const sum = feedback.summarize(s);
   if (!sum.entries) return log.info('実績がまだありません。record コマンドで入れてください');
 
-  log.step('動画由来の3仮説に対応する観測指標（' + sum.entries + ' 件の実績から）');
-  Object.keys(sum.hidden).forEach(function (k) {
-    const v = sum.hidden[k];
-    if (typeof v === 'number') { log.detail(k + ': ' + v.toLocaleString('ja-JP')); return; }
-    log.detail(k + ': ' + (v.value * 100).toFixed(1) + '%　（' + v.label + '）');
-  });
+  if (args && args.flags && args.flags.maturity) return reportMaturity(sum);
+  if (args && args.flags && args.flags.experiment) return reportExperiment(s, String(args.flags.experiment));
+
+  const o = sum.observations;
+  log.step('観測指標（' + sum.entries + ' 件の実績から）');
+  log.detail(o.note);
+  log.detail('ROOM反応観測    ' + o.ROOM反応観測.value.toFixed(2) + '　（' + o.ROOM反応観測.label + '）');
+  log.detail('楽天市場送客観測 ' + o.楽天市場送客観測.value.toFixed(2) + '　（' + o.楽天市場送客観測.label + '）');
+  log.detail('購買転換観測    ' + (o.購買転換観測.value * 100).toFixed(1) + '%　（' + o.購買転換観測.label + '）');
+  if (o.購買転換観測.immaturePosts) {
+    log.detail('  ※ 未成熟 ' + o.購買転換観測.immaturePosts + ' 件は購買転換の母集団から外しています');
+  }
+  log.detail('確定売上 ' + o.売上金額.confirmed.toLocaleString('ja-JP') + '円 / 保留 ' + o.売上金額.pending.toLocaleString('ja-JP') + '円');
+
+  log.step('学習ゲート');
+  const g = sum.gate;
+  log.detail('クリック学習: ' + (g.clickLearning ? '有効' : '未達') + '　（全体 ' + g.totalPosts + ' 投稿）');
+  log.detail('CV学習      : ' + (g.cvLearning ? '有効' : '未達') + '　（成熟 ' + g.maturePosts + ' 件）');
+  log.detail('時間帯の勝者: ' + (g.slotWinner ? '判定可' : '判定不可') + '　' + JSON.stringify(g.slotCounts));
+  if (g.reasons.length) log.detail('不足: ' + g.reasons.join(' / '));
+  if (!g.clickLearning) log.detail('サンプルが足りないため、数値は出しても重みは変更していません');
 
   const table = function (title, stats) {
     log.step(title);
@@ -333,6 +482,32 @@ async function cmdDoctor() {
   log.detail('候補データ: ' + cands.length + ' 件');
   const history = selectLib.loadHistory();
   log.detail('投稿済み商品: ' + Object.keys(history.posted).length + ' 件');
+
+  /* 何を根拠にスコアが決まっているかを一目で分かるようにする。
+     冷開始のまま重みを確定させると、実測でない値で棚が決まる */
+  log.step('スコアリング');
+  const vel = velocityLib.buildVelocityIndex(s);
+  const bundle = pipeline.loadLatestCandidates();
+  const items = bundle ? bundle.items : [];
+  const phase = scoreLib.resolvePhase(items, s, { velocityIndex: vel.index, snapshotCount: vel.snapshotCount });
+  const dom = scoreLib.affiliateDominance(items, s);
+
+  log.detail('位相: ' + phase.phase +
+    (phase.phase === 'cold_start' ? '（velocityで順位差を作らない）' : '（velocityを ' + Math.round(phase.velocityRamp * 100) + '% 反映）'));
+  log.detail('velocity既知率: ' + (phase.velocityKnownRate * 100).toFixed(1) + '%' +
+    '（観測へ切り替わる目安 ' + ((s.scoring || {}).velocityKnownRateThreshold || 0.6) * 100 + '%）');
+  log.detail('有効スナップショット: ' + phase.snapshotDays + ' 日分');
+  log.detail('料率の同値率: ' + (dom.share * 100).toFixed(1) + '%' +
+    (dom.dominant ? '（' + dom.rate + '% に集中。affiliateの有効重みを半減）' : ''));
+
+  const fb = feedback.summarize(s);
+  if (fb.entries) {
+    log.detail('投稿実績: ' + fb.entries + ' 件 / 成熟（CV学習可）: ' + fb.gate.maturePosts + ' 件');
+    log.detail('学習ゲート: クリック ' + (fb.gate.clickLearning ? '有効' : '未達') +
+      ' / CV ' + (fb.gate.cvLearning ? '有効' : '未達'));
+  } else {
+    log.detail('投稿実績: 0 件（実績が入るまで学習は動きません）');
+  }
 
   if (process.env.RAKUTEN_APP_ID && process.env.RAKUTEN_ACCESS_KEY && process.env.RAKUTEN_APP_URL) {
     log.step('接続テスト');
@@ -466,7 +641,8 @@ async function main() {
       case 'daily': return await cmdDaily(args);
       case 'done': return cmdDone(args);
       case 'record': return cmdRecord(args);
-      case 'report': return cmdReport();
+      case 'report': return cmdReport(args);
+      case 'experiment': return await cmdExperiment(args);
       case 'trend': return cmdTrend();
       case 'genre': return await cmdGenre(args);
       case 'portfolio': return await cmdPortfolio(args);
