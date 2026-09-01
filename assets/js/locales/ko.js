@@ -346,6 +346,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'err.network': '통신에 실패했습니다. 연결을 확인한 뒤 다시 시도하세요.',
   'err.unknown': '처리하지 못했습니다. 잠시 후 다시 시도하세요.',
 
+  /* --- 운영 --- */
+  'community.showHidden': '숨김도 표시',
+  'community.hiddenBadge': '숨김',
+  'community.reportsCount': '신고 {n}',
+  'community.restore': '복구',
+  'community.forceHide': '숨기기',
+  'community.restoreConfirm': '"{name}" 게시물을 다시 표시합니다. 이후에는 신고가 쌓여도 자동으로 숨겨지지 않습니다. 계속할까요?',
+  'community.restored': '다시 표시했습니다.',
+  'community.forceHideConfirm': '"{name}" 게시물을 숨깁니다. 계속할까요?',
+  'community.forceHidden': '숨겼습니다.',
+  'err.notAdmin': '운영자만 할 수 있는 작업입니다.',
+
   'toast.sampleAdded': '샘플 전술을 추가했습니다.',
   'toast.tacticAdded': '전술을 추가했습니다.',
   'toast.tacticUpdated': '전술을 수정했습니다.',

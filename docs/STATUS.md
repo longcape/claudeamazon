@@ -120,6 +120,47 @@ RLS は `saved_setups_all`（`for all to authenticated using (user_id = auth.uid
   文字数超過 / 権限なし / 重複 / レート制限 / 通信失敗 に振り分ける。
   生の内容は `console.warn` にだけ残す。
 
+### 運営機能 — **2026-09-02 実装・検証済み**
+
+**運営者の判定は `public.admins` テーブル。** ポリシーを 1 つも作っていないので、
+anon / authenticated からは読むことも書くこともできない。追加と削除は Supabase の
+SQL Editor（service role）からのみ。**service role のキーはブラウザに置かない。**
+
+```sql
+insert into public.admins (user_id, note)
+select id, 'なぜ運営者なのか' from auth.users where email = 'you@example.com'
+on conflict (user_id) do nothing;
+```
+
+画面の出し分けは `is_admin()` の結果で行うが、**それは見た目だけの話**。
+運営 RPC は毎回中で `is_admin()` を見て、違えば `NOT_ADMIN` で落とす。
+`admin_set_hidden` と `admin_set_report_threshold` は anon から呼べないよう
+EXECUTE も落としてある（Supabase は public スキーマの関数を既定で anon にも渡すので、
+明示的に revoke しないと残る）。
+
+**復旧の流れ**: 通報が積み上がって `hidden` になる → 運営者が「非表示も表示」を入れて
+一覧に出す → 「復旧」で `admin_set_hidden(id, false)` → `hidden = false`、
+`moderation = 'restored'`。逆に「非表示にする」で `moderation = 'forced'`。
+
+**復旧後の通報の扱いは「履歴を残したまま、モデレーション状態を別に持つ」を選んだ。**
+
+| 案 | 問題 |
+| --- | --- |
+| 通報履歴をクリアする | 同じ 5 人がもう一度通報できてしまい、復旧した端から隠される。経緯も追えなくなる |
+| 履歴を残して `hidden` だけ戻す | `reports` がしきい値を超えたままなので、次の 1 件でまた隠れる |
+| **履歴を残し `moderation` を別に持つ**（採用） | 誰が通報したかは残るので重複も防げるし経緯も追える。`restored` の投稿は自動では隠れないので、復旧が 1 件の通報で覆らない |
+
+**通報のしきい値は `community_config` テーブルの `report_threshold`。**
+初期値は 5。`report_post` は `report_threshold()` 経由でこの値を読む。
+読み取りは誰でもできるが、書き込みポリシーを作っていないので一般ユーザーは変えられない。
+変更は運営者だけが `admin_set_report_threshold(n)` で行う（1〜1000）。
+
+実測: 同一主体 5 連打 → `reports` は 1 のまま。別々の 5 人 → 5 人目で `hidden`。
+一般ユーザーが運営 RPC を呼ぶと `NOT_ADMIN`、未ログインだと
+`permission denied for function`。運営者が復旧すると `restored` になり、
+そのあと 2 件通報が増えても（合計 7 件）隠れないままだった。
+しきい値を 3 に変えると新しい投稿は 3 人目で隠れ、5 に戻すと 5 人目で隠れた。
+
 ### その他
 - 戦術の検索・グループ分け（サイト / 種別 / サイド）
 - 構成プリセット（`state.comps`、上限 12）と入力の高速化

@@ -262,6 +262,12 @@
             <button type="button" class="deck-search-clear" id="btn-community-clear" hidden aria-label="clear">×</button>
           </div>
           <select id="community-map" class="community-map"></select>
+          <!-- 運営者のときだけ出す。出す出さないは見た目の話で、
+               実際の可否は DB 側の is_admin() が毎回見ている -->
+          <label class="admin-toggle" id="admin-tools" hidden>
+            <input type="checkbox" id="community-show-hidden" />
+            <span data-i18n="community.showHidden"></span>
+          </label>
           <button class="btn btn-primary btn-sm" id="btn-open-post" data-i18n="community.post"></button>
         </div>
         <div class="post-grid" id="post-grid"></div>

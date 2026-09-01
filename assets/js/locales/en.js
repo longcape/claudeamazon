@@ -346,6 +346,18 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'err.network': 'The request did not go through. Check your connection and retry.',
   'err.unknown': 'That did not work. Try again in a moment.',
 
+  /* --- Moderation --- */
+  'community.showHidden': 'Show hidden',
+  'community.hiddenBadge': 'HIDDEN',
+  'community.reportsCount': '{n} reports',
+  'community.restore': 'Restore',
+  'community.forceHide': 'Hide',
+  'community.restoreConfirm': 'Show "{name}" again? From now on it will not be hidden automatically, however many reports it gets.',
+  'community.restored': 'Restored.',
+  'community.forceHideConfirm': 'Hide "{name}"?',
+  'community.forceHidden': 'Hidden.',
+  'err.notAdmin': 'Only moderators can do that.',
+
   'toast.sampleAdded': 'Sample tactics added.',
   'toast.tacticAdded': 'Tactic added.',
   'toast.tacticUpdated': 'Tactic updated.',

@@ -1503,6 +1503,32 @@ select { appearance: none; cursor: pointer; }
 }
 .preview-card p { margin: 0 0 10px; font-size: 12px; color: var(--text-dim); line-height: 1.6; }
 
+/* --- 運営者だけに見える表示 --- */
+.admin-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.post-mod {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  letter-spacing: .08em;
+}
+.post-mod span {
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+}
+.post-mod-hidden { border-color: var(--red) !important; color: var(--red) !important; }
+.post-mod-state  { border-color: var(--gold) !important; color: var(--gold) !important; }
+
 /* --- ログイン --- */
 .modal-narrow { width: min(430px, 100%); }
 .login-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.7; margin: 0 0 18px; }
@@ -2770,6 +2796,12 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
             <button type="button" class="deck-search-clear" id="btn-community-clear" hidden aria-label="clear">×</button>
           </div>
           <select id="community-map" class="community-map"></select>
+          <!-- 運営者のときだけ出す。出す出さないは見た目の話で、
+               実際の可否は DB 側の is_admin() が毎回見ている -->
+          <label class="admin-toggle" id="admin-tools" hidden>
+            <input type="checkbox" id="community-show-hidden" />
+            <span data-i18n="community.showHidden"></span>
+          </label>
           <button class="btn btn-primary btn-sm" id="btn-open-post" data-i18n="community.post"></button>
         </div>
         <div class="post-grid" id="post-grid"></div>
@@ -3545,6 +3577,18 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'err.network': '通信に失敗しました。接続を確かめてから試してください。',
   'err.unknown': 'うまくいきませんでした。時間をおいて試してください。',
 
+  /* --- 運営操作 --- */
+  'community.showHidden': '非表示も表示',
+  'community.hiddenBadge': '非表示中',
+  'community.reportsCount': '通報 {n}',
+  'community.restore': '復旧',
+  'community.forceHide': '非表示にする',
+  'community.restoreConfirm': '「{name}」を再表示します。以後この投稿は、通報が集まっても自動では隠れません。よろしいですか？',
+  'community.restored': '再表示しました。',
+  'community.forceHideConfirm': '「{name}」を非表示にします。よろしいですか？',
+  'community.forceHidden': '非表示にしました。',
+  'err.notAdmin': 'この操作は運営者だけが行えます。',
+
   /* --- トースト --- */
   'toast.sampleAdded': 'サンプル戦術を追加しました。',
   'toast.tacticAdded': '戦術を追加しました。',
@@ -3980,6 +4024,18 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'err.network': 'The request did not go through. Check your connection and retry.',
   'err.unknown': 'That did not work. Try again in a moment.',
 
+  /* --- Moderation --- */
+  'community.showHidden': 'Show hidden',
+  'community.hiddenBadge': 'HIDDEN',
+  'community.reportsCount': '{n} reports',
+  'community.restore': 'Restore',
+  'community.forceHide': 'Hide',
+  'community.restoreConfirm': 'Show "{name}" again? From now on it will not be hidden automatically, however many reports it gets.',
+  'community.restored': 'Restored.',
+  'community.forceHideConfirm': 'Hide "{name}"?',
+  'community.forceHidden': 'Hidden.',
+  'err.notAdmin': 'Only moderators can do that.',
+
   'toast.sampleAdded': 'Sample tactics added.',
   'toast.tacticAdded': 'Tactic added.',
   'toast.tacticUpdated': 'Tactic updated.',
@@ -4412,6 +4468,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'err.rateLimit': '짧은 시간에 너무 많이 올렸습니다. 잠시 후 다시 시도하세요.',
   'err.network': '통신에 실패했습니다. 연결을 확인한 뒤 다시 시도하세요.',
   'err.unknown': '처리하지 못했습니다. 잠시 후 다시 시도하세요.',
+
+  /* --- 운영 --- */
+  'community.showHidden': '숨김도 표시',
+  'community.hiddenBadge': '숨김',
+  'community.reportsCount': '신고 {n}',
+  'community.restore': '복구',
+  'community.forceHide': '숨기기',
+  'community.restoreConfirm': '"{name}" 게시물을 다시 표시합니다. 이후에는 신고가 쌓여도 자동으로 숨겨지지 않습니다. 계속할까요?',
+  'community.restored': '다시 표시했습니다.',
+  'community.forceHideConfirm': '"{name}" 게시물을 숨깁니다. 계속할까요?',
+  'community.forceHidden': '숨겼습니다.',
+  'err.notAdmin': '운영자만 할 수 있는 작업입니다.',
 
   'toast.sampleAdded': '샘플 전술을 추가했습니다.',
   'toast.tacticAdded': '전술을 추가했습니다.',
@@ -7362,6 +7430,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   const REPORTED_KEY = 'vct.reported';
 
   let session = null;      // { access_token, refresh_token, expires_at, user }
+  let admin = false;       // 運営者かどうか。DB に聞いた結果を覚えておく
 
   function enabled() { return CFG.isCommunityEnabled(); }
 
@@ -7430,14 +7499,17 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   /* ---------------- セッション ---------------- */
   function loadSession() {
+    /* 保存が消えていたら、覚えている分も捨てる。
+       ここで session を残していると、別タブでログアウトしたあとも
+       この画面だけログイン済みのまま見えてしまう。 */
     try {
       const raw = localStorage.getItem(SESSION_KEY);
-      if (!raw) return null;
+      if (!raw) { session = null; return null; }
       const parsed = JSON.parse(raw);
-      if (!parsed || !parsed.access_token) return null;
+      if (!parsed || !parsed.access_token) { session = null; return null; }
       session = parsed;
       return session;
-    } catch (e) { return null; }
+    } catch (e) { session = null; return null; }
   }
 
   function storeSession(s) {
@@ -7509,6 +7581,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   function signOut() {
+    admin = false;
     const had = !!session;
     const p = had ? request('/auth/v1/logout', { method: 'POST' }).catch(function () { /* 失敗しても破棄する */ })
                   : Promise.resolve();
@@ -7550,6 +7623,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       'limit=' + (opts.limit || 40),
       'order=' + (opts.sort === 'top' ? 'likes.desc,created_at.desc' : 'created_at.desc')
     ];
+    /* 運営者は RLS で隠れている投稿も引けてしまうので、
+       既定では明示的に外す。見たいときだけ includeHidden を立てる。 */
+    if (!opts.includeHidden) params.push('hidden=eq.false');
     if (opts.map) params.push('map=eq.' + encodeURIComponent(opts.map));
     if (opts.side) params.push('side=eq.' + encodeURIComponent(opts.side));
     return request('/rest/v1/tactic_posts?' + params.join('&'));
@@ -7665,6 +7741,32 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
   }
 
+  /* ---------------- 運営操作 ---------------- */
+  /**
+   * 自分が運営者かを DB に聞く。画面の出し分けにしか使わない。
+   * 実際の可否は RPC 側の is_admin() が毎回見ているので、
+   * ここを書き換えられても運営操作は通らない。
+   */
+  function refreshAdmin() {
+    if (!session) { admin = false; return Promise.resolve(false); }
+    return request('/rest/v1/rpc/is_admin', { method: 'POST', body: {} })
+      .then(function (v) { admin = v === true; return admin; },
+            function () { admin = false; return false; });
+  }
+
+  function isAdmin() { return admin; }
+
+  /** 投稿を隠す / 戻す。復旧すると以後は通報が集まっても自動では隠れない */
+  function adminSetHidden(postId, hidden) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/rpc/admin_set_hidden', {
+        method: 'POST',
+        body: { p_post_id: postId, p_hidden: !!hidden }
+      });
+    });
+  }
+
   /* ---------------- AI 寸評（Edge Function） ---------------- */
   function aiReview(payload) {
     if (!enabled() || !CFG.AI_REVIEW_ENABLED) return Promise.reject(new Error('DISABLED'));
@@ -7692,6 +7794,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         }, function () { return session; });
       }
       return session;
+    }).then(function (s) {
+      return refreshAdmin().then(function () { return s; });
     });
   }
 
@@ -7707,6 +7811,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     createPost: createPost,
     likePost: likePost,
     reportPost: reportPost,
+    isAdmin: isAdmin,
+    refreshAdmin: refreshAdmin,
+    adminSetHidden: adminSetHidden,
     updatePost: updatePost,
     deletePost: deletePost,
     reportedIds: reportedIds,
@@ -8997,6 +9104,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     const C = global.VCT_COMMUNITY;
     const me = (C && C.currentUser && C.currentUser()) ? C.currentUser().id : null;
     const reported = (C && C.reportedIds) ? C.reportedIds() : {};
+    const admin = !!(C && C.isAdmin && C.isAdmin());
 
     grid.innerHTML = posts.map(function (p) {
       const map = D.mapById(p.map);
@@ -9007,6 +9115,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
             '<span class="tcard-kind">' + esc(String(p.kind || '').toUpperCase()) + '</span>' +
             '<span class="tcard-sidetag">' + esc(map ? map.name : p.map) + '</span>' +
           '</div>' +
+          (admin ? adminBadgeHTML(p) : '') +
           '<h3 class="tcard-name">' + esc(p.name) + '</h3>' +
           (p.note ? '<p class="tcard-note">' + esc(p.note) + '</p>' : '') +
           compStripHTML(p.enemy_comp) +
@@ -9018,6 +9127,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
             '<button class="btn btn-ghost btn-sm" data-act="import-post" data-id="' + esc(p.id) + '">' + t('community.import') + '</button>' +
             reportButtonHTML(p, reported) +
             ownerButtonsHTML(p, me) +
+            adminButtonsHTML(p, admin) +
           '</div>' +
         '</article>';
     }).join('');
@@ -9031,6 +9141,27 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
              (done ? ' disabled' : '') + '>' +
              t(done ? 'community.reported' : 'community.report') +
            '</button>';
+  }
+
+  /* 運営者にだけ、通報の状況を数字で見せる */
+  function adminBadgeHTML(p) {
+    return '<div class="post-mod">' +
+             '<span class="post-mod-reports">' + t('community.reportsCount', { n: p.reports || 0 }) + '</span>' +
+             (p.hidden ? '<span class="post-mod-hidden">' + t('community.hiddenBadge') + '</span>' : '') +
+             (p.moderation && p.moderation !== 'auto'
+               ? '<span class="post-mod-state">' + esc(p.moderation) + '</span>' : '') +
+           '</div>';
+  }
+
+  /* 運営操作。押せるかどうかは DB 側の is_admin() が毎回見ているので、
+     ここは「見せる / 見せない」だけの話 */
+  function adminButtonsHTML(p, admin) {
+    if (!admin) return '';
+    return p.hidden
+      ? '<button class="btn btn-ghost btn-sm" data-act="admin-restore" data-id="' + esc(p.id) + '">' +
+          t('community.restore') + '</button>'
+      : '<button class="btn btn-ghost btn-sm btn-danger" data-act="admin-hide" data-id="' + esc(p.id) + '">' +
+          t('community.forceHide') + '</button>';
   }
 
   /* 自分の投稿にだけ編集と削除を出す。匿名投稿は user_id が null なので出ない */
@@ -9243,6 +9374,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     postMap: '',
     postQuery: '',            // コミュニティ側の検索語（自分のデッキとは別物）
     editingPostId: null,      // 編集中の投稿
+    showHidden: false,        // 運営者が非表示の投稿も見るか
     postTacticId: null,
     treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
@@ -9282,6 +9414,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function renderCommunity() {
     U.renderAccount();
     U.renderCommunityMapFilter(ui.postMap);
+    /* 運営操作は運営者にしか出さない。ここは見た目だけの話で、
+       実際の可否は RPC の is_admin() が毎回見ている */
+    $('admin-tools').hidden = !C.isAdmin();
     U.renderPosts(ui.posts, null, ui.postQuery);
   }
 
@@ -10315,6 +10450,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     if (err && err.message === 'AUTH_REQUIRED') return t('cloud.needLogin');
 
     const code = err && err.code;
+    if (/NOT_ADMIN/.test(raw)) return t('err.notAdmin');
     if (/RATE_LIMIT/.test(raw)) return t('err.rateLimit');
     if (code === '23505' || /duplicate key/i.test(raw)) return t('err.duplicate');
     if (code === '42501' || /row-level security/i.test(raw)) return t('err.denied');
@@ -10337,7 +10473,11 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       return;
     }
     U.renderPosts([], t('common.loading'));
-    C.listPosts({ sort: ui.postSort, map: ui.postMap }).then(function (rows) {
+    C.listPosts({
+      sort: ui.postSort,
+      map: ui.postMap,
+      includeHidden: C.isAdmin() && ui.showHidden
+    }).then(function (rows) {
       ui.posts = Array.isArray(rows) ? rows : [];
       U.renderPosts(ui.posts, null, ui.postQuery);
     }, function (err) {
@@ -10420,6 +10560,11 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       $('community-query').focus();
     });
 
+    $('community-show-hidden').addEventListener('change', function (e) {
+      ui.showHidden = e.target.checked;
+      loadPosts();
+    });
+
     $('btn-open-post').addEventListener('click', function () { openPostModal(null); });
 
     $('community-account').addEventListener('click', function (e) {
@@ -10427,7 +10572,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       if (!el) return;
       if (el.dataset.act === 'login') openModal('modal-login');
       else if (el.dataset.act === 'logout') {
-        C.signOut().then(function () { renderCommunity(); });
+        C.signOut().then(function () {
+          ui.showHidden = false;
+          $('community-show-hidden').checked = false;
+          renderCommunity();
+          loadPosts();
+        });
       }
     });
 
@@ -10469,6 +10619,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
               loadPosts();
             }, function (err) { U.toast(friendlyError(err), 'err'); });
           });
+      } else if (el.dataset.act === 'admin-restore' || el.dataset.act === 'admin-hide') {
+        const hide = el.dataset.act === 'admin-hide';
+        U.ask({
+          message: t(hide ? 'community.forceHideConfirm' : 'community.restoreConfirm', { name: post.name }),
+          danger: true
+        }).then(function (ok) {
+          if (!ok) return;
+          return C.adminSetHidden(post.id, hide).then(function () {
+            U.toast(t(hide ? 'community.forceHidden' : 'community.restored'), 'ok');
+            loadPosts();
+          }, function (err) { U.toast(friendlyError(err), 'err'); });
+        });
       } else if (el.dataset.act === 'import-post') {
         S.addTactic({
           name: post.name,

@@ -275,6 +275,36 @@ native ダイアログが混ざったら機械的に落ちるので、この形�
 通報者を取らない旧 `report_post(uuid)` が残っていると呼び出しが曖昧になるので、
 `schema.sql` は `drop function if exists` を先に書いてある。
 
+### 運営者の判定は DB に置く
+
+`public.admins` にポリシーを 1 つも作っていないので、anon / authenticated からは
+読むことも書くこともできない。追加は Supabase の SQL Editor（service role）から。
+**service role のキーはブラウザに置かない。**
+
+画面の出し分けは `is_admin()` の結果を使うが、**それは見た目だけ**。
+運営 RPC（`admin_set_hidden` / `admin_set_report_threshold`）は毎回中で
+`is_admin()` を見て `NOT_ADMIN` で落とす。ここを画面側の判定に頼らないこと。
+
+**Supabase は public スキーマの関数を既定で anon にも grant する。**
+`revoke all ... from public` だけでは anon が残るので、運営まわりは
+`revoke all ... from anon` も書く。実際これを入れるまで、未ログインからでも
+関数本体まで届いていた（中の is_admin() で止まってはいた）。
+
+### 通報の復旧と moderation
+
+`tactic_posts.moderation` は `auto` / `restored` / `forced`。
+`report_post` が自動で隠すのは `auto` のときだけ。
+
+**復旧しても通報の履歴（tactic_reports）は消さない。** 消すと同じ人がもう一度
+通報できるようになり、復旧した端からまた隠される。かといって `hidden` だけ戻すと
+`reports` がしきい値を超えたままなので次の 1 件で隠れる。だから状態を別に持つ。
+
+### 通報のしきい値はコードに書かない
+
+`community_config` の `report_threshold`（初期値 5）を `report_threshold()` が読む。
+書き込みポリシーは作っていないので一般ユーザーは変えられない。変更は
+`admin_set_report_threshold(n)` から。smoke-test が「コードに埋めていないこと」を見張っている。
+
 ### 生の DB メッセージを画面に出さない
 
 `friendlyError()`（app.js）が、文字数超過 / 権限なし / 重複 / レート制限 / 通信失敗 に

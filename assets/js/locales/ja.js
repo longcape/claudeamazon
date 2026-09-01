@@ -354,6 +354,18 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'err.network': '通信に失敗しました。接続を確かめてから試してください。',
   'err.unknown': 'うまくいきませんでした。時間をおいて試してください。',
 
+  /* --- 運営操作 --- */
+  'community.showHidden': '非表示も表示',
+  'community.hiddenBadge': '非表示中',
+  'community.reportsCount': '通報 {n}',
+  'community.restore': '復旧',
+  'community.forceHide': '非表示にする',
+  'community.restoreConfirm': '「{name}」を再表示します。以後この投稿は、通報が集まっても自動では隠れません。よろしいですか？',
+  'community.restored': '再表示しました。',
+  'community.forceHideConfirm': '「{name}」を非表示にします。よろしいですか？',
+  'community.forceHidden': '非表示にしました。',
+  'err.notAdmin': 'この操作は運営者だけが行えます。',
+
   /* --- トースト --- */
   'toast.sampleAdded': 'サンプル戦術を追加しました。',
   'toast.tacticAdded': '戦術を追加しました。',

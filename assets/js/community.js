@@ -18,6 +18,7 @@
   const REPORTED_KEY = 'vct.reported';
 
   let session = null;      // { access_token, refresh_token, expires_at, user }
+  let admin = false;       // 運営者かどうか。DB に聞いた結果を覚えておく
 
   function enabled() { return CFG.isCommunityEnabled(); }
 
@@ -86,14 +87,17 @@
 
   /* ---------------- セッション ---------------- */
   function loadSession() {
+    /* 保存が消えていたら、覚えている分も捨てる。
+       ここで session を残していると、別タブでログアウトしたあとも
+       この画面だけログイン済みのまま見えてしまう。 */
     try {
       const raw = localStorage.getItem(SESSION_KEY);
-      if (!raw) return null;
+      if (!raw) { session = null; return null; }
       const parsed = JSON.parse(raw);
-      if (!parsed || !parsed.access_token) return null;
+      if (!parsed || !parsed.access_token) { session = null; return null; }
       session = parsed;
       return session;
-    } catch (e) { return null; }
+    } catch (e) { session = null; return null; }
   }
 
   function storeSession(s) {
@@ -165,6 +169,7 @@
   }
 
   function signOut() {
+    admin = false;
     const had = !!session;
     const p = had ? request('/auth/v1/logout', { method: 'POST' }).catch(function () { /* 失敗しても破棄する */ })
                   : Promise.resolve();
@@ -206,6 +211,9 @@
       'limit=' + (opts.limit || 40),
       'order=' + (opts.sort === 'top' ? 'likes.desc,created_at.desc' : 'created_at.desc')
     ];
+    /* 運営者は RLS で隠れている投稿も引けてしまうので、
+       既定では明示的に外す。見たいときだけ includeHidden を立てる。 */
+    if (!opts.includeHidden) params.push('hidden=eq.false');
     if (opts.map) params.push('map=eq.' + encodeURIComponent(opts.map));
     if (opts.side) params.push('side=eq.' + encodeURIComponent(opts.side));
     return request('/rest/v1/tactic_posts?' + params.join('&'));
@@ -321,6 +329,32 @@
     });
   }
 
+  /* ---------------- 運営操作 ---------------- */
+  /**
+   * 自分が運営者かを DB に聞く。画面の出し分けにしか使わない。
+   * 実際の可否は RPC 側の is_admin() が毎回見ているので、
+   * ここを書き換えられても運営操作は通らない。
+   */
+  function refreshAdmin() {
+    if (!session) { admin = false; return Promise.resolve(false); }
+    return request('/rest/v1/rpc/is_admin', { method: 'POST', body: {} })
+      .then(function (v) { admin = v === true; return admin; },
+            function () { admin = false; return false; });
+  }
+
+  function isAdmin() { return admin; }
+
+  /** 投稿を隠す / 戻す。復旧すると以後は通報が集まっても自動では隠れない */
+  function adminSetHidden(postId, hidden) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/rpc/admin_set_hidden', {
+        method: 'POST',
+        body: { p_post_id: postId, p_hidden: !!hidden }
+      });
+    });
+  }
+
   /* ---------------- AI 寸評（Edge Function） ---------------- */
   function aiReview(payload) {
     if (!enabled() || !CFG.AI_REVIEW_ENABLED) return Promise.reject(new Error('DISABLED'));
@@ -348,6 +382,8 @@
         }, function () { return session; });
       }
       return session;
+    }).then(function (s) {
+      return refreshAdmin().then(function () { return s; });
     });
   }
 
@@ -363,6 +399,9 @@
     createPost: createPost,
     likePost: likePost,
     reportPost: reportPost,
+    isAdmin: isAdmin,
+    refreshAdmin: refreshAdmin,
+    adminSetHidden: adminSetHidden,
     updatePost: updatePost,
     deletePost: deletePost,
     reportedIds: reportedIds,

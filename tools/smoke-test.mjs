@@ -721,6 +721,103 @@ check('保存すると閉じて知らせる', ownerUi.editClosed === true && !!o
 check('削除の前に確認を出す', /削除|Delete|삭제/.test(ownerUi.deleteConfirm || ''), ownerUi.deleteConfirm);
 check('削除できたことを知らせる', !!ownerUi.deletedToast, ownerUi.deletedToast);
 
+/* --- 運営 UI の出し分け --- */
+const modUi = await page.evaluate(async () => {
+  const g = (id) => document.getElementById(id);
+  const posts = [
+    { id: 'visible', name: '見えている投稿', note: 'a', map: 'ascent', side: 'ATK', site: 'A',
+      kind: 'execute', author_name: 'X', user_id: null, likes: 0, reports: 2,
+      hidden: false, moderation: 'auto', enemy_comp: [] },
+    { id: 'hiddenone', name: '隠れている投稿', note: 'b', map: 'bind', side: 'DEF', site: 'B',
+      kind: 'stack', author_name: 'Y', user_id: null, likes: 0, reports: 5,
+      hidden: true, moderation: 'auto', enemy_comp: [] }
+  ];
+  const orig = window.fetch;
+  let restoreCalled = null;
+  window.fetch = (u, o) => {
+    const url = String(u), m = (o && o.method) || 'GET';
+    if (url.includes('/rpc/is_admin')) {
+      return Promise.resolve(new Response('true', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (url.includes('/rpc/admin_set_hidden')) {
+      restoreCalled = JSON.parse(o.body);
+      return Promise.resolve(new Response(JSON.stringify({ id: 'hiddenone', hidden: false, reports: 5, moderation: 'restored' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (url.includes('/rest/v1/tactic_posts') && m === 'GET') {
+      return Promise.resolve(new Response(JSON.stringify(posts), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    return orig(u, o);
+  };
+
+  const out = {};
+
+  /* まず運営者ではない状態 */
+  localStorage.removeItem('vct.session');
+  await window.VCT_COMMUNITY.init();
+  document.querySelector('.phase-tab[data-phase="setup"]').click();
+  await new Promise((r) => setTimeout(r, 200));
+  document.querySelector('.phase-tab[data-phase="community"]').click();
+  await new Promise((r) => setTimeout(r, 600));
+  out.toolsHiddenForGuest = g('admin-tools').hidden;
+  out.guestActs = [...document.querySelectorAll('#post-grid .post-foot button')].map((b) => b.dataset.act);
+  out.guestSeesModBadge = !!document.querySelector('.post-mod');
+
+  /* 運営者にする */
+  localStorage.setItem('vct.session', JSON.stringify({
+    access_token: 'stub', refresh_token: '', expires_at: Math.floor(Date.now() / 1000) + 3600,
+    user: { id: 'admin-1' }
+  }));
+  await window.VCT_COMMUNITY.init();
+  document.querySelector('.phase-tab[data-phase="setup"]').click();
+  await new Promise((r) => setTimeout(r, 200));
+  document.querySelector('.phase-tab[data-phase="community"]').click();
+  await new Promise((r) => setTimeout(r, 700));
+  out.isAdmin = window.VCT_COMMUNITY.isAdmin();
+  out.toolsShownForAdmin = g('admin-tools').hidden === false;
+  const acts = {};
+  document.querySelectorAll('#post-grid .post-card').forEach((c) => {
+    acts[c.dataset.id] = [...c.querySelectorAll('.post-foot button')].map((b) => b.dataset.act);
+  });
+  out.adminActs = acts;
+  out.badgeText = (document.querySelector('#post-grid .post-card:nth-child(2) .post-mod') || {}).innerText || '';
+
+  /* 復旧を押す */
+  document.querySelector('#post-grid [data-act="admin-restore"]').click();
+  await new Promise((r) => setTimeout(r, 300));
+  out.confirmText = g('modal-ask').hidden ? '' : g('modal-ask').innerText;
+  g('ask-ok').click();
+  await new Promise((r) => setTimeout(r, 700));
+  out.restoreCalled = restoreCalled;
+  out.toast = g('toast').textContent;
+
+  localStorage.removeItem('vct.session');
+  await window.VCT_COMMUNITY.init();
+  window.fetch = orig;
+  return out;
+});
+
+check('一般ユーザーに運営メニューは出ない', modUi.toolsHiddenForGuest === true);
+check('一般ユーザーのカードに運営ボタンは出ない',
+  !modUi.guestActs.includes('admin-restore') && !modUi.guestActs.includes('admin-hide'),
+  JSON.stringify(modUi.guestActs));
+check('一般ユーザーに通報数は見せない', modUi.guestSeesModBadge === false);
+check('運営者だと判定できる', modUi.isAdmin === true);
+check('運営者には運営メニューが出る', modUi.toolsShownForAdmin === true);
+check('隠れている投稿には復旧ボタンが出る',
+  (modUi.adminActs.hiddenone || []).includes('admin-restore'),
+  JSON.stringify(modUi.adminActs.hiddenone));
+check('見えている投稿には非表示ボタンが出る',
+  (modUi.adminActs.visible || []).includes('admin-hide'),
+  JSON.stringify(modUi.adminActs.visible));
+check('運営者には通報数と状態が見える',
+  /5/.test(modUi.badgeText) && /非表示|HIDDEN|숨김/.test(modUi.badgeText), modUi.badgeText);
+check('復旧の前に確認を出す', /再表示|Show |다시 표시/.test(modUi.confirmText), modUi.confirmText.slice(0, 80));
+check('復旧は hidden=false で呼ばれる',
+  modUi.restoreCalled && modUi.restoreCalled.p_hidden === false,
+  JSON.stringify(modUi.restoreCalled));
+check('復旧できたことを知らせる', !!modUi.toast, modUi.toast);
+
 /* 生の Postgres メッセージを画面に出さないこと */
 const rawErr = await page.evaluate(async () => {
   const g = (id) => document.getElementById(id);
@@ -811,8 +908,54 @@ check('通報者を取らない旧 report_post を落としている',
   schema.includes('drop function if exists public.report_post(uuid);'));
 check('重複した通報は数えない',
   /report_post[\s\S]{0,900}?insert into public.tactic_reports[\s\S]{0,200}?on conflict do nothing/.test(schema));
-check('5 件で hidden にする仕様は残っている',
-  /report_post[\s\S]{0,1200}?hidden  = \(reports \+ 1\) >= 5/.test(schema));
+check('しきい値に達したら hidden にする仕様は残っている',
+  /report_post[\s\S]{0,1600}?\(reports \+ 1\) >= v_threshold/.test(schema));
+check('しきい値はコードに埋めず設定値から読む',
+  /report_post[\s\S]{0,600}?v_threshold int := public\.report_threshold\(\)/.test(schema));
+check('しきい値の初期値は 5',
+  schema.includes("values ('report_threshold', '5'::jsonb)") &&
+  /report_threshold\(\)[\s\S]{0,400}?coalesce\([\s\S]{0,200}?5\s*\)/.test(schema));
+check('復旧した投稿は自動では隠さない',
+  /report_post[\s\S]{0,1600}?case when moderation = 'auto'/.test(schema));
+check('moderation 列と取りうる値が定義されている',
+  schema.includes("add column if not exists moderation text not null default 'auto'") &&
+  schema.includes("check (moderation in ('auto', 'restored', 'forced'))"));
+
+/* --- 運営まわり --- */
+check('admins テーブルの定義がある', schema.includes('create table if not exists public.admins'));
+check('admins で RLS を有効にしている',
+  schema.includes('alter table public.admins enable row level security'));
+check('admins にポリシーを作っていない（誰からも読めない）',
+  !/create policy \w+\s+on public\.admins/.test(schema));
+check('community_config テーブルの定義がある',
+  schema.includes('create table if not exists public.community_config'));
+check('community_config は読み取りだけ許している',
+  schema.includes('create policy community_config_read') &&
+  !/create policy \w+\s+on public\.community_config for (insert|update|delete|all)/.test(schema));
+check('is_admin の定義がある', schema.includes('create or replace function public.is_admin()'));
+check('is_admin を anon から呼べないようにしている',
+  schema.includes('revoke all on function public.is_admin() from anon;'));
+for (const fn of ['admin_set_hidden(uuid, boolean)', 'admin_set_report_threshold(int)']) {
+  check(`${fn} を anon から呼べないようにしている`,
+    schema.includes(`revoke all on function public.${fn} from anon;`));
+  check(`${fn} を authenticated にだけ渡している`,
+    schema.includes(`grant execute on function public.${fn} to authenticated;`));
+}
+check('運営 RPC は必ず is_admin() を見てから動く',
+  (schema.match(/if not public\.is_admin\(\) then\s+raise exception 'NOT_ADMIN'/g) || []).length >= 2);
+check('復旧しても通報の履歴は消さない',
+  !/admin_set_hidden[\s\S]{0,1200}?delete from public\.tactic_reports/.test(schema));
+check('運営者は隠れている投稿も読める',
+  schema.includes('create policy tactic_posts_admin_read'));
+
+/* --- 秘密情報がどこにも無いこと --- */
+const secretish = /service_role|SERVICE_ROLE|sb_secret_|eyJhbGciOi/;
+check('配布ファイルに service role キーらしきものが無い', !secretish.test(distHtml));
+for (const f of ['assets/js/config.js', 'assets/js/community.js', 'assets/js/app.js']) {
+  check(`${f} に service role キーらしきものが無い`,
+    !secretish.test(fs.readFileSync(path.join(ROOT, f), 'utf8')));
+}
+check('schema.sql に service role キーらしきものが無い', !/sb_secret_|eyJhbGciOi/.test(schema));
 
 /* 逆に、いいねと通報は意図して公開しているので消えていないこと */
 check('like_post は anon / authenticated に公開したまま',
@@ -841,7 +984,11 @@ for (const key of ['community.report', 'community.reported', 'community.reportCo
                    'community.reportDone', 'community.reportDup', 'community.edit',
                    'community.delete', 'community.editTitle', 'community.updated',
                    'community.deleteConfirm', 'community.deleted',
-                   'err.noteTooLong', 'err.denied', 'err.rateLimit', 'err.network', 'err.unknown']) {
+                   'err.noteTooLong', 'err.denied', 'err.rateLimit', 'err.network', 'err.unknown',
+                   'community.showHidden', 'community.hiddenBadge', 'community.reportsCount',
+                   'community.restore', 'community.forceHide', 'community.restoreConfirm',
+                   'community.restored', 'community.forceHideConfirm', 'community.forceHidden',
+                   'err.notAdmin']) {
   check(`${key} が 3 言語にある`,
     localeKeys.ja.has(key) && localeKeys.en.has(key) && localeKeys.ko.has(key));
 }

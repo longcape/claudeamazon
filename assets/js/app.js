@@ -47,6 +47,7 @@
     postMap: '',
     postQuery: '',            // コミュニティ側の検索語（自分のデッキとは別物）
     editingPostId: null,      // 編集中の投稿
+    showHidden: false,        // 運営者が非表示の投稿も見るか
     postTacticId: null,
     treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
@@ -86,6 +87,9 @@
   function renderCommunity() {
     U.renderAccount();
     U.renderCommunityMapFilter(ui.postMap);
+    /* 運営操作は運営者にしか出さない。ここは見た目だけの話で、
+       実際の可否は RPC の is_admin() が毎回見ている */
+    $('admin-tools').hidden = !C.isAdmin();
     U.renderPosts(ui.posts, null, ui.postQuery);
   }
 
@@ -1119,6 +1123,7 @@
     if (err && err.message === 'AUTH_REQUIRED') return t('cloud.needLogin');
 
     const code = err && err.code;
+    if (/NOT_ADMIN/.test(raw)) return t('err.notAdmin');
     if (/RATE_LIMIT/.test(raw)) return t('err.rateLimit');
     if (code === '23505' || /duplicate key/i.test(raw)) return t('err.duplicate');
     if (code === '42501' || /row-level security/i.test(raw)) return t('err.denied');
@@ -1141,7 +1146,11 @@
       return;
     }
     U.renderPosts([], t('common.loading'));
-    C.listPosts({ sort: ui.postSort, map: ui.postMap }).then(function (rows) {
+    C.listPosts({
+      sort: ui.postSort,
+      map: ui.postMap,
+      includeHidden: C.isAdmin() && ui.showHidden
+    }).then(function (rows) {
       ui.posts = Array.isArray(rows) ? rows : [];
       U.renderPosts(ui.posts, null, ui.postQuery);
     }, function (err) {
@@ -1224,6 +1233,11 @@
       $('community-query').focus();
     });
 
+    $('community-show-hidden').addEventListener('change', function (e) {
+      ui.showHidden = e.target.checked;
+      loadPosts();
+    });
+
     $('btn-open-post').addEventListener('click', function () { openPostModal(null); });
 
     $('community-account').addEventListener('click', function (e) {
@@ -1231,7 +1245,12 @@
       if (!el) return;
       if (el.dataset.act === 'login') openModal('modal-login');
       else if (el.dataset.act === 'logout') {
-        C.signOut().then(function () { renderCommunity(); });
+        C.signOut().then(function () {
+          ui.showHidden = false;
+          $('community-show-hidden').checked = false;
+          renderCommunity();
+          loadPosts();
+        });
       }
     });
 
@@ -1273,6 +1292,18 @@
               loadPosts();
             }, function (err) { U.toast(friendlyError(err), 'err'); });
           });
+      } else if (el.dataset.act === 'admin-restore' || el.dataset.act === 'admin-hide') {
+        const hide = el.dataset.act === 'admin-hide';
+        U.ask({
+          message: t(hide ? 'community.forceHideConfirm' : 'community.restoreConfirm', { name: post.name }),
+          danger: true
+        }).then(function (ok) {
+          if (!ok) return;
+          return C.adminSetHidden(post.id, hide).then(function () {
+            U.toast(t(hide ? 'community.forceHidden' : 'community.restored'), 'ok');
+            loadPosts();
+          }, function (err) { U.toast(friendlyError(err), 'err'); });
+        });
       } else if (el.dataset.act === 'import-post') {
         S.addTactic({
           name: post.name,

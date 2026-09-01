@@ -1274,6 +1274,7 @@
     const C = global.VCT_COMMUNITY;
     const me = (C && C.currentUser && C.currentUser()) ? C.currentUser().id : null;
     const reported = (C && C.reportedIds) ? C.reportedIds() : {};
+    const admin = !!(C && C.isAdmin && C.isAdmin());
 
     grid.innerHTML = posts.map(function (p) {
       const map = D.mapById(p.map);
@@ -1284,6 +1285,7 @@
             '<span class="tcard-kind">' + esc(String(p.kind || '').toUpperCase()) + '</span>' +
             '<span class="tcard-sidetag">' + esc(map ? map.name : p.map) + '</span>' +
           '</div>' +
+          (admin ? adminBadgeHTML(p) : '') +
           '<h3 class="tcard-name">' + esc(p.name) + '</h3>' +
           (p.note ? '<p class="tcard-note">' + esc(p.note) + '</p>' : '') +
           compStripHTML(p.enemy_comp) +
@@ -1295,6 +1297,7 @@
             '<button class="btn btn-ghost btn-sm" data-act="import-post" data-id="' + esc(p.id) + '">' + t('community.import') + '</button>' +
             reportButtonHTML(p, reported) +
             ownerButtonsHTML(p, me) +
+            adminButtonsHTML(p, admin) +
           '</div>' +
         '</article>';
     }).join('');
@@ -1308,6 +1311,27 @@
              (done ? ' disabled' : '') + '>' +
              t(done ? 'community.reported' : 'community.report') +
            '</button>';
+  }
+
+  /* 運営者にだけ、通報の状況を数字で見せる */
+  function adminBadgeHTML(p) {
+    return '<div class="post-mod">' +
+             '<span class="post-mod-reports">' + t('community.reportsCount', { n: p.reports || 0 }) + '</span>' +
+             (p.hidden ? '<span class="post-mod-hidden">' + t('community.hiddenBadge') + '</span>' : '') +
+             (p.moderation && p.moderation !== 'auto'
+               ? '<span class="post-mod-state">' + esc(p.moderation) + '</span>' : '') +
+           '</div>';
+  }
+
+  /* 運営操作。押せるかどうかは DB 側の is_admin() が毎回見ているので、
+     ここは「見せる / 見せない」だけの話 */
+  function adminButtonsHTML(p, admin) {
+    if (!admin) return '';
+    return p.hidden
+      ? '<button class="btn btn-ghost btn-sm" data-act="admin-restore" data-id="' + esc(p.id) + '">' +
+          t('community.restore') + '</button>'
+      : '<button class="btn btn-ghost btn-sm btn-danger" data-act="admin-hide" data-id="' + esc(p.id) + '">' +
+          t('community.forceHide') + '</button>';
   }
 
   /* 自分の投稿にだけ編集と削除を出す。匿名投稿は user_id が null なので出ない */

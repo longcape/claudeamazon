@@ -65,6 +65,32 @@ COMMUNITY タブは、この 2 つが埋まっているときだけ表示され�
 
 メールのマジックリンクは Supabase の標準機能なので、追加設定なしで併用できます。
 
+## 3.5. 運営者を登録する（任意）
+
+通報が集まって自動的に隠れた投稿を戻したり、しきい値を変えたりするには運営者の登録が要ります。
+**Supabase の SQL Editor で 1 回実行するだけ**です。画面からは登録できません（そこが安全側の作りです）。
+
+```sql
+insert into public.admins (user_id, note)
+select id, 'プロジェクト所有者' from auth.users where email = 'あなたのアドレス'
+on conflict (user_id) do nothing;
+```
+
+外すときは `delete from public.admins where user_id = '...';`。
+
+登録するとコミュニティ画面に「非表示も表示」が出て、投稿ごとに通報数と
+「復旧」「非表示にする」が見えるようになります。**運営者以外には出ませんし、
+仮に画面を書き換えても DB 側で弾かれます。**
+
+通報のしきい値（既定 5）を変えるときも運営者としてログインした状態で:
+
+```sql
+select public.admin_set_report_threshold(10);
+```
+
+> `admins` テーブルは RLS を有効にしたうえでポリシーを 1 つも作っていないので、
+> 一般の利用者からは名簿の存在すら見えません。
+
 ## 4. AI 寸評（Claude API）を有効にする
 
 AI 寸評は Edge Function 経由で呼び出します。**API キーをブラウザに置かないため**です。

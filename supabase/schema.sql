@@ -38,6 +38,17 @@ create table if not exists public.tactic_posts (
   ip_hash        text
 );
 
+-- モデレーション状態。
+--   auto     … 通報が集まれば自動で隠れてよい（既定）
+--   restored … 運営が復旧した。以後は通報が集まっても自動では隠さない
+--   forced   … 運営が隠した
+-- 既存のテーブルにも足せるように alter で書く。
+alter table public.tactic_posts
+  add column if not exists moderation text not null default 'auto';
+alter table public.tactic_posts drop constraint if exists tactic_posts_moderation_check;
+alter table public.tactic_posts
+  add constraint tactic_posts_moderation_check check (moderation in ('auto', 'restored', 'forced'));
+
 create index if not exists tactic_posts_created_idx on public.tactic_posts (created_at desc);
 create index if not exists tactic_posts_likes_idx   on public.tactic_posts (likes desc, created_at desc);
 create index if not exists tactic_posts_map_idx     on public.tactic_posts (map);
@@ -66,7 +77,41 @@ create table if not exists public.tactic_reports (
 );
 
 -- ---------------------------------------------------------
--- 4. 保存したセットアップ（ログイン必須）
+-- 4. 運営者
+--    ポリシーを 1 つも作らないので、anon / authenticated からは
+--    読むことも書くこともできない。追加と削除は Supabase の
+--    SQL Editor（= service role）からのみ行う。
+--    service role のキーはブラウザには置かない。
+-- ---------------------------------------------------------
+create table if not exists public.admins (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  note       text not null default '',
+  created_at timestamptz not null default now()
+);
+
+-- 運営者を足すとき（Supabase の SQL Editor で実行する）:
+--   insert into public.admins (user_id, note)
+--   select id, 'なぜ運営者なのか' from auth.users where email = 'you@example.com'
+--   on conflict (user_id) do nothing;
+
+-- ---------------------------------------------------------
+-- 5. コミュニティの設定値
+--    通報のしきい値をコードにベタ書きせず、ここで一元管理する。
+--    読むのは誰でもよい（秘密ではない）。書けるのは運営者の RPC だけ。
+-- ---------------------------------------------------------
+create table if not exists public.community_config (
+  key        text primary key,
+  value      jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+-- 初期値は現行どおり 5。すでに値があるときは上書きしない（何度流しても同じ）。
+insert into public.community_config (key, value)
+values ('report_threshold', '5'::jsonb)
+on conflict (key) do nothing;
+
+-- ---------------------------------------------------------
+-- 6. 保存したセットアップ（ログイン必須）
 -- ---------------------------------------------------------
 create table if not exists public.saved_setups (
   id         uuid primary key default gen_random_uuid(),
@@ -155,6 +200,47 @@ create trigger tactic_posts_rate_limit
   for each row execute function public.enforce_post_rate_limit();
 
 -- =========================================================
+-- 運営者かどうか
+-- 名簿そのものは見せず、「自分が運営者か」だけを返す。
+-- RLS のポリシーからも呼ぶので authenticated に execute を渡す。
+-- =========================================================
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.admins where user_id = auth.uid());
+$$;
+
+revoke all on function public.is_admin() from public;
+-- Supabase は public スキーマの関数を既定で anon にも grant する。
+-- 運営まわりは未ログインから呼べる必要がないので明示的に落とす。
+revoke all on function public.is_admin() from anon;
+grant execute on function public.is_admin() to authenticated;
+
+-- =========================================================
+-- 通報のしきい値
+-- 設定が無い場合だけ 5 を使う。RPC はこの値を参照する。
+-- =========================================================
+create or replace function public.report_threshold()
+returns int
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select (value #>> '{}')::int from public.community_config where key = 'report_threshold'),
+    5
+  );
+$$;
+
+revoke all on function public.report_threshold() from public;
+grant execute on function public.report_threshold() to anon, authenticated;
+
+-- =========================================================
 -- いいね用 RPC
 -- 重複投票は無視し、実際に入った場合だけカウントを増やす。
 -- =========================================================
@@ -210,9 +296,10 @@ security definer
 set search_path = public
 as $$
 declare
-  v_inserted int;
-  v_reports  int;
-  v_hidden   boolean;
+  v_inserted  int;
+  v_threshold int := public.report_threshold();
+  v_reports   int;
+  v_hidden    boolean;
 begin
   insert into public.tactic_reports (post_id, reporter)
   values (p_post_id, p_reporter)
@@ -221,9 +308,15 @@ begin
   get diagnostics v_inserted = row_count;
 
   if v_inserted > 0 then
+    /* 運営が復旧した投稿（restored）は、通報が積み上がっても自動では隠さない。
+       ここを (reports + 1) >= v_threshold だけにすると、
+       復旧した直後に 1 件通報が来ただけでまた隠れてしまう。 */
     update public.tactic_posts
        set reports = reports + 1,
-           hidden  = (reports + 1) >= 5
+           hidden  = case when moderation = 'auto'
+                          then (reports + 1) >= v_threshold
+                          else hidden
+                     end
      where id = p_post_id
      returning reports, hidden into v_reports, v_hidden;
   else
@@ -232,15 +325,84 @@ begin
   end if;
 
   return jsonb_build_object(
-    'counted', v_inserted > 0,
-    'reports', coalesce(v_reports, 0),
-    'hidden',  coalesce(v_hidden, false)
+    'counted',   v_inserted > 0,
+    'reports',   coalesce(v_reports, 0),
+    'hidden',    coalesce(v_hidden, false),
+    'threshold', v_threshold
   );
 end;
 $$;
 
 -- 通報も未ログインで押せる仕様なので、いいねと同じく意図して公開している。
 grant execute on function public.report_post(uuid, text) to anon, authenticated;
+
+-- =========================================================
+-- 運営操作
+-- 画面に出す・出さないは当てにせず、必ずここで is_admin() を見る。
+-- =========================================================
+create or replace function public.admin_set_hidden(p_post_id uuid, p_hidden boolean)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id      uuid;
+  v_hidden  boolean;
+  v_reports int;
+  v_mod     text;
+begin
+  if not public.is_admin() then
+    raise exception 'NOT_ADMIN' using errcode = 'insufficient_privilege';
+  end if;
+
+  /* 復旧なら restored、運営が隠したなら forced。
+     通報の履歴（tactic_reports）は消さない。消すと、同じ 5 人がもう一度
+     通報できるようになって復旧の意味がなくなるうえ、経緯も追えなくなる。 */
+  update public.tactic_posts
+     set hidden     = p_hidden,
+         moderation = case when p_hidden then 'forced' else 'restored' end
+   where id = p_post_id
+   returning id, hidden, reports, moderation into v_id, v_hidden, v_reports, v_mod;
+
+  if v_id is null then
+    raise exception 'NOT_FOUND' using errcode = 'no_data_found';
+  end if;
+
+  return jsonb_build_object('id', v_id, 'hidden', v_hidden,
+                            'reports', v_reports, 'moderation', v_mod);
+end;
+$$;
+
+revoke all on function public.admin_set_hidden(uuid, boolean) from public;
+revoke all on function public.admin_set_hidden(uuid, boolean) from anon;
+grant execute on function public.admin_set_hidden(uuid, boolean) to authenticated;
+
+create or replace function public.admin_set_report_threshold(p_value int)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'NOT_ADMIN' using errcode = 'insufficient_privilege';
+  end if;
+  if p_value is null or p_value < 1 or p_value > 1000 then
+    raise exception 'BAD_THRESHOLD' using errcode = 'check_violation';
+  end if;
+
+  insert into public.community_config (key, value, updated_at)
+  values ('report_threshold', to_jsonb(p_value), now())
+  on conflict (key) do update set value = excluded.value, updated_at = now();
+
+  return jsonb_build_object('report_threshold', p_value);
+end;
+$$;
+
+revoke all on function public.admin_set_report_threshold(int) from public;
+revoke all on function public.admin_set_report_threshold(int) from anon;
+grant execute on function public.admin_set_report_threshold(int) to authenticated;
 
 -- =========================================================
 -- RLS — 行レベルセキュリティ
@@ -251,6 +413,8 @@ alter table public.tactic_posts enable row level security;
 alter table public.tactic_likes enable row level security;
 alter table public.tactic_reports enable row level security;
 alter table public.saved_setups enable row level security;
+alter table public.admins enable row level security;
+alter table public.community_config enable row level security;
 
 -- --- 投稿: 非表示でないものは誰でも読める ---
 drop policy if exists tactic_posts_read on public.tactic_posts;
@@ -258,6 +422,13 @@ create policy tactic_posts_read
   on public.tactic_posts for select
   to anon, authenticated
   using (hidden = false);
+
+-- --- 投稿: 運営者は隠れているものも読める（復旧するために要る） ---
+drop policy if exists tactic_posts_admin_read on public.tactic_posts;
+create policy tactic_posts_admin_read
+  on public.tactic_posts for select
+  to authenticated
+  using (public.is_admin());
 
 -- --- 投稿: 誰でも投稿できる。ログイン時は自分の user_id しか入れられない ---
 drop policy if exists tactic_posts_insert on public.tactic_posts;
@@ -298,6 +469,16 @@ create policy tactic_reports_none
   on public.tactic_reports for select
   to authenticated
   using (false);
+
+-- --- 設定値: 読むのは誰でもよい。書き込みのポリシーは作らないので、
+--     一般ユーザーからは変更できない（変更は運営 RPC 経由のみ） ---
+drop policy if exists community_config_read on public.community_config;
+create policy community_config_read
+  on public.community_config for select
+  to anon, authenticated
+  using (true);
+
+-- --- 運営者名簿: ポリシーを作らない。誰からも読めない ---
 
 -- --- 保存したセットアップ: 本人のみ全操作可能 ---
 drop policy if exists saved_setups_all on public.saved_setups;
