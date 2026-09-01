@@ -274,6 +274,23 @@ native ダイアログが混ざったら機械的に落ちるので、この形�
   宣言してもサンドボックス側で落ちることがあるので、
   Blob + `<a download>` のフォールバックを残してある。
 
+### Windows で開発する場合の改行コード
+
+Git の `core.autocrlf=true`（Windows の既定）で clone すると、`dist/*.html` が
+CRLF で展開される。`build.js` は LF で書くので、ビルドするたびに
+`git status` が「変更あり」になる（`git diff` は空で、中身は同一）。
+気づかずコミットすると `dist/` に CRLF が混入して不要な差分が出る。
+
+作業コピーごとに次を設定する。
+
+```bash
+git config core.autocrlf false
+git rm --cached -r -q . && git reset --hard
+```
+
+`画像を取得.bat` は `.gitattributes` の `*.bat -text` で保護されているので、
+この設定を変えても CRLF のまま保たれる。
+
 ### Windows のバッチファイル
 
 `画像を取得.bat` は **CP932 / CRLF** で保存する。UTF-8 で書くと
