@@ -244,6 +244,8 @@ async function cmdDoctor() {
 
   log.step('認証');
   log.detail('RAKUTEN_APP_ID: ' + (process.env.RAKUTEN_APP_ID ? '設定済み' : '未設定 ← 必須'));
+  log.detail('RAKUTEN_ACCESS_KEY: ' + (process.env.RAKUTEN_ACCESS_KEY ? '設定済み' : '未設定 ← 必須'));
+  log.detail('RAKUTEN_APP_URL: ' + (process.env.RAKUTEN_APP_URL || '未設定 ← 必須'));
   log.detail('RAKUTEN_AFFILIATE_ID: ' + (process.env.RAKUTEN_AFFILIATE_ID ? '設定済み' : '未設定（リンクが非アフィリになります）'));
   log.detail('ANTHROPIC_API_KEY: ' + (process.env.ANTHROPIC_API_KEY ? '設定済み（紹介文を自然化します）' : '未設定（ルールベースのみ）'));
   log.detail('投稿アダプタ: ' + (process.env.ROOM_POST_ADAPTER || 'manual'));
@@ -256,7 +258,7 @@ async function cmdDoctor() {
   const history = selectLib.loadHistory();
   log.detail('投稿済み商品: ' + Object.keys(history.posted).length + ' 件');
 
-  if (process.env.RAKUTEN_APP_ID) {
+  if (process.env.RAKUTEN_APP_ID && process.env.RAKUTEN_ACCESS_KEY && process.env.RAKUTEN_APP_URL) {
     log.step('接続テスト');
     try {
       const g = await ichiba.genre(s.genre.rootGenreId);

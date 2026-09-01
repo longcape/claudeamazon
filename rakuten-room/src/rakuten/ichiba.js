@@ -8,9 +8,11 @@
 const client = require('./client');
 const T = require('../util/text');
 
-const EP_SEARCH = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601';
-const EP_RANKING = 'https://app.rakuten.co.jp/services/api/IchibaItem/Ranking/20220601';
-const EP_GENRE = 'https://app.rakuten.co.jp/services/api/IchibaGenre/Search/20140222';
+/* 旧 app.rakuten.co.jp/services/api/... 系は 2026-02-09 に停止済み。
+   現行は openapi.rakuten.co.jp 配下で、APIごとにパスの接頭辞が違う */
+const EP_SEARCH = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701';
+const EP_RANKING = 'https://openapi.rakuten.co.jp/ichibaranking/api/IchibaItem/Ranking/20220601';
+const EP_GENRE = 'https://openapi.rakuten.co.jp/ichibagt/api/IchibaGenre/Search/20260701';
 
 function imageList(raw) {
   const src = raw || [];
@@ -49,7 +51,8 @@ function normalizeItem(raw) {
     shopUrl: raw.shopUrl || '',
     shopOfTheYear: Number(raw.shopOfTheYearFlag) === 1,
     genreId: String(raw.genreId || ''),
-    tagIds: raw.tagIds || [],
+    /* 2026-07-01版で tagIds は attributeIds に改名された。旧名も残して両対応にする */
+    tagIds: raw.attributeIds || raw.tagIds || [],
     availability: Number(raw.availability) === 1,
     asuraku: Number(raw.asurakuFlag) === 1,
     postageFree: Number(raw.postageFlag) === 0,
@@ -58,7 +61,8 @@ function normalizeItem(raw) {
 }
 
 function itemsOf(json) {
-  const list = (json && json.Items) || [];
+  /* 旧APIは Items、新APIのドキュメントは items 表記。どちらでも拾えるようにしておく */
+  const list = (json && (json.Items || json.items)) || [];
   return list.map(function (row) {
     /* formatVersion=1 だと { Item: {...} } で包まれる */
     return normalizeItem(row && row.Item ? row.Item : row);
@@ -76,10 +80,12 @@ async function searchItems(opts) {
     minPrice: opts.minPrice,
     maxPrice: opts.maxPrice,
     availability: opts.availability === false ? 0 : 1,
-    imageFlag: 1,
-    /* field=1 は「一部の情報のみ」。itemCaption や affiliateRate が
-       落ちるとスコアの根幹が崩れるので、必ず全件取得にする */
-    field: 0
+    imageFlag: 1
+    /* field は指定しない。2026-07-01版で意味が変わり、
+       旧: 0=全情報取得 / 1=一部の情報のみ
+       新: 0=広めに検索 / 1=絞って検索（既定1）
+       返すフィールドの制御は elements に移り、未指定なら全項目返る。
+       ここで 0 を渡すと検索が広がるだけで、候補の精度が下がる */
   });
   const hits = opts.hits || 30;
   const base = ((opts.page || 1) - 1) * hits;
@@ -102,16 +108,24 @@ async function rankingItems(opts) {
 /* ジャンルの親子関係。カテゴリ相関性の計算と、設定ジャンルの実在確認に使う */
 async function genre(genreId) {
   const json = await client.call(EP_GENRE, { genreId: genreId || '0' });
-  const cur = json.current || {};
+  /* 2026-07-01版で応答の形が変わった。
+     旧: { current:{genreName,genreLevel}, parents:[], children:[{child:{...}}] }
+     新: { genre:{nameJa,level}, ancestors:[], siblings:[], children:[{genreId,nameJa,level}] } */
+  const cur = json.genre || json.current || {};
+  const flat = function (g) {
+    const src = g && g.child ? g.child : g;
+    return {
+      id: String(src.genreId),
+      name: src.nameJa || src.genreName || '',
+      level: src.level || src.genreLevel || 0
+    };
+  };
   return {
     id: String(cur.genreId || genreId || '0'),
-    name: cur.genreName || '',
-    level: cur.genreLevel || 0,
-    parents: (json.parents || []).map(function (p) { return { id: String(p.genreId), name: p.genreName }; }),
-    children: (json.children || []).map(function (c) {
-      const g = c.child || c;
-      return { id: String(g.genreId), name: g.genreName, level: g.genreLevel };
-    })
+    name: cur.nameJa || cur.genreName || '',
+    level: cur.level || cur.genreLevel || 0,
+    parents: (json.ancestors || json.parents || []).map(flat),
+    children: (json.children || []).map(flat)
   };
 }
 

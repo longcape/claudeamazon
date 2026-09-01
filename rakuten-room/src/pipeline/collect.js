@@ -94,7 +94,9 @@ async function collect(strategy, opts) {
   if (cfg.includeRanking) {
     const genreIds = [strategy.genre.rootGenreId].concat(strategy.genre.relatedGenreIds || []);
     for (const gid of genreIds) {
-      for (const period of ['realtime', 'daily']) {
+      /* period は realtime のみ。旧APIにあった daily は廃止され、
+         wrong_parameter / set period from realtime で弾かれる */
+      for (const period of ['realtime']) {
         try {
           const items = await ichiba.rankingItems({ genreId: gid, period: period });
           items.forEach(function (item) {
