@@ -22,16 +22,27 @@ const VARIATION_WORDS = ['カラー', '色違い', 'サイズ', '選べる', '�
 /* ---------- 個別スコア ---------- */
 
 /* 広告加熱度。楽天は広告出稿量を公開しないので、投資の痕跡を積み上げる */
+/* 広告加熱度の内訳の比重。ジャンルによっては特定のシグナルが死ぬ
+   （インテリア・寝具・収納では報酬率が全商品3%で横並びだった）。
+   死んだシグナルに比重を置いたままだと配点がまるごと無駄になるので、
+   strategy.json の adHeat.partWeights で生きている側へ寄せられるようにする。
+   未設定なら従来どおりの比重で動く */
+const AD_HEAT_DEFAULT_WEIGHTS = {
+  affiliateRate: 0.30, pointRate: 0.20, pointCampaign: 0.08,
+  coupon: 0.12, campaign: 0.06, rerank: 0.24
+};
+
 function adHeatScore(item, ctx) {
   const cfg = ctx.strategy.adHeat;
+  const w = Object.assign({}, AD_HEAT_DEFAULT_WEIGHTS, cfg.partWeights || {});
   const parts = [];
 
   /* アフィリ報酬率の引き上げは、店舗が販促費を積んでいる直接的な証拠 */
-  parts.push({ w: 0.30, v: T.scale(item.affiliateRate, cfg.affiliateRateBase, cfg.affiliateRateHot), why: 'アフィリ報酬率 ' + item.affiliateRate + '%' });
-  parts.push({ w: 0.20, v: T.scale(item.pointRate, cfg.pointRateBase, cfg.pointRateHot), why: 'ポイント ' + item.pointRate + '倍' });
-  parts.push({ w: 0.08, v: item.pointCampaign ? 1 : 0, why: 'ポイント期間設定あり' });
-  parts.push({ w: 0.12, v: T.countMatches(item.name + item.catchcopy, cfg.couponWords) > 0 ? 1 : 0, why: 'クーポン表記' });
-  parts.push({ w: 0.06, v: T.clamp01(T.countMatches(item.name + item.catchcopy, cfg.campaignWords) / 2), why: 'セール文言' });
+  parts.push({ w: w.affiliateRate, v: T.scale(item.affiliateRate, cfg.affiliateRateBase, cfg.affiliateRateHot), why: 'アフィリ報酬率 ' + item.affiliateRate + '%' });
+  parts.push({ w: w.pointRate, v: T.scale(item.pointRate, cfg.pointRateBase, cfg.pointRateHot), why: 'ポイント ' + item.pointRate + '倍' });
+  parts.push({ w: w.pointCampaign, v: item.pointCampaign ? 1 : 0, why: 'ポイント期間設定あり' });
+  parts.push({ w: w.coupon, v: T.countMatches(item.name + item.catchcopy, cfg.couponWords) > 0 ? 1 : 0, why: 'クーポン表記' });
+  parts.push({ w: w.campaign, v: T.clamp01(T.countMatches(item.name + item.catchcopy, cfg.campaignWords) / 2), why: 'セール文言' });
 
   /* 別キーワードでも上位に出続ける＝露出が買われている、が本命のシグナル */
   const topKeywords = new Set();
@@ -39,7 +50,7 @@ function adHeatScore(item, ctx) {
     if (o.source === 'search' && o.position && o.position <= 10) topKeywords.add(o.keyword);
   });
   const rerank = Math.min(cfg.rerankBonusMax, topKeywords.size * cfg.rerankBonus);
-  parts.push({ w: 0.24, v: rerank / cfg.rerankBonusMax, why: '別キーワード上位 ' + topKeywords.size + '語' });
+  parts.push({ w: w.rerank, v: rerank / cfg.rerankBonusMax, why: '別キーワード上位 ' + topKeywords.size + '語' });
 
   const onRanking = (item.occurrences || []).some(function (o) { return o.source === 'ranking'; });
   const raw = parts.reduce(function (a, p) { return a + p.w * p.v; }, 0) + (onRanking ? cfg.rankingBonus : 0);

@@ -26,8 +26,11 @@ function loadHistory() {
    商品名に現れる数値（段数・本数・サイズ）も指紋に混ぜて別物を守る。 */
 function productSignature(item) {
   const head = T.coreName(item.name, 24).replace(/\s/g, '');
-  const numbers = (T.normalize(item.name).match(/\d+/g) || []).slice(0, 6).join(',');
-  return T.hash(head + '|' + numbers);
+  /* 商品名の数字は使わない。同じ商品のサイズ違い（Mサイズ/最大5段 と Lサイズ/最大4段）が
+     別商品として残り、棚に同じものが2つ並ぶ事故が実データで起きた。
+     代わりにショップコードを混ぜる。同一ショップで先頭24文字まで同じなら
+     まず色違い・サイズ違いであり、畳んでよい */
+  return T.hash(head + '|' + (item.shopCode || ''));
 }
 
 /* 同一商品の別出品・色違いを1つに畳む */

@@ -28,27 +28,50 @@ const time = require('./util/time');
 const log = require('./util/log');
 
 /* ジャンル木は滅多に変わらないのでキャッシュする */
-async function genreDescendants(strategy) {
+/* ジャンル木は滅多に変わらないのでキャッシュする。
+   商品に付くジャンルIDは3〜4階層目（100804 > 200166:収納家具 > 215685:キッチン収納 > 406384:キッチン隙間収納）で、
+   直下の子だけを見ると自ジャンルの商品がまるごと「圏外」になり、
+   カテゴリ相関(aiFit)とNG1の判定が同時に壊れる。
+   候補に実際に出てきたジャンルIDを祖先まで辿って所属を判定し、結果をキャッシュする */
+async function genreDescendants(strategy, candidateGenreIds) {
   const cacheKey = 'genre-tree.json';
+  const rootId = String(strategy.genre.rootGenreId);
   const cache = store.readJson(cacheKey, null);
-  const rootId = strategy.genre.rootGenreId;
-  if (cache && cache.rootId === rootId && cache.ids) return { set: new Set(cache.ids), tree: cache.tree };
+  const valid = cache && cache.rootId === rootId;
+  const members = valid && cache.members ? cache.members : {};
+  const tree = (valid && cache.tree) || { id: rootId, children: [] };
 
-  const ids = [];
-  const tree = { id: rootId, children: [] };
-  try {
-    const root = await ichiba.genre(rootId);
-    tree.name = root.name;
-    for (const child of root.children) {
-      ids.push(child.id);
-      tree.children.push({ id: child.id, name: child.name });
+  if (!valid || !tree.children.length) {
+    try {
+      const root = await ichiba.genre(rootId);
+      tree.id = rootId;
+      tree.name = root.name;
+      tree.children = root.children.map(function (c) { return { id: c.id, name: c.name }; });
+      root.children.forEach(function (c) { members[c.id] = true; });
+    } catch (e) {
+      log.warn('ジャンル情報の取得に失敗しました（カテゴリ相関の精度が落ちます）: ' + e.message);
+      return { set: new Set(), tree: tree };
     }
-  } catch (e) {
-    log.warn('ジャンル情報の取得に失敗しました（カテゴリ相関の精度が落ちます）: ' + e.message);
-    return { set: new Set(), tree: tree };
   }
-  store.writeJson(cacheKey, { rootId: rootId, ids: ids, tree: tree, cachedAt: new Date().toISOString() });
-  return { set: new Set(ids), tree: tree };
+
+  members[rootId] = true;
+  (strategy.genre.relatedGenreIds || []).forEach(function (id) { members[String(id)] = true; });
+
+  const unknown = [...new Set((candidateGenreIds || []).map(String))]
+    .filter(function (id) { return id && members[id] === undefined; });
+
+  if (unknown.length) {
+    log.detail('ジャンル所属を照会: ' + unknown.length + ' 種類（結果はキャッシュされ、次回以降は不要です）');
+    for (const id of unknown) {
+      try {
+        const g = await ichiba.genre(id);
+        members[id] = g.parents.some(function (p) { return p.id === rootId; }) || id === rootId;
+      } catch (e) { /* 失敗は記録しない。次回もう一度引く */ }
+    }
+  }
+
+  store.writeJson(cacheKey, { rootId: rootId, members: members, tree: tree, cachedAt: new Date().toISOString() });
+  return { set: new Set(Object.keys(members).filter(function (id) { return members[id]; })), tree: tree };
 }
 
 function loadLatestCandidates() {
@@ -72,7 +95,7 @@ async function analyze(strategy, opts) {
 
   const lexicon = store.readJson(store.configPath('copy-lexicon.json'), null);
   const trend = store.loadTrendWords();
-  const genre = await genreDescendants(strategy);
+  const genre = await genreDescendants(strategy, bundle.items.map(function (i) { return i.genreId; }));
   const vel = velocityLib.buildVelocityIndex(strategy);
 
   log.step('スコアリング');

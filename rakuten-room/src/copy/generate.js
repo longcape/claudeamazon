@@ -26,15 +26,13 @@ function pick(list, seed, offset) {
    「伸縮」と書いてあるだけで伸縮商品として売ってしまうと文が
    商品と噛み合わなくなるので、商品名での一致を必ず優先する。 */
 function extractFeature(item, lexicon) {
-  const layers = [
-    item.cleanName + ' ' + item.catchcopy,
-    (item.caption || '').slice(0, 600)
-  ];
-  for (const haystack of layers) {
-    for (const rule of lexicon.featureRules) {
-      const hit = rule.match.find(function (m) { return haystack.indexOf(m) >= 0; });
-      if (hit) return { problem: rule.problem, change: rule.change, matched: hit };
-    }
+  /* 説明文は使わない。シーリングライトの説明文にある「折りたたみ」を拾って
+     「たたんで隙間に収まる」と書く誤検出が実データで起きた。
+     説明文には設置手順や別商品の宣伝まで混ざるため、名前とキャッチコピーだけを見る */
+  const haystack = item.cleanName + ' ' + item.catchcopy;
+  for (const rule of lexicon.featureRules) {
+    const hit = rule.match.find(function (m) { return haystack.indexOf(m) >= 0; });
+    if (hit) return { problem: rule.problem, change: rule.change, matched: hit };
   }
   return null;
 }
@@ -44,14 +42,27 @@ function personaFor(item, lexicon, seed) {
   return pick(table, seed, 1);
 }
 
+/* 特徴が拾えないとき悩みと変化を別々に選ぶと
+   「片づけても戻る散らかりが、定位置が決まって探す時間が消える」のように
+   主語がねじれた文が出る。対で持っている fallbackPairs から1組を選ぶ */
+function fallbackPair(lexicon, seed) {
+  const pairs = lexicon.fallbackPairs;
+  if (!pairs || !pairs.length) return null;
+  return pick(pairs, seed, 2);
+}
+
 function problemFor(item, lexicon, feature, seed) {
   if (feature) return feature.problem;
+  const pair = fallbackPair(lexicon, seed);
+  if (pair) return pair.problem;
   const table = lexicon.problems[item.primarySubTheme] || lexicon.problems._default;
   return pick(table, seed, 2);
 }
 
 function changeFor(item, lexicon, feature, seed) {
   if (feature) return feature.change;
+  const cpair = fallbackPair(lexicon, seed);
+  if (cpair) return cpair.change;
   /* 特徴が拾えなかった場合でも、動詞を必ず含む言い切りにする */
   return pick(lexicon.fallbackChanges, seed, 3);
 }
