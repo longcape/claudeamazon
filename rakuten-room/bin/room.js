@@ -141,6 +141,42 @@ async function cmdNow(args) {
 }
 
 /* cron 用: 収集して計画まで作る */
+/* 100商品ポートフォリオ。投稿計画とは別に、棚を支える商品台帳を出す */
+async function cmdPortfolio(args) {
+  const s = strategy();
+  const pf = await pipeline.buildPortfolio(s, {
+    freshCollect: !!args.flags.fresh,
+    crosscheck: args.flags.nocheck ? false : true
+  });
+  const files = pipeline.savePortfolio(pf);
+  const sum = pf.summary;
+
+  log.step("ポートフォリオ");
+  log.detail("主力 " + sum.filled.flagship + "/" + sum.target.flagship +
+    "  準主力 " + sum.filled.secondary + "/" + sum.target.secondary +
+    "  ロングテール " + sum.filled.longtail + "/" + sum.target.longtail);
+  log.detail("候補 " + sum.candidatePool + " 件 → ギフト適性あり " + sum.eligible +
+    " 件（適性不足で除外 " + sum.rejectedByGiftReady + " 件）");
+  log.detail("採用ショップ " + sum.shops + " 社");
+
+  log.step("コレクション別の件数");
+  Object.keys(sum.collections).sort(function (a, b) { return sum.collections[b] - sum.collections[a]; })
+    .forEach(function (k) { log.detail(k + ": " + sum.collections[k] + " 件"); });
+
+  log.step("動画化優先度");
+  ["A", "B", "C"].forEach(function (r) {
+    if (sum.videoPriority[r]) log.detail(r + ": " + sum.videoPriority[r] + " 件");
+  });
+
+  log.step("保存");
+  log.detail("台帳: data/" + path.basename(files.jsonFile));
+  log.detail("一覧: out/" + path.basename(files.mdFile));
+
+  if (sum.filled.flagship < sum.target.flagship) {
+    log.warn("主力が埋まっていません。collect のキーワードを増やすか、gift.minGiftReadyForPost を見直してください");
+  }
+}
+
 async function cmdDaily(args) {
   const s = strategy();
   await collectLib.collect(s, {});
@@ -231,6 +267,43 @@ async function cmdGenre(args) {
   g.children.forEach(function (c) { log.detail(log.pad(c.id, 10) + c.name); });
   log.info('');
   log.detail('使いたいIDを config/strategy.json の genre.rootGenreId に入れてください');
+}
+
+/* 作り直せないデータの退避。Git追跡と二重にして、
+   リポジトリごと失う事故と、うっかり削除の両方に備える */
+function cmdBackup(args) {
+  const keep = args.flags.keep ? Number(args.flags.keep) : 14;
+  const stamp = time.dateKey();
+  const backupRoot = path.join(store.DATA_DIR, 'backup');
+  const dir = path.join(backupRoot, stamp);
+  store.ensureDir(dir);
+
+  const targets = fs.readdirSync(store.DATA_DIR).filter(function (f) {
+    return f.startsWith('snapshot-') || f === 'history.json' || f === 'results.json';
+  });
+
+  log.step('バックアップ');
+  if (!targets.length) {
+    log.detail('退避対象がまだありません（collect を実行すると定点観測が作られます）');
+    return;
+  }
+
+  targets.forEach(function (f) {
+    fs.copyFileSync(path.join(store.DATA_DIR, f), path.join(dir, f));
+  });
+  log.detail(targets.length + ' ファイルを data/backup/' + stamp + '/ へ退避しました');
+
+  /* 古い退避を間引く。ディスクを無限に食わせない */
+  const dirs = fs.readdirSync(backupRoot).sort();
+  const drop = dirs.slice(0, Math.max(0, dirs.length - keep));
+  drop.forEach(function (d) {
+    fs.rmSync(path.join(backupRoot, d), { recursive: true, force: true });
+  });
+  if (drop.length) log.detail('古い退避 ' + drop.length + ' 日分を削除しました（保持 ' + keep + ' 日）');
+
+  log.step('次にやること');
+  log.detail('定点観測・投稿履歴・実績はGitでも追跡しています。');
+  log.detail('collect のあとにコミットしておくと、このPCごと失っても復元できます。');
 }
 
 async function cmdDoctor() {
@@ -390,7 +463,9 @@ async function main() {
       case 'report': return cmdReport();
       case 'trend': return cmdTrend();
       case 'genre': return await cmdGenre(args);
+      case 'portfolio': return await cmdPortfolio(args);
       case 'probe': return await cmdProbe(args);
+      case 'backup': return cmdBackup(args);
       case 'doctor': return await cmdDoctor();
       default: return usage();
     }

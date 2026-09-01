@@ -1,6 +1,16 @@
 node_modules/
 .env
+
+# data/ は原則コミットしない。ただし「作り直せないもの」だけは例外にする。
+# 2026-09-01にフォルダ消失で定点観測2日分を失い、売上速度の計測がゼロに戻った。
+# 下の3種は時系列データで、消えると過去に遡って再取得できない。
+# いずれも商品コードと楽天が公開している値だけで、秘密情報は含まない。
 data/*.json
 !data/.gitkeep
+!data/snapshot-*.json
+!data/history.json
+!data/results.json
+
+# candidates と plan と genre-tree は collect / launch でいつでも作り直せるので追跡しない
 out/*
 !out/.gitkeep

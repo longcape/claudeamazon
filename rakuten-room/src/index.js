@@ -12,6 +12,7 @@ const collectLib = require('./pipeline/collect');
 const velocityLib = require('./pipeline/velocity');
 const scoreLib = require('./pipeline/score');
 const crosscheckLib = require('./pipeline/crosscheck');
+const portfolioLib = require('./pipeline/portfolio');
 const trendLib = require('./pipeline/trend');
 const selectLib = require('./pipeline/select');
 const sequenceLib = require('./plan/sequence');
@@ -27,7 +28,6 @@ const store = require('./util/store');
 const time = require('./util/time');
 const log = require('./util/log');
 
-/* ジャンル木は滅多に変わらないのでキャッシュする */
 /* ジャンル木は滅多に変わらないのでキャッシュする。
    商品に付くジャンルIDは3〜4階層目（100804 > 200166:収納家具 > 215685:キッチン収納 > 406384:キッチン隙間収納）で、
    直下の子だけを見ると自ジャンルの商品がまるごと「圏外」になり、
@@ -55,6 +55,14 @@ async function genreDescendants(strategy, candidateGenreIds) {
   }
 
   members[rootId] = true;
+
+  /* rootGenreId が 0 のときは全ジャンル横断。棚の同一性はジャンルではなく
+     ギフト適性で担保するため、候補は全てカテゴリ圏内として扱う */
+  if (rootId === '0') {
+    (candidateGenreIds || []).forEach(function (id) { if (id) members[String(id)] = true; });
+    store.writeJson(cacheKey, { rootId: rootId, members: members, tree: tree, cachedAt: new Date().toISOString() });
+    return { set: new Set(Object.keys(members)), tree: tree };
+  }
   (strategy.genre.relatedGenreIds || []).forEach(function (id) { members[String(id)] = true; });
 
   const unknown = [...new Set((candidateGenreIds || []).map(String))]
@@ -128,6 +136,63 @@ async function analyze(strategy, opts) {
   }
 
   return { scored: scored, lexicon: lexicon, trend: trend, genre: genre, velocity: vel, collectedAt: bundle.date };
+}
+
+/* ---------- 100商品ポートフォリオ ----------
+   投稿計画（launch/plan）とは別の成果物。
+   計画が「今日この順で何を出すか」なのに対し、こちらは
+   「この棚を支える商品群と、それぞれをどう売るか」を決める台帳で、
+   短尺動画の制作など後工程へ渡すことを想定している。 */
+async function buildPortfolio(strategy, opts) {
+  const analysis = await analyze(strategy, opts || {});
+  const result = portfolioLib.build(analysis.scored, strategy);
+  return Object.assign({}, result, { collectedAt: analysis.collectedAt });
+}
+
+function savePortfolio(portfolio, dateKey) {
+  const date = dateKey || time.dateKey();
+  const rows = portfolioLib.toRows(portfolio);
+  const jsonFile = store.writeJson('portfolio-' + date + '.json', {
+    date: date,
+    summary: portfolio.summary,
+    items: rows
+  });
+  const mdFile = store.writeText('portfolio-' + date + '.md', renderPortfolio(portfolio, date));
+  return { jsonFile: jsonFile, mdFile: mdFile };
+}
+
+function renderPortfolio(portfolio, date) {
+  const s = portfolio.summary;
+  const lines = [];
+  lines.push('# 商品ポートフォリオ ' + date);
+  lines.push('');
+  lines.push('棚: ソーシャルギフト「贈りもの迷子｜住所なしギフト」');
+  lines.push('');
+  lines.push('| 層 | 目標 | 確定 | 役割 |');
+  lines.push('| --- | --- | --- | --- |');
+  lines.push('| 主力 | ' + s.target.flagship + ' | ' + s.filled.flagship + ' | SNSで繰り返し訴求する中心商品 |');
+  lines.push('| 準主力 | ' + s.target.secondary + ' | ' + s.filled.secondary + ' | ROOM内の主要な選択肢 |');
+  lines.push('| ロングテール | ' + s.target.longtail + ' | ' + s.filled.longtail + ' | 用途・相手・予算の幅を埋める |');
+  lines.push('');
+  lines.push('候補 ' + s.candidatePool + ' 件中、ギフト適性を満たしたもの ' + s.eligible + ' 件');
+  lines.push('（適性不足で除外 ' + s.rejectedByGiftReady + ' 件 / 採用ショップ ' + s.shops + ' 社）');
+  lines.push('');
+
+  [['主力', portfolio.flagship], ['準主力', portfolio.secondary], ['ロングテール', portfolio.longtail]]
+    .forEach(function (pair) {
+      lines.push('## ' + pair[0] + '（' + pair[1].length + '件）');
+      lines.push('');
+      lines.push('| 商品 | 価格 | 総合 | 動画 | コレクション | 訴求角度 |');
+      lines.push('| --- | --- | --- | --- | --- | --- |');
+      pair[1].forEach(function (i) {
+        lines.push('| ' + i.cleanName.slice(0, 34) + ' | ' + i.price.toLocaleString('ja-JP') + '円 | ' +
+          i.total.toFixed(2) + ' | ' + i.videoPriority.rank + ' | ' +
+          (i.giftCollections || []).join(' / ') + ' | ' + (i.giftAngle ? i.giftAngle.hook : '') + ' |');
+      });
+      lines.push('');
+    });
+
+  return lines.join('\n') + '\n';
 }
 
 /* 分析結果から投稿計画を組む */
@@ -214,4 +279,4 @@ function savePlanWithScript(plan) {
   return { planFile: file, scriptFile: mdFile };
 }
 
-module.exports = { analyze, buildPlan, savePlanWithScript, genreDescendants, loadLatestCandidates, scaleMix };
+module.exports = { analyze, buildPlan, savePlanWithScript, buildPortfolio, savePortfolio, renderPortfolio, genreDescendants, loadLatestCandidates, scaleMix };
