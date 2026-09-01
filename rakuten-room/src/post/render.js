@@ -24,6 +24,14 @@ function renderPost(post) {
   lines.push('**商品**: ' + post.cleanName);
   lines.push('**ショップ**: ' + post.shopName + '　**評価**: ★' + post.reviewAverage.toFixed(2) + '（' + post.reviewCount + '件）');
   lines.push('**リンク**: ' + post.affiliateUrl);
+  if (post.role === 'traffic' && (post.marketplaceClickReasons || []).length) {
+    lines.push('**商品ページを開く理由**: ' +
+      post.marketplaceClickReasons.map(function (r) { return r.label; }).join(' / '));
+  }
+  if (post.nextPostTeaser) {
+    lines.push('**次の投稿の予告**: ' + post.nextPostTeaser +
+      (post.nextRelatedProduct ? '（' + String(post.nextRelatedProduct.name).slice(0, 24) + '）' : ''));
+  }
   if (post.images && post.images[0]) lines.push('**画像**: ' + post.images[0]);
   lines.push('');
   lines.push('**投稿文（このまま貼る）**');

@@ -217,7 +217,12 @@
         ]
       }
     ],
-    "dailyPosts": 3
+    "dailyPosts": 2,
+    "$dailyNote": "通常運用の1日あたり投稿数。楽天ROOMは投稿数を競うものではない。成果が出ないときは増やすのではなく1〜2投稿へ減らす。実験の1日3投稿は experiment.postsPerDay で別に持っており、時間帯比較のための初期実験限定である。ここを3へ戻して毎日3投稿固定にしない。",
+    "dailyPostsRange": [
+      1,
+      2
+    ]
   },
   "sequence": {
     "$comment": "関連商品を小さな導線単位で並べる実験設定。役割ペアの効果は動画由来の仮説であり、公式仕様ではない。",
@@ -577,7 +582,8 @@
     },
     "jitterMinutes": 0,
     "sessionCutoverHour": 4,
-    "minPostsPerSlotForWinner": 12
+    "minPostsPerSlotForWinner": 12,
+    "$postsPerDayNote": "実験限定。両枠へ同じ役割構成を置くために1日3投稿とする。実験が終わったら通常運用（schedule.dailyPosts）へ戻す。この3を通常運用へ持ち込まない。"
   },
   "maturity": {
     "$comment": "アフィリエイト成果はクリック後89日以内の購入まで発生しうる。投稿直後の成約0は失敗ではなく観測期間未成熟。30日未満の投稿をCV=0として学習へ入れない。",

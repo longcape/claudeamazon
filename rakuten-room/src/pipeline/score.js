@@ -346,6 +346,7 @@ function scoreAll(candidates, strategy, extras) {
       giftCollections: gift.collections,
       giftOccasions: gift.occasions,
       giftAngle: gift.angle,
+      marketplaceClickReasons: gift.marketplaceClickReasons,
       reasons: gift.reasons.concat(ad.reasons, trust.reasons, craft.reasons, ai.reasons,
         velocity.known ? ['レビュー増 ' + velocity.reviewsPerDay + '件/日（' + velocity.label + '）'] : [])
     });

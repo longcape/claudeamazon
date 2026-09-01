@@ -415,3 +415,64 @@ test('役割の説明が動画由来の仮説を公式スコアと断定しな�
   assert.ok(render.ROLE_AIM.traffic.indexOf('楽天市場') >= 0);
   assert.ok(render.ROLE_AIM.cv.indexOf('購入') >= 0);
 });
+
+/* ---------- 監査補足（文字起こし反映） ---------- */
+
+test('通常運用が1日3投稿の固定にならない', function () {
+  /* 元動画では投稿数を競うものではないとされ、成果が出ないときは
+     1〜2投稿へ減らすとある。3投稿は時間帯比較の初期実験限定 */
+  assert.ok(strategy.schedule.dailyPosts <= 2,
+    '通常運用は1〜2投稿。現在: ' + strategy.schedule.dailyPosts);
+  assert.deepStrictEqual(strategy.schedule.dailyPostsRange, [1, 2]);
+  assert.strictEqual(strategy.experiment.postsPerDay, 3, '実験だけが3投稿');
+  assert.notStrictEqual(strategy.schedule.dailyPosts, strategy.experiment.postsPerDay,
+    '実験の投稿数を通常運用へ持ち込まない');
+});
+
+test('送客役には楽天市場のページを開く理由が付く', function () {
+  const gift = require('../src/pipeline/gift');
+  /* 理由はすべて楽天APIが返した値、つまり商品ページに載っている事実から出す */
+  const rich = gift.marketplaceClickReasons({
+    cleanName: 'ギフト 詰め合わせ 選べる', catchcopy: '',
+    reviewCount: 427, pointRate: 5, imageCount: 3, postageFree: true
+  }, strategy);
+  const keys = rich.map(function (r) { return r.key; });
+  assert.ok(keys.indexOf('variation') >= 0);
+  assert.ok(keys.indexOf('review') >= 0);
+  assert.ok(keys.indexOf('point') >= 0);
+  assert.ok(keys.indexOf('photo') >= 0);
+  assert.ok(keys.indexOf('postage') >= 0);
+
+  /* 材料が無ければ理由を作らない。ページに無いことを書かないため */
+  const bare = gift.marketplaceClickReasons({
+    cleanName: 'ギフト', catchcopy: '', reviewCount: 3, pointRate: 1, imageCount: 1, postageFree: false
+  }, strategy);
+  assert.strictEqual(bare.length, 0);
+
+  const e = makeExperiment(false);
+  const traffic = e.posts.filter(function (p) { return p.role === 'traffic'; });
+  assert.ok(traffic.length > 0);
+  traffic.forEach(function (p) {
+    assert.ok(Array.isArray(p.marketplaceClickReasons));
+  });
+});
+
+test('次の投稿への予告が付き、煽り表現を含まない', function () {
+  const e = makeExperiment(false);
+  const withNext = e.posts.filter(function (p) { return p.nextRelatedProduct; });
+  assert.ok(withNext.length > 0, '束の途中の投稿には次の商品が付く');
+
+  withNext.forEach(function (p) {
+    assert.ok(p.nextPostTeaser && p.nextPostTeaser.length > 0);
+    strategy.copy.banPhrases.forEach(function (w) {
+      assert.strictEqual(p.nextPostTeaser.indexOf(w), -1,
+        '予告に禁止語「' + w + '」が入っている');
+    });
+    assert.strictEqual(p.nextRelatedProduct.itemCode !== p.itemCode, true,
+      '自分自身を次の商品にしない');
+  });
+
+  /* 束の最後の投稿には次が無い */
+  const last = e.posts.filter(function (p) { return !p.nextRelatedProduct; });
+  assert.strictEqual(last.length, e.clusters.length, '各束の最後だけ予告が無い');
+});

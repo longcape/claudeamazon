@@ -183,6 +183,39 @@ function angleFor(occasions, lex) {
   return { occasion: key === '_default' ? null : key, who: a.who, hook: a.hook };
 }
 
+/* ---------- 楽天市場のページを開く理由 ----------
+   3投稿目（送客）は「関連商品だから送客役」では動かない。
+   ROOMの投稿では分からず、商品ページでしか確認できないことがあるから移動する。
+
+   ここで挙げる理由はすべて楽天APIが返した値、つまり商品ページに載っている事実に基づく。
+   ページに無いことを理由にしない。 */
+function marketplaceClickReasons(item, strategy) {
+  const out = [];
+  const head = T.normalize((item.cleanName || item.name || '') + ' ' + (item.catchcopy || ''));
+  const cfg = (strategy && strategy.adHeat) || {};
+
+  const variation = ['カラー', '色違い', 'サイズ', '選べる', '種類', 'バリエーション', 'セット内容', '詰め合わせ'];
+  if (variation.some(function (w) { return head.indexOf(w) >= 0; })) {
+    out.push({ key: 'variation', label: '中身や組み合わせをページで選べる' });
+  }
+  if ((Number(item.reviewCount) || 0) >= 100) {
+    out.push({ key: 'review', label: 'レビュー' + item.reviewCount + '件を読んで決められる' });
+  }
+  if ((Number(item.pointRate) || 1) >= 2) {
+    out.push({ key: 'point', label: 'ポイント' + item.pointRate + '倍の条件をページで確認できる' });
+  }
+  if ((cfg.couponWords || []).some(function (w) { return head.indexOf(w) >= 0; })) {
+    out.push({ key: 'coupon', label: 'クーポンの有無と期限をページで確認できる' });
+  }
+  if ((Number(item.imageCount) || 0) >= 3) {
+    out.push({ key: 'photo', label: '商品写真' + item.imageCount + '枚を見られる' });
+  }
+  if (item.postageFree) {
+    out.push({ key: 'postage', label: '送料の条件をページで確認できる' });
+  }
+  return out;
+}
+
 /* ---------- 動画化優先度 ---------- */
 /* 総合スコアが高くても画が持たなければ動画は作れない。
    逆に画が持っても売れなければ意味がない。両方を見る。
@@ -235,11 +268,13 @@ function evaluate(item, strategy, lex) {
     occasionLabels: occasionsIn(fields(item).head, lex),
     collections: collectionsFor(item, lex, ready.score, occasionsIn(fields(item).head, lex), cfg.priceBands),
     angle: angleFor(versat.occasions, lex),
+    /* 楽天市場のページを開く理由。すべて商品ページに載っている事実から出す */
+    marketplaceClickReasons: marketplaceClickReasons(item, strategy),
     reasons: ready.evidence.concat(aff.evidence, look.evidence, video.evidence, versat.evidence)
   };
 }
 
 module.exports = {
   evaluate, giftReady, affiliate, giftLook, videoFit, versatility,
-  collectionsFor, angleFor, videoPriority, videoPriorityValue, VIDEO_RANKS, priceBand
+  collectionsFor, angleFor, marketplaceClickReasons, videoPriority, videoPriorityValue, VIDEO_RANKS, priceBand
 };

@@ -28,6 +28,22 @@ const time = require('../util/time');
 
 const ROLES = ['bait', 'cv', 'traffic'];
 
+/* 予告文に使うカテゴリ名。商品名から判定した productCategory をそのまま日本語にするだけで、
+   商品ページに無いことは足さない */
+const CATEGORY_JA = {
+  sweets: 'お菓子', beverage: '飲みもの', flower: '花', cosmetic: 'コスメ',
+  bath: 'バス用品', towel: 'タオル', tableware: '食器', message: '名入れ・メッセージもの',
+  food: '食べもの', other: '次の一品'
+};
+
+/* 次の投稿の予告。煽らず、何を出すかだけを言う */
+function teaserFor(nextItem) {
+  if (!nextItem) return null;
+  const cat = CATEGORY_JA[(nextItem.facets || {}).productCategory] || CATEGORY_JA.other;
+  const price = Number(nextItem.price) || 0;
+  return '次は、これと一緒に渡せる' + cat + 'を出します。';
+}
+
 function slotNames(strategy) {
   return Object.keys((strategy.experiment || {}).slots || {});
 }
@@ -109,6 +125,8 @@ function buildPosts(clusters, strategy, startDateKey) {
     const times = slots[cluster.slotVariant] || [];
 
     cluster.members.forEach(function (member, i) {
+      /* 同じ束の次の商品。次にROOMを見る理由を作るために予告へ使う */
+      const next = cluster.members[i + 1] || null;
       const timeJst = times[i] || times[times.length - 1];
       const hour = Number(String(timeJst).split(':')[0]);
       /* 0時台はセッションの翌暦日に出る */
@@ -125,7 +143,18 @@ function buildPosts(clusters, strategy, startDateKey) {
         timeJst: timeJst,
         scheduledAt: time.jstAt(date, timeJst).toISOString(),
         /* 実験中はゆらぎを入れない */
-        jitterMinutes: 0
+        jitterMinutes: 0,
+        /* 1投稿で完結させない。次に何を出すかを予告して再訪の理由を作る */
+        nextRelatedProduct: next ? {
+          itemCode: next.itemCode,
+          name: next.cleanName,
+          role: next.clusterRole,
+          productCategory: (next.facets || {}).productCategory,
+          price: next.price
+        } : null,
+        nextPostTeaser: teaserFor(next),
+        /* 送客役は「関連商品だから」では動かない。ページでしか分からないことを示す */
+        marketplaceClickReasons: member.marketplaceClickReasons || []
       }));
     });
   });
@@ -195,4 +224,4 @@ function audit(experiment, strategy) {
   return { ok: issues.length === 0, issues: issues };
 }
 
-module.exports = { create, audit, buildExperimentClusters, assignSlots, buildPosts, rolePool, slotNames, ROLES };
+module.exports = { create, audit, buildExperimentClusters, assignSlots, buildPosts, rolePool, slotNames, teaserFor, CATEGORY_JA, ROLES };
