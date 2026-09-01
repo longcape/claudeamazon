@@ -17,9 +17,29 @@
 'use strict';
 
 const giftLib = require('./gift');
+const selectLib = require('./select');
 
 function capOk(counts, key, max) {
   return !key || (counts[key] || 0) < max;
+}
+
+/* コレクションの占有率の上限。
+   実データでは、詰め合わせ・化粧箱・個包装といった語を持つ食品が
+   ギフト映えと動画適性の両方で有利になり、候補プールの46%が非食品なのに
+   選定結果は90%が食品になった。それは「贈りもの迷子」の棚ではなく
+   スイーツ棚であり、住所を知らない相手へ贈る場面の半分も埋められない。
+   誕生日・お礼のような場面のタグは複数商品にまたがって当然なので、
+   上限は商材カテゴリにあたるコレクションにだけ設定する（strategy.json）。 */
+function shareOk(counts, item, caps, tierSize) {
+  if (!caps) return true;
+  return (item.giftCollections || []).every(function (c) {
+    if (caps[c] === undefined) return true;
+    return (counts[c] || 0) < Math.ceil(caps[c] * tierSize);
+  });
+}
+
+function bumpAll(counts, item) {
+  (item.giftCollections || []).forEach(function (c) { counts[c] = (counts[c] || 0) + 1; });
 }
 function bump(counts, key) {
   if (key) counts[key] = (counts[key] || 0) + 1;
@@ -36,6 +56,7 @@ function pickTop(pool, size, opts) {
      層ごとに数えると同じ店が主力・準主力・ロングテールに重複して入り、
      在庫切れや規約変更の巻き添えを一度に受ける */
   const shopCounts = opts.shopCounts || {};
+  const shareCounts = opts.shareCounts || {};
   const collCounts = {};
   const picked = [];
   const rest = [];
@@ -44,12 +65,14 @@ function pickTop(pool, size, opts) {
     if (picked.length >= size) { rest.push(item); return; }
     const primary = (item.giftCollections || [])[0] || null;
     if (!capOk(shopCounts, item.shopCode, opts.maxPerShop) ||
-        !capOk(collCounts, primary, opts.maxPerCollection)) {
+        !capOk(collCounts, primary, opts.maxPerCollection) ||
+        !shareOk(shareCounts, item, opts.shareCaps, size)) {
       rest.push(item);
       return;
     }
     bump(shopCounts, item.shopCode);
     bump(collCounts, primary);
+    bumpAll(shareCounts, item);
     picked.push(item);
   });
 
@@ -69,6 +92,7 @@ function pickCoverage(pool, size, covered, opts) {
     for (let i = 0; i < remaining.length; i += 1) {
       const item = remaining[i];
       if (!capOk(shopCounts, item.shopCode, opts.maxPerShop)) continue;
+      if (!shareOk(opts.shareCounts || {}, item, opts.shareCaps, size)) continue;
       /* まだ薄いコレクションをいくつ埋められるか。同点なら総合スコアで割る */
       const gain = (item.giftCollections || []).reduce(function (a, c) {
         return a + 1 / (1 + (count[c] || 0));
@@ -78,6 +102,7 @@ function pickCoverage(pool, size, covered, opts) {
     if (bestIdx < 0) break;
     const chosen = remaining.splice(bestIdx, 1)[0];
     bump(shopCounts, chosen.shopCode);
+    bumpAll(opts.shareCounts || {}, chosen);
     (chosen.giftCollections || []).forEach(function (c) { count[c] = (count[c] || 0) + 1; });
     picked.push(chosen);
   }
@@ -99,25 +124,34 @@ function tally(items, field) {
 /* scored は score.scoreAll の出力（total 降順）を想定する */
 function build(scored, strategy) {
   const cfg = strategy.portfolio;
-  const eligible = scored.filter(function (i) {
+  /* 同じ商品の色違い・サイズ違いを畳む。投稿計画は select 側で畳んでいるが
+     ポートフォリオはそこを通らないため、同一ショップの同一商品が
+     主力に2件並ぶ事故が実データで起きた（リンツ、アンリ・シャルパンティエ等5組） */
+  const deduped = selectLib.dedupe(scored);
+  const eligible = deduped.filter(function (i) {
     return (i.giftScores ? i.giftScores.giftReady : 0) >= cfg.minGiftReady;
   });
-  const rejected = scored.length - eligible.length;
+  const rejected = deduped.length - eligible.length;
+  const collapsed = scored.length - deduped.length;
 
   const shopCounts = {};
+  /* 占有率は層ごとに数える。主力だけが食品で埋まる事故を防ぐため */
+  const caps = cfg.maxCollectionShare || null;
 
   const byFlagship = eligible.slice().sort(function (a, b) { return flagshipRank(b) - flagshipRank(a); });
   const flag = pickTop(byFlagship, cfg.flagship, {
-    maxPerShop: cfg.maxPerShop, maxPerCollection: cfg.maxFlagshipPerCollection, shopCounts: shopCounts
+    maxPerShop: cfg.maxPerShop, maxPerCollection: cfg.maxFlagshipPerCollection,
+    shopCounts: shopCounts, shareCaps: caps, shareCounts: {}
   });
 
   const bySecondary = flag.rest.slice().sort(function (a, b) { return b.total - a.total; });
   const second = pickTop(bySecondary, cfg.secondary, {
-    maxPerShop: cfg.maxPerShop, maxPerCollection: cfg.maxSecondaryPerCollection, shopCounts: shopCounts
+    maxPerShop: cfg.maxPerShop, maxPerCollection: cfg.maxSecondaryPerCollection,
+    shopCounts: shopCounts, shareCaps: caps, shareCounts: {}
   });
 
   const covered = tally(flag.picked.concat(second.picked), 'giftCollections');
-  const tail = pickCoverage(second.rest, cfg.longtail, covered, { maxPerShop: cfg.maxPerShop, shopCounts: shopCounts });
+  const tail = pickCoverage(second.rest, cfg.longtail, covered, { maxPerShop: cfg.maxPerShop, shopCounts: shopCounts, shareCaps: caps, shareCounts: {} });
 
   const label = function (list, tier) {
     return list.map(function (item) {
@@ -154,6 +188,7 @@ function build(scored, strategy) {
       filled: { flagship: flagship.length, secondary: secondary.length, longtail: longtail.length },
       total: all.length,
       candidatePool: scored.length,
+      collapsedDuplicates: collapsed,
       eligible: eligible.length,
       rejectedByGiftReady: rejected,
       collections: tally(all, 'giftCollections'),

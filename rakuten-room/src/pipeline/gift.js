@@ -112,11 +112,7 @@ function videoFit(item, lex) {
 function versatility(item, lex, priceCfg) {
   const f = fields(item);
   const text = f.head + ' ' + f.body;
-  const hits = [];
-  Object.keys(lex.occasions).forEach(function (key) {
-    if (key.startsWith('$')) return;
-    if (hasAny(text, lex.occasions[key])) hits.push(key);
-  });
+  const hits = occasionsIn(text, lex);
 
   const occasionScore = T.clamp01(hits.length / 3);
   const p = Number(item.price) || 0;
@@ -143,11 +139,24 @@ function priceBand(price, bands) {
   return null;
 }
 
+/* 指定したテキストに現れる用途だけを返す */
+function occasionsIn(text, lex) {
+  const hits = [];
+  Object.keys(lex.occasions).forEach(function (key) {
+    if (key.startsWith('$')) return;
+    if (hasAny(text, lex.occasions[key])) hits.push(key);
+  });
+  return hits;
+}
+
 /* ---------- 推奨コレクション ---------- */
 /* 同一ギフト棚の中でどの棚札に置くか。複数当たってよい */
 function collectionsFor(item, lex, giftReadyScore, occasions, bands) {
+  /* 説明文は使わない。プリザーブドフラワーの説明文に載っていた他商品の案内から
+     「お菓子」を拾い、食べもの・スイーツの棚札が付く誤りが実データで起きた。
+     棚札は商品名とキャッチコピーに書いてあることだけで決める */
   const f = fields(item);
-  const text = f.head + ' ' + f.body;
+  const text = f.head;
   const out = [];
 
   if (giftReadyScore >= 0.9) out.push('住所を知らなくても贈れる');
@@ -222,7 +231,8 @@ function evaluate(item, strategy, lex) {
       versatility: versat.source
     },
     occasions: versat.occasions,
-    collections: collectionsFor(item, lex, ready.score, versat.occasions, cfg.priceBands),
+    /* 用途の広さ（スコア）は説明文も見るが、棚札は商品名だけで決める */
+    collections: collectionsFor(item, lex, ready.score, occasionsIn(fields(item).head, lex), cfg.priceBands),
     angle: angleFor(versat.occasions, lex),
     reasons: ready.evidence.concat(aff.evidence, look.evidence, video.evidence, versat.evidence)
   };
