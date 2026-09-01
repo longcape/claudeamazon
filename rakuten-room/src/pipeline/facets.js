@@ -207,6 +207,8 @@ function buildClusters(pool, strategy, opts) {
     }
 
     if (members.length < size) continue;
+    /* 補完カテゴリを含まない束は、同じ棚を横に見せているだけで導線にならない */
+    if (options.requireComplementary && !hasComplementaryPair(members, strategy)) continue;
     members.forEach(function (m) {
       used.add(m.itemCode);
       shopCount[m.shopCode] = (shopCount[m.shopCode] || 0) + 1;
@@ -217,6 +219,7 @@ function buildClusters(pool, strategy, opts) {
         return Object.assign({}, m, { clusterRole: roles ? roles[i] : m.bestRole });
       }),
       facets: members[0].facets,
+      complementary: hasComplementaryPair(members, strategy),
       cohesion: members.length > 1
         ? Number((members.slice(1).reduce(function (a, m) {
           return a + relatedness(members[0], m, strategy).score;
@@ -226,6 +229,25 @@ function buildClusters(pool, strategy, opts) {
   }
 
   return clusters;
+}
+
+/* 束の中に「別カテゴリだが一緒に贈ると成立する」組み合わせがあるか。
+   関連度の閾値7は、配送方式一致(4)＋利用場面一致(3)だけで到達できる。
+   候補の78%が場面タグを持つため、それだけだと同じカテゴリが3つ並んだ束も通り、
+   客単価を上げる組み合わせにならない。実データのC1がクッキー→チョコ→アイスだった。
+   スイーツ→飲み物のような補完が1組でもあれば、次に何を欲しくなるかの導線になる。 */
+function hasComplementaryPair(members, strategy) {
+  const comp = complementaryPairs((strategy.cluster || {}));
+  for (let i = 0; i < members.length; i += 1) {
+    for (let j = i + 1; j < members.length; j += 1) {
+      const a = members[i].facets;
+      const b = members[j].facets;
+      if (!a || !b) continue;
+      if (a.productCategory !== b.productCategory &&
+          comp.has(a.productCategory + '|' + b.productCategory)) return true;
+    }
+  }
+  return false;
 }
 
 /* ---------- カバレッジ ---------- */
@@ -269,6 +291,6 @@ function categoryDominance(items, strategy) {
 }
 
 module.exports = {
-  derive, relatedness, isRelated, buildClusters, coverage, categoryDominance,
+  derive, relatedness, isRelated, buildClusters, coverage, categoryDominance, hasComplementaryPair,
   priceBandOf, occasionsOf, headText, OCCASION_MAP
 };

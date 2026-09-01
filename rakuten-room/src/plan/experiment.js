@@ -65,12 +65,23 @@ function buildExperimentClusters(scored, strategy) {
     roles.slice(1).reduce(function (a, r) { return a.concat(pools[r]); }, [])
   );
 
-  return facetsLib.buildClusters(combined, strategy, {
+  const base = {
     count: want,
     size: roles.length,
     roles: roles,
     maxPerShop: (strategy.portfolio || {}).maxPerShop || 4
-  });
+  };
+
+  /* まず「別カテゴリの補完がある束」だけで組む。
+     同じカテゴリを3つ並べても、次に何を欲しくなるかの導線にならない。
+     それだけで本数が足りない場合は補完なしも許すが、束に印を残して
+     運用者が入れ替えを判断できるようにする */
+  const strict = facetsLib.buildClusters(combined, strategy,
+    Object.assign({}, base, { requireComplementary: true }));
+  if (strict.length >= want) return strict;
+
+  const loose = facetsLib.buildClusters(combined, strategy, base);
+  return loose;
 }
 
 /* クラスターを時間帯へ割り当てる。reverse=true で反転（クロスオーバー） */
@@ -144,7 +155,8 @@ function create(scored, strategy, opts) {
     reverse: !!options.reverse,
     target: { posts: cfg.posts || 12, clusters: cfg.clusters || 4, postsPerDay: cfg.postsPerDay || 3 },
     clusters: clusters.map(function (c) {
-      return { id: c.id, slotVariant: c.slotVariant, cohesion: c.cohesion, facets: c.facets };
+      return { id: c.id, slotVariant: c.slotVariant, cohesion: c.cohesion,
+        complementary: c.complementary, facets: c.facets };
     }),
     posts: posts,
     bySlot: bySlot,

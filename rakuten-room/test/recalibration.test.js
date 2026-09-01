@@ -371,3 +371,47 @@ test('18. 旧 results.json を壊さず読める', function () {
 
   store.writeJson('results.json', { entries: [] });
 });
+
+/* ---------- 監査（2026-09-02）で追加 ---------- */
+
+test('関連クラスターには補完カテゴリの組み合わせを含める', function () {
+  /* 関連度の閾値7は「配送方式一致(4)＋利用場面一致(3)」だけで到達できる。
+     候補の78%が場面タグを持つため、それだけだと同じカテゴリが3つ並んだ束も通る。
+     実データでクッキー→チョコ→アイスの束が生成され、
+     客単価を上げる組み合わせになっていなかった */
+  const members = [
+    { itemCode: 'a:1', signature: 's1', facets: { deliveryMode: 'address_free', productCategory: 'sweets', occasion: ['birthday'], recipient: [], priceBand: '3000' } },
+    { itemCode: 'b:1', signature: 's2', facets: { deliveryMode: 'address_free', productCategory: 'sweets', occasion: ['birthday'], recipient: [], priceBand: '3000' } },
+    { itemCode: 'c:1', signature: 's3', facets: { deliveryMode: 'address_free', productCategory: 'sweets', occasion: ['birthday'], recipient: [], priceBand: '3000' } }
+  ];
+  assert.strictEqual(facets.hasComplementaryPair(members, strategy), false,
+    '同じカテゴリだけの束は補完を持たない');
+
+  const withDrink = members.slice(0, 2).concat([
+    { itemCode: 'd:1', signature: 's4', facets: { deliveryMode: 'address_free', productCategory: 'beverage', occasion: ['birthday'], recipient: [], priceBand: '3000' } }
+  ]);
+  assert.strictEqual(facets.hasComplementaryPair(withDrink, strategy), true,
+    'スイーツと飲み物は補完関係にある');
+
+  /* requireComplementary を付けると同一カテゴリだけの束は採用されない */
+  const onlySweets = facets.buildClusters(members, strategy,
+    { count: 1, size: 3, requireComplementary: true });
+  assert.strictEqual(onlySweets.length, 0);
+
+  const ok = facets.buildClusters(withDrink, strategy,
+    { count: 1, size: 3, requireComplementary: true });
+  assert.strictEqual(ok.length, 1);
+  assert.strictEqual(ok[0].complementary, true);
+});
+
+test('役割の説明が動画由来の仮説を公式スコアと断定しない', function () {
+  const render = require('../src/post/render');
+  Object.keys(render.ROLE_AIM).forEach(function (r) {
+    assert.strictEqual(render.ROLE_AIM[r].indexOf('スコアを取る'), -1,
+      r + ' の説明が内部スコアの取得を断定している: ' + render.ROLE_AIM[r]);
+  });
+  /* 3役割が実際の導線として説明されていること */
+  assert.ok(render.ROLE_AIM.bait.indexOf('回遊') >= 0);
+  assert.ok(render.ROLE_AIM.traffic.indexOf('楽天市場') >= 0);
+  assert.ok(render.ROLE_AIM.cv.indexOf('購入') >= 0);
+});

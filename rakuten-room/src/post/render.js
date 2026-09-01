@@ -8,9 +8,9 @@ const time = require('../util/time');
 
 const ROLE_LABEL = { bait: '評価取り', cv: '売上', traffic: '送客' };
 const ROLE_AIM = {
-  bait: 'クリックと回遊を取る。売り込まない',
-  cv: '成約を取る。直前の評価取りの熱をそのまま流す',
-  traffic: '楽天市場へ送る。外部送客スコアを取る'
+  bait: 'まず見てもらう。ROOM内の回遊を作る。売り込まない',
+  cv: '購入まで運ぶ。直前の入口投稿で作った関心をそのまま流す',
+  traffic: '楽天市場へ送って選んでもらう。送客の量を観測する'
 };
 
 function yen(n) { return Number(n).toLocaleString('ja-JP') + '円'; }
