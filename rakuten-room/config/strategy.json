@@ -1,101 +1,115 @@
 {
   "$comment": "楽天ROOM運用戦略の全パラメータ。数値を変えるだけで挙動が変わる。コードは触らなくてよい。",
   "room": {
-    "themeLabel": "暮らしの詰まりが消える、キッチンと収納",
-    "onePersona": "ワンオペで台所に立つ時間が長い人",
-    "themeTag": "暮らしの整え方"
+    "$comment": "棚は1つ。テーマはソーシャルギフト。価格帯や用途の違いは別ジャンルではなく同じ棚の中のコレクションとして扱う。",
+    "brand": "贈りもの迷子｜住所なしギフト",
+    "themeLabel": "住所を知らない相手にも贈れる、贈りもの迷子のための棚",
+    "onePersona": "住所を聞けない相手に何か贈りたいが、何を選べばよいか決めきれない人",
+    "themeTag": "住所なしギフト",
+    "funnel": "TikTok / YouTube Shorts / Instagram Reels → 楽天ROOM → 楽天市場"
   },
   "genre": {
-    "$comment": "NG行動①『ジャンルがバラバラの無差別投稿』の防止。1ジャンル＋関連までに固定する。",
-    "rootGenreId": "100938",
-    "rootGenreLabel": "インテリア・寝具・収納",
-    "relatedGenreIds": [
-      "100804",
-      "558929"
-    ],
+    "$comment": "ソーシャルギフトは単一の楽天ジャンルに収まらない（食品・雑貨・コスメ・日用品にまたがる）。棚の同一性はジャンルではなくギフト適性で担保するため、rootGenreId は 0（全ジャンル横断）とする。0 のときカテゴリ相関の判定は全候補を圏内として扱う。",
+    "rootGenreId": "0",
+    "rootGenreLabel": "全ジャンル横断（ギフト適性で棚を定義する）",
+    "relatedGenreIds": [],
     "subThemes": [
       {
-        "id": "kitchen-storage",
-        "label": "キッチン収納",
+        "id": "address-free",
+        "label": "住所を知らなくても贈れる",
         "keywords": [
-          "キッチン 収納",
-          "シンク下 収納",
-          "調味料 ラック",
-          "水切りラック",
-          "カトラリー 収納"
+          "ソーシャルギフト",
+          "eギフト",
+          "住所不要 ギフト",
+          "LINE ギフト",
+          "URLで贈る ギフト"
         ]
       },
       {
-        "id": "fridge",
-        "label": "冷蔵庫内の整理",
+        "id": "sweets",
+        "label": "食べもの・スイーツ",
         "keywords": [
-          "冷蔵庫 収納 ケース",
-          "冷凍庫 仕切り",
-          "作り置き 保存容器",
-          "野菜室 整理"
+          "スイーツ ギフト",
+          "焼き菓子 詰め合わせ",
+          "チョコレート ギフト",
+          "コーヒー ギフト",
+          "紅茶 ギフト 詰め合わせ"
         ]
       },
       {
-        "id": "closet",
-        "label": "クローゼット",
+        "id": "price-1000",
+        "label": "1,000〜2,000円",
         "keywords": [
-          "クローゼット 収納",
-          "衣類 圧縮",
-          "ハンガー 滑らない",
-          "収納ボックス 布"
+          "プチギフト 1000円",
+          "ちょっとしたお礼 プレゼント",
+          "プチギフト お菓子",
+          "退職 プチギフト"
         ]
       },
       {
-        "id": "sink-bath",
-        "label": "洗面・浴室",
+        "id": "price-3000",
+        "label": "3,000円前後",
         "keywords": [
-          "洗面台 収納",
-          "浴室 ラック 吸盤",
-          "歯ブラシ ホルダー 浮かせる",
-          "スポンジ ホルダー"
+          "ギフト 3000円",
+          "誕生日 プレゼント 3000円",
+          "お礼 ギフト 3000円",
+          "内祝い 3000円"
         ]
       },
       {
-        "id": "desk-living",
-        "label": "リビング・デスク",
+        "id": "price-5000",
+        "label": "5,000円前後",
         "keywords": [
-          "ケーブル 収納",
-          "リモコン スタンド",
-          "デスク 収納 引き出し",
-          "小物 トレー"
+          "ギフト 5000円",
+          "内祝い 5000円",
+          "退職祝い プレゼント",
+          "出産内祝い 5000円"
+        ]
+      },
+      {
+        "id": "occasion",
+        "label": "誕生日・お礼",
+        "keywords": [
+          "誕生日 プレゼント 女性",
+          "誕生日 プレゼント 男性",
+          "お礼 プチギフト",
+          "送別 プレゼント"
         ]
       }
     ]
   },
   "filters": {
     "$comment": "ユーザー指定のハードフィルタ。ここを下回る商品は候補に一切入れない。",
-    "minReviewAverage": 4.0,
+    "minReviewAverage": 4,
     "minReviewCount": 100,
-    "priceHardMin": 700,
-    "priceHardMax": 15000,
+    "priceHardMin": 800,
+    "priceHardMax": 8000,
     "requireAvailability": true,
     "excludeKeywords": [
       "福袋",
       "訳あり",
       "アウトレット",
       "中古",
-      "food",
-      "お試し 1個"
+      "お試し 1個",
+      "業務用",
+      "大容量 詰め替え",
+      "まとめ買い 箱",
+      "サンプル"
     ],
     "maxItemsPerShop": 3
   },
   "goldenPrice": {
-    "$comment": "NG行動③『売れない価格帯ばかり投稿する利益破壊サイクル』の防止。",
-    "min": 1500,
-    "max": 2980,
-    "peakMin": 1980,
-    "peakMax": 2680,
-    "decayYen": 1500
+    "$comment": "ギフトの中心価格帯。3,000円前後が最も外しにくい。1,000円台と5,000円台も棚として必要なので、外れても0にはしない。",
+    "min": 1000,
+    "max": 5500,
+    "peakMin": 2500,
+    "peakMax": 3500,
+    "decayYen": 2000
   },
   "adHeat": {
     "$comment": "『広告が燃えている＝販促投資されている優遇商品』の代理指標。楽天は広告出稿量を公開しないため、投資の痕跡から推定する。",
-    "affiliateRateBase": 2.0,
-    "affiliateRateHot": 8.0,
+    "affiliateRateBase": 2,
+    "affiliateRateHot": 8,
     "pointRateBase": 1,
     "pointRateHot": 10,
     "couponWords": [
@@ -122,17 +136,22 @@
     "snapshotKeepDays": 45,
     "windowDays": 30,
     "goodReviewsPerDay": 1.5,
-    "hotReviewsPerDay": 5.0,
+    "hotReviewsPerDay": 5,
     "unknownScore": 0.35
   },
   "weights": {
-    "$comment": "候補スコアの重み。合計1.0でなくてよい（内部で正規化する）。",
-    "adHeat": 0.22,
-    "trust": 0.2,
-    "velocity": 0.22,
-    "priceFit": 0.16,
-    "aiFit": 0.12,
-    "craft": 0.08
+    "$comment": "客観値（api）を土台に、推測値（inferred/mixed）を上乗せする配分。推測値へ重みを寄せすぎると、説明文の書き方が上手いだけの商品が上位に来る。",
+    "velocity": 0.15,
+    "giftReady": 0.14,
+    "trust": 0.12,
+    "priceFit": 0.12,
+    "giftLook": 0.11,
+    "videoFit": 0.11,
+    "affiliate": 0.1,
+    "versatility": 0.08,
+    "adHeat": 0.04,
+    "aiFit": 0.02,
+    "craft": 0.01
   },
   "roleBias": {
     "$comment": "投稿の役割ごとに、どの指標を重く見るかを変える。",
@@ -142,21 +161,21 @@
       "trust": 1.2,
       "velocity": 0.7,
       "adHeat": 0.8,
-      "aiFit": 1.0,
+      "aiFit": 1,
       "priceCeil": 1980
     },
     "cv": {
       "priceFit": 1.8,
-      "craft": 1.0,
+      "craft": 1,
       "trust": 1.4,
       "velocity": 1.6,
       "adHeat": 1.3,
-      "aiFit": 1.0
+      "aiFit": 1
     },
     "traffic": {
       "priceFit": 0.5,
       "craft": 1.2,
-      "trust": 1.0,
+      "trust": 1,
       "velocity": 0.9,
       "adHeat": 1.5,
       "aiFit": 1.2,
@@ -213,7 +232,7 @@
     ],
     "cvMustFollowBait": true,
     "burstLength": 3,
-    "maxSameSubThemeRun": 4,
+    "maxSameSubThemeRun": 5,
     "trafficEveryN": 7
   },
   "launch": {
@@ -227,17 +246,17 @@
     "minSelectionScore": 0.62,
     "subThemeSpread": {
       "minSubThemes": 3,
-      "maxSubThemes": 4
+      "maxSubThemes": 6
     },
     "postsPerDay": 10,
     "hotTimeOnly": true
   },
   "shelf": {
     "$comment": "NG行動④『投稿順によるルーム全体のブランド破壊』の防止。商品棚として並びを整える。",
-    "maxAdjacentPriceRatio": 2.4,
+    "maxAdjacentPriceRatio": 3.2,
     "maxPriceJumpYen": 4000,
     "priceWaveWindow": 6,
-    "maxShareSingleSubTheme": 0.45
+    "maxShareSingleSubTheme": 0.6
   },
   "copy": {
     "$comment": "NG行動②『買い理由0の自己満日記投稿』の防止。誰の・どんな悩みが・どう変わるか を必須にする。",
@@ -269,5 +288,41 @@
       "standard"
     ],
     "includeRanking": true
+  },
+  "$policy": "現行方針: ソーシャルギフト特化「贈りもの迷子｜住所なしギフト」（2026-09-01確定）。旧方針の「キッチンと収納」は廃止済みで、経緯は PROJECT_CONTEXT.md の旧方針節を参照する。",
+  "gift": {
+    "$comment": "ソーシャルギフト評価の設定。priceBands は推奨コレクションの割り当てに、priceBreadth は用途の広さの判定に使う。",
+    "priceBands": [
+      {
+        "label": "1,000〜2,000円",
+        "min": 800,
+        "max": 2200
+      },
+      {
+        "label": "3,000円前後",
+        "min": 2201,
+        "max": 3800
+      },
+      {
+        "label": "5,000円前後",
+        "min": 3801,
+        "max": 6500
+      }
+    ],
+    "priceBreadth": {
+      "broadMin": 1000,
+      "broadMax": 5000
+    },
+    "minGiftReadyForPost": 0.3
+  },
+  "portfolio": {
+    "$comment": "100商品ポートフォリオ。主力はSNSで繰り返し訴求するため動画適性を重く見る。ロングテールはスコア順ではなく、用途・価格の穴埋めを優先する。",
+    "flagship": 20,
+    "secondary": 30,
+    "longtail": 50,
+    "minGiftReady": 0.3,
+    "maxPerShop": 4,
+    "maxFlagshipPerCollection": 6,
+    "maxSecondaryPerCollection": 10
   }
 }

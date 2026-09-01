@@ -3,7 +3,7 @@
    ---------------------------------------------------------
    ユーザー指定のNG行動6項目を、計画に対してそのまま当てる。
    blocker が1つでも出たら、その計画は出さない。
-     1 ジャンルがバラバラの無差別投稿
+     1 ギフト用途として成立しない商品の混入（旧: ジャンルがバラバラの無差別投稿）
      2 買い理由0の自己満日記投稿
      3 売れない価格帯ばかりの利益破壊サイクル
      4 投稿順によるルーム全体のブランド破壊
@@ -24,21 +24,44 @@ function check(posts, strategy, opts) {
   const warnings = [];
   const sections = {};
 
-  /* --- 1 ジャンルの散らかり --- */
+  /* --- 1 ギフト適性（旧: ジャンル散乱） ---
+     棚のテーマはソーシャルギフトひとつ。価格帯や用途が分かれるのは
+     ジャンル散乱ではなく、同じ棚の中のコレクションなので減点しない。
+     見るのは「贈り物として成立しない商品が混ざっていないか」の一点。 */
   const subs = {};
   posts.forEach(function (p) { subs[p.primarySubTheme || '_none'] = (subs[p.primarySubTheme || '_none'] || 0) + 1; });
   const distinct = Object.keys(subs).length;
-  const rootId = strategy.genre.rootGenreId;
-  const related = strategy.genre.relatedGenreIds || [];
-  const offGenre = posts.filter(function (p) {
-    return p.genreId && p.genreId !== rootId && related.indexOf(p.genreId) < 0 && !(options.genreDescendants && options.genreDescendants.has(p.genreId));
+  const threshold = (strategy.gift && strategy.gift.minGiftReadyForPost) || 0.3;
+  const readyOf = function (p) {
+    if (p.giftScores && typeof p.giftScores.giftReady === 'number') return p.giftScores.giftReady;
+    if (p.scores && typeof p.scores.giftReady === 'number') return p.scores.giftReady;
+    return null; /* 判定材料が無いものは検査対象から外す（欠損を不合格にしない） */
+  };
+  const judged = posts.filter(function (p) { return readyOf(p) !== null; });
+  const offTheme = judged.filter(function (p) { return readyOf(p) < threshold; });
+  const noCollection = posts.filter(function (p) {
+    return Array.isArray(p.giftCollections) && p.giftCollections.length === 0;
   });
-  sections.genre = { distinctSubThemes: distinct, breakdown: subs, offGenreCount: offGenre.length };
-  if (distinct > (strategy.launch.subThemeSpread.maxSubThemes + 1)) {
-    blockers.push('NG1 ジャンル散乱: サブテーマが ' + distinct + ' 種類（上限 ' + strategy.launch.subThemeSpread.maxSubThemes + '）');
+
+  sections.gift = {
+    judged: judged.length,
+    offThemeCount: offTheme.length,
+    threshold: threshold,
+    collections: subs,
+    distinctCollections: distinct,
+    noCollectionCount: noCollection.length
+  };
+  /* 後方互換。既存の出力を読む箇所があるため genre キーも残す */
+  sections.genre = { distinctSubThemes: distinct, breakdown: subs, offGenreCount: offTheme.length };
+
+  if (judged.length && offTheme.length > judged.length * 0.2) {
+    blockers.push('NG1 ギフト適性: 贈り物として成立しない商品が ' + offTheme.length + ' 件（' +
+      pct(offTheme.length / judged.length) + '）。ソーシャルギフト戦略から逸脱している');
+  } else if (offTheme.length > 0) {
+    warnings.push('NG1 ギフト適性が低い商品が ' + offTheme.length + ' 件混ざっている');
   }
-  if (offGenre.length > posts.length * 0.25) {
-    warnings.push('NG1 設定ジャンルの外の商品が ' + offGenre.length + ' 件（' + pct(offGenre.length / posts.length) + '）');
+  if (noCollection.length > posts.length * 0.3) {
+    warnings.push('NG1 推奨コレクションが割り当たらない商品が ' + noCollection.length + ' 件（棚札に置けない）');
   }
 
   /* --- 2 買い理由0の投稿 --- */

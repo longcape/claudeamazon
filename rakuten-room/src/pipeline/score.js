@@ -1,13 +1,27 @@
 /* =========================================================
    SCORE — 候補のスコアリング
    ---------------------------------------------------------
-   6つの軸で評価する。
-     adHeat   広告加熱度（＝楽天が販促投資している優遇商品か）
-     trust    信頼度（レビュー・ショップ規模）
-     velocity 売上速度（レビュー増加の実測）
-     priceFit ゴールデン価格帯への適合
-     aiFit    楽天のAI検索が見る6項目への適合
-     craft    商品ページ・画像の作り込み度
+   現行方針（ソーシャルギフト特化）の評価軸は11本。
+   ユーザー指定の8項目を、既存6軸と統合したもの。
+
+     客観値（楽天APIから取れる）
+       velocity  売上速度（レビュー増加の実測）      … 売れ筋
+       trust     信頼度（レビュー・ショップ規模）    … レビュー
+       priceFit  ギフト価格帯への適合                … 価格
+       affiliate アフィリ報酬率                      … 料率
+       adHeat    広告加熱度（販促投資の痕跡）
+       craft     商品ページ・画像の作り込み度
+
+     推測値（商品テキストからの推定。src/pipeline/gift.js）
+       giftReady   ソーシャルギフト対応
+       giftLook    ギフト映え（画像枚数との混合）
+       videoFit    短尺動画化しやすさ（画像・説明文との混合）
+       versatility 用途の広さ（価格帯との混合）
+
+     aiFit 楽天のAI検索が見る6項目への適合
+
+   推測値に重みを寄せすぎると、説明文の書き方が上手いだけの商品が上位に来る。
+   重みは config/strategy.json の weights で調整する。
    さらに、同じ商品でも「評価取り／売上／送客」で
    良し悪しが変わるため、役割別スコアを別途出す。
    ========================================================= */
@@ -15,14 +29,17 @@
 
 const T = require('../util/text');
 const velocityLib = require('./velocity');
+const giftLib = require('./gift');
+/* 語彙は extras で差し替えられる。未指定なら同梱の定義を使う（テストが素で通るように） */
+const DEFAULT_GIFT_LEXICON = require('../../config/gift-lexicon.json');
 
 const ROLES = ['bait', 'cv', 'traffic'];
 const VARIATION_WORDS = ['カラー', '色違い', 'サイズ', '選べる', '種類', 'バリエーション', '全', 'タイプ'];
 
 /* ---------- 個別スコア ---------- */
 
-/* 広告加熱度。楽天は広告出稿量を公開しないので、投資の痕跡を積み上げる */
-/* 広告加熱度の内訳の比重。ジャンルによっては特定のシグナルが死ぬ
+/* 広告加熱度。楽天は広告出稿量を公開しないので、投資の痕跡を積み上げる。
+   内訳の比重は設定で変えられる。ジャンルによっては特定のシグナルが死ぬ
    （インテリア・寝具・収納では報酬率が全商品3%で横並びだった）。
    死んだシグナルに比重を置いたままだと配点がまるごと無駄になるので、
    strategy.json の adHeat.partWeights で生きている側へ寄せられるようにする。
@@ -76,13 +93,15 @@ function trustScore(item, ctx) {
   ];
   return {
     score: T.clamp01(parts.reduce(function (a, p) { return a + p.w * p.v; }, 0)),
-    reasons: ['★' + item.reviewAverage.toFixed(2) + ' / ' + item.reviewCount + '件']
+    /* レビュー情報が欠けた応答でも落とさない（APIの項目名変更や部分取得への保険） */
+    reasons: ['★' + (Number(item.reviewAverage) || 0).toFixed(2) + ' / ' + (Number(item.reviewCount) || 0) + '件']
       .concat(item.shopOfTheYear ? ['ショップ・オブ・ザ・イヤー受賞店'] : [])
       .concat(shopCount >= 4 ? ['候補内に同一ショップ ' + shopCount + '商品（品揃えの厚い店）'] : [])
   };
 }
 
-/* ゴールデン価格帯 1500-2980円。外れるほど台形に落ちるが0にはしない */
+/* ギフトの中心価格帯（config の goldenPrice）。外れるほど台形に落ちるが0にはしない。
+   送客用に高額品も使うため、帯の外を切り捨てない */
 function priceFitScore(price, cfg) {
   if (price >= cfg.peakMin && price <= cfg.peakMax) return 1;
   if (price >= cfg.min && price <= cfg.max) return 0.86;
@@ -188,7 +207,7 @@ function roleScores(scores, item, strategy) {
     }
     if (role === 'traffic' && bias.preferVariations) {
       /* 送客は「ページで選ばせる」ほど滞在が伸びる */
-      const varHits = T.countMatches(item.name + ' ' + item.caption.slice(0, 400), VARIATION_WORDS);
+      const varHits = T.countMatches((item.name || '') + ' ' + (item.caption || '').slice(0, 400), VARIATION_WORDS);
       s *= 1 + Math.min(0.18, varHits * 0.05);
     }
     out[role] = T.clamp01(s);
@@ -208,6 +227,9 @@ function scoreAll(candidates, strategy, extras) {
     const craft = craftScore(item);
     const priceFit = priceFitScore(item.price, strategy.goldenPrice);
     const ai = aiFitScore(item, ctx, velocity);
+    /* ソーシャルギフト特化の5軸。既存6軸を置き換えるのではなく足す。
+       既存軸は「売れるか」を、ギフト軸は「贈り物として成立し、動画にできるか」を見る */
+    const gift = giftLib.evaluate(item, strategy, ctx.giftLexicon);
 
     const scores = {
       adHeat: ad.score,
@@ -215,7 +237,12 @@ function scoreAll(candidates, strategy, extras) {
       velocity: velocity.score,
       priceFit: priceFit,
       aiFit: ai.score,
-      craft: craft.score
+      craft: craft.score,
+      giftReady: gift.scores.giftReady,
+      affiliate: gift.scores.affiliate,
+      giftLook: gift.scores.giftLook,
+      videoFit: gift.scores.videoFit,
+      versatility: gift.scores.versatility
     };
     const weights = {};
     Object.keys(strategy.weights).forEach(function (k) { if (!k.startsWith('$')) weights[k] = strategy.weights[k]; });
@@ -231,7 +258,12 @@ function scoreAll(candidates, strategy, extras) {
       velocityInfo: velocity,
       aiBreakdown: ai.breakdown,
       adHeatInfo: { topKeywordCount: ad.topKeywordCount, onRanking: ad.onRanking },
-      reasons: ad.reasons.concat(trust.reasons, craft.reasons, ai.reasons,
+      giftScores: gift.scores,
+      giftSources: gift.sources,
+      giftCollections: gift.collections,
+      giftOccasions: gift.occasions,
+      giftAngle: gift.angle,
+      reasons: gift.reasons.concat(ad.reasons, trust.reasons, craft.reasons, ai.reasons,
         velocity.known ? ['レビュー増 ' + velocity.reviewsPerDay + '件/日（' + velocity.label + '）'] : [])
     });
   });
@@ -241,6 +273,7 @@ function scoreAll(candidates, strategy, extras) {
 }
 
 function buildContext(candidates, strategy, extras) {
+  const giftLexicon = (extras && extras.giftLexicon) || DEFAULT_GIFT_LEXICON;
   const shopItemCount = new Map();
   const subThemeReviewCounts = new Map();
   const rankingShops = new Set();
@@ -276,7 +309,8 @@ function buildContext(candidates, strategy, extras) {
     shopItemCount: shopItemCount,
     subThemeReviewCounts: subThemeReviewCounts,
     rankingShops: rankingShops,
-    rankingSubThemes: rankingSubThemes
+    rankingSubThemes: rankingSubThemes,
+    giftLexicon: giftLexicon
   };
 }
 
