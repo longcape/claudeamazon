@@ -18,7 +18,1071 @@
   ],
   "auto": {
     "$comment": "room trend が自動更新する領域。手で編集しなくてよい。",
-    "observed": {},
-    "updatedAt": null
+    "observed": {
+      "ワッフルケーキ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.781
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.699
+          }
+        ],
+        "latest": {
+          "word": "ワッフルケーキ",
+          "count": 3,
+          "avgScore": 0.699,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "外のし": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.776
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.683
+          }
+        ],
+        "latest": {
+          "word": "外のし",
+          "count": 3,
+          "avgScore": 0.683,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "サントリー": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.757
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.679
+          }
+        ],
+        "latest": {
+          "word": "サントリー",
+          "count": 3,
+          "avgScore": 0.679,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "日付指定可": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 6,
+            "speed": null,
+            "score": 0.746
+          },
+          {
+            "date": "2026-09-01",
+            "count": 6,
+            "speed": null,
+            "score": 0.68
+          }
+        ],
+        "latest": {
+          "word": "日付指定可",
+          "count": 6,
+          "avgScore": 0.68,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ワッフル": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.732
+          },
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.673
+          }
+        ],
+        "latest": {
+          "word": "ワッフル",
+          "count": 5,
+          "avgScore": 0.673,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "お急ぎ便": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.713
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.675
+          }
+        ],
+        "latest": {
+          "word": "お急ぎ便",
+          "count": 4,
+          "avgScore": 0.675,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "3000円以下": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.712
+          },
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.668
+          }
+        ],
+        "latest": {
+          "word": "3000円以下",
+          "count": 9,
+          "avgScore": 0.668,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "2名用": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.711
+          }
+        ],
+        "latest": {
+          "word": "2名用",
+          "count": 4,
+          "avgScore": 0.711,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "4名用": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.711
+          }
+        ],
+        "latest": {
+          "word": "4名用",
+          "count": 4,
+          "avgScore": 0.711,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "包装済": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 8,
+            "speed": null,
+            "score": 0.71
+          },
+          {
+            "date": "2026-09-01",
+            "count": 8,
+            "speed": null,
+            "score": 0.67
+          }
+        ],
+        "latest": {
+          "word": "包装済",
+          "count": 8,
+          "avgScore": 0.67,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "誕生日スイーツ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.71
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.724
+          }
+        ],
+        "latest": {
+          "word": "誕生日スイーツ",
+          "count": 4,
+          "avgScore": 0.724,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "たくさん": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.708
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.69
+          }
+        ],
+        "latest": {
+          "word": "たくさん",
+          "count": 3,
+          "avgScore": 0.69,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "Lindt": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 7,
+            "speed": null,
+            "score": 0.706
+          },
+          {
+            "date": "2026-09-01",
+            "count": 7,
+            "speed": null,
+            "score": 0.673
+          }
+        ],
+        "latest": {
+          "word": "Lindt",
+          "count": 7,
+          "avgScore": 0.673,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "卵不使用": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.706
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.666
+          }
+        ],
+        "latest": {
+          "word": "卵不使用",
+          "count": 3,
+          "avgScore": 0.666,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "フルーツゼリー": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.7
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.661
+          }
+        ],
+        "latest": {
+          "word": "フルーツゼリー",
+          "count": 3,
+          "avgScore": 0.661,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "年配": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.697
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.672
+          }
+        ],
+        "latest": {
+          "word": "年配",
+          "count": 4,
+          "avgScore": 0.672,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "高齢者": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.697
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.672
+          }
+        ],
+        "latest": {
+          "word": "高齢者",
+          "count": 4,
+          "avgScore": 0.672,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "米菓": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.693
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.673
+          }
+        ],
+        "latest": {
+          "word": "米菓",
+          "count": 3,
+          "avgScore": 0.673,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "揚げせんべい": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.693
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.673
+          }
+        ],
+        "latest": {
+          "word": "揚げせんべい",
+          "count": 3,
+          "avgScore": 0.673,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "花のれん": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.693
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.673
+          }
+        ],
+        "latest": {
+          "word": "花のれん",
+          "count": 3,
+          "avgScore": 0.673,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "銀座餅": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.693
+          },
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.673
+          }
+        ],
+        "latest": {
+          "word": "銀座餅",
+          "count": 3,
+          "avgScore": 0.673,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "チーズケーキ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 7,
+            "speed": null,
+            "score": 0.689
+          }
+        ],
+        "latest": {
+          "word": "チーズケーキ",
+          "count": 7,
+          "avgScore": 0.689,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "5種": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.688
+          }
+        ],
+        "latest": {
+          "word": "5種",
+          "count": 5,
+          "avgScore": 0.688,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "銀座": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.686
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.671
+          }
+        ],
+        "latest": {
+          "word": "銀座",
+          "count": 4,
+          "avgScore": 0.671,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "名入れ対応": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.685
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.671
+          }
+        ],
+        "latest": {
+          "word": "名入れ対応",
+          "count": 4,
+          "avgScore": 0.671,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ありがし": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.685
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.671
+          }
+        ],
+        "latest": {
+          "word": "ありがし",
+          "count": 4,
+          "avgScore": 0.671,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ほんの気持ち": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.685
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.671
+          }
+        ],
+        "latest": {
+          "word": "ほんの気持ち",
+          "count": 4,
+          "avgScore": 0.671,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "育休": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.685
+          },
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.671
+          }
+        ],
+        "latest": {
+          "word": "育休",
+          "count": 4,
+          "avgScore": 0.671,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "4号": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.684
+          }
+        ],
+        "latest": {
+          "word": "4号",
+          "count": 5,
+          "avgScore": 0.684,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "リンツ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.682
+          },
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.655
+          }
+        ],
+        "latest": {
+          "word": "リンツ",
+          "count": 9,
+          "avgScore": 0.655,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "リンドール": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.682
+          }
+        ],
+        "latest": {
+          "word": "リンドール",
+          "count": 9,
+          "avgScore": 0.682,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "JGS": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 10,
+            "speed": null,
+            "score": 0.682
+          }
+        ],
+        "latest": {
+          "word": "JGS",
+          "count": 10,
+          "avgScore": 0.682,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ベルギー王室御用達": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.681
+          },
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.657
+          }
+        ],
+        "latest": {
+          "word": "ベルギー王室御用達",
+          "count": 9,
+          "avgScore": 0.657,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ガレー": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.681
+          },
+          {
+            "date": "2026-09-01",
+            "count": 9,
+            "speed": null,
+            "score": 0.657
+          }
+        ],
+        "latest": {
+          "word": "ガレー",
+          "count": 9,
+          "avgScore": 0.657,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ルタオ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.679
+          }
+        ],
+        "latest": {
+          "word": "ルタオ",
+          "count": 5,
+          "avgScore": 0.679,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "LeTAO": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.679
+          }
+        ],
+        "latest": {
+          "word": "LeTAO",
+          "count": 5,
+          "avgScore": 0.679,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "キハチ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 4,
+            "speed": null,
+            "score": 0.679
+          }
+        ],
+        "latest": {
+          "word": "キハチ",
+          "count": 4,
+          "avgScore": 0.679,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "※お届けは9": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.678
+          }
+        ],
+        "latest": {
+          "word": "※お届けは9",
+          "count": 5,
+          "avgScore": 0.678,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ひととえ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 6,
+            "speed": null,
+            "score": 0.678
+          }
+        ],
+        "latest": {
+          "word": "ひととえ",
+          "count": 6,
+          "avgScore": 0.678,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "キュートセレクション": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.677
+          }
+        ],
+        "latest": {
+          "word": "キュートセレクション",
+          "count": 3,
+          "avgScore": 0.677,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ホットコーヒー": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.673
+          }
+        ],
+        "latest": {
+          "word": "ホットコーヒー",
+          "count": 3,
+          "avgScore": 0.673,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "パウンドケーキ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.665
+          }
+        ],
+        "latest": {
+          "word": "パウンドケーキ",
+          "count": 3,
+          "avgScore": 0.665,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "マドレーヌ詰合せ": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.664
+          }
+        ],
+        "latest": {
+          "word": "マドレーヌ詰合せ",
+          "count": 5,
+          "avgScore": 0.664,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ナッツチョコレート": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.663
+          }
+        ],
+        "latest": {
+          "word": "ナッツチョコレート",
+          "count": 3,
+          "avgScore": 0.663,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "ミニバー10本入": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.661
+          }
+        ],
+        "latest": {
+          "word": "ミニバー10本入",
+          "count": 3,
+          "avgScore": 0.661,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "風呂敷": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.659
+          }
+        ],
+        "latest": {
+          "word": "風呂敷",
+          "count": 3,
+          "avgScore": 0.659,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "フレーバー": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 5,
+            "speed": null,
+            "score": 0.658
+          }
+        ],
+        "latest": {
+          "word": "フレーバー",
+          "count": 5,
+          "avgScore": 0.658,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "今治いろは": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.657
+          }
+        ],
+        "latest": {
+          "word": "今治いろは",
+          "count": 3,
+          "avgScore": 0.657,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "タオル地": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.657
+          }
+        ],
+        "latest": {
+          "word": "タオル地",
+          "count": 3,
+          "avgScore": 0.657,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "お得": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.657
+          }
+        ],
+        "latest": {
+          "word": "お得",
+          "count": 3,
+          "avgScore": 0.657,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "なめらか": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.656
+          }
+        ],
+        "latest": {
+          "word": "なめらか",
+          "count": 3,
+          "avgScore": 0.656,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "のしは外のし": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.656
+          }
+        ],
+        "latest": {
+          "word": "のしは外のし",
+          "count": 3,
+          "avgScore": 0.656,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      },
+      "酒の": {
+        "history": [
+          {
+            "date": "2026-09-01",
+            "count": 3,
+            "speed": null,
+            "score": 0.656
+          }
+        ],
+        "latest": {
+          "word": "酒の",
+          "count": 3,
+          "avgScore": 0.656,
+          "avgReviewsPerDay": null,
+          "measured": 0
+        }
+      }
+    },
+    "updatedAt": "2026-09-01T14:17:33.581Z"
   }
 }
