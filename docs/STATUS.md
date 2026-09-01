@@ -103,6 +103,23 @@ RLS は `saved_setups_all`（`for all to authenticated using (user_id = auth.uid
 
 > 通報・編集・削除は**画面からの導線が無い**ため、RPC と RLS のレベルで確認した。
 
+### 通報・投稿の編集削除 — **2026-09-02 実装・検証済み**
+
+- **通報の重複防止**は `tactic_reports`（`primary key (post_id, reporter)`）で行う。
+  通報者はログイン中なら user id、していなければ匿名 ID。
+  `report_post(uuid, text)` が `on conflict do nothing` で弾き、実際に入ったときだけ数える。
+  戻り値は `{ counted, reports, hidden }` で、画面は counted で文言を出し分ける。
+  **5 件で hidden になる仕様はそのまま。**
+- 実測: 同じ通報者が 5 回連打 → `reports` は 1 のまま、投稿は見えたまま。
+  別々の 5 人 → 1→5 と増え、5 人目で `hidden`、匿名の一覧から消える。
+- **通報 UI** は投稿カードのボタン。押すと確認を挟み、済んだらボタンが「通報済み」で無効になる。
+- **編集・削除 UI** は自分の投稿にだけ出る（`user_id` が自分と一致するとき）。
+  匿名投稿は `user_id` が null なので誰にも出ない。削除は確認を挟む。
+  編集欄の `maxlength` は `tactic_posts` の check 制約と同じ数字にしてある。
+- **生の DB メッセージは画面に出さない。** `friendlyError()` が
+  文字数超過 / 権限なし / 重複 / レート制限 / 通信失敗 に振り分ける。
+  生の内容は `console.warn` にだけ残す。
+
 ### その他
 - 戦術の検索・グループ分け（サイト / 種別 / サイド）
 - 構成プリセット（`state.comps`、上限 12）と入力の高速化
@@ -135,8 +152,6 @@ RLS は `saved_setups_all`（`for all to authenticated using (user_id = auth.uid
 | 項目 | メモ |
 | --- | --- |
 | **BUY マネー計算** | ユーザーが「一旦よい」と判断して保留。着手していない |
-| **投稿の通報 UI** | `report_post` の RPC と RLS は動くが、**画面から呼ぶ導線が無い**。5 件で自動的に隠れるところまで実測済み |
-| **投稿の編集・削除 UI** | `tactic_posts_update` / `tactic_posts_delete` のポリシーはあるが、**client 側に該当のコードが無い**（`community.js` に関数も無い）。サーバ側は本人のみ可・他人は 0 行になることを実測済み |
 
 ---
 
@@ -173,14 +188,6 @@ RLS は `saved_setups_all`（`for all to authenticated using (user_id = auth.uid
 | トリガ関数が REST の RPC として外から叩けた | `revoke ... from anon, authenticated` だけでは足りない。**PUBLIC に EXECUTE が付いたまま**で、anon と authenticated は PUBLIC のメンバーなので実質そのまま呼べる | `revoke all ... from public` も入れた。`/rest/v1/rpc/` から 404 になることを確認済み |
 | **コミュニティ検索が戦術名でもコール詳細でも当たらない** | `renderPosts` が `p.title` / `p.body` で絞っていたが、`tactic_posts` にその列は無い（`name` / `note`）。投稿者とマップだけ引っかかる状態だった | `name` / `note` / `site` / `kind` / `map` / 投稿者 に当てるよう修正。プレースホルダの文言も ja / en / ko の 3 つとも直した |
 | Discord ボタンが押しても必ず失敗する | Supabase 側で Discord を有効にしていないのに、ボタンが HTML 直書きで常に出ていた。`config.js` の `AUTH_PROVIDERS` はどこからも参照されない死んだ設定だった | `AUTH_PROVIDERS` と `AUTH_EMAIL` で表示を出し分けるようにし、既定を `[]` にした |
-
-### まだ直していないもの
-
-- **通報に重複防止が無い。** `report_post` は誰が何回でも呼べるので、1 人が 5 回叩けば
-  どの投稿でも隠せる。いいねと同じように投票者ごとの一意制約を入れるのが素直。
-- **失敗トーストに Postgres のメッセージがそのまま出る。**
-  `投稿に失敗しました: new row for relation "tactic_posts" violates check constraint ...` のような
-  出方をする。動作としては正しいが、利用者に見せる文言ではない。
 
 ### 既知の制約（不具合ではない）
 

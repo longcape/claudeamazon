@@ -470,6 +470,33 @@
   </div>
 </div>
 
+<!-- ============ POST EDIT MODAL ============ -->
+<!-- 自分の投稿だけを直す。maxlength は tactic_posts の check 制約と同じ数字にしてある。 -->
+<div class="modal" id="modal-post-edit" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-narrow" role="dialog" aria-modal="true" aria-labelledby="post-edit-title">
+    <header class="modal-head">
+      <h2 id="post-edit-title" data-i18n="community.editTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <form class="modal-body" id="post-edit-form">
+      <div class="field">
+        <label for="post-edit-name" data-i18n="community.editName"></label>
+        <input type="text" id="post-edit-name" maxlength="60" required />
+      </div>
+      <div class="field">
+        <label for="post-edit-note" data-i18n="community.editNote"></label>
+        <textarea id="post-edit-note" rows="4" maxlength="600"></textarea>
+      </div>
+      <footer class="modal-foot">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary" data-i18n="community.editSave"></button>
+      </footer>
+    </form>
+  </div>
+</div>
+
 <!-- ============ LOGIN MODAL ============ -->
 <div class="modal" id="modal-login" hidden>
   <div class="modal-backdrop" data-close></div>

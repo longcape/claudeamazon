@@ -54,7 +54,19 @@ create table if not exists public.tactic_likes (
 );
 
 -- ---------------------------------------------------------
--- 3. 保存したセットアップ（ログイン必須）
+-- 3. 通報（1 投稿につき 1 通報者 1 回まで）
+--    いいねと同じ形。これが無いと 1 人が 5 回叩くだけで
+--    どの投稿でも hidden にできてしまう。
+-- ---------------------------------------------------------
+create table if not exists public.tactic_reports (
+  post_id    uuid not null references public.tactic_posts (id) on delete cascade,
+  reporter   text not null check (char_length(reporter) <= 64),
+  created_at timestamptz not null default now(),
+  primary key (post_id, reporter)
+);
+
+-- ---------------------------------------------------------
+-- 4. 保存したセットアップ（ログイン必須）
 -- ---------------------------------------------------------
 create table if not exists public.saved_setups (
   id         uuid primary key default gen_random_uuid(),
@@ -182,23 +194,53 @@ grant execute on function public.like_post(uuid, text) to anon, authenticated;
 
 -- =========================================================
 -- 通報用 RPC（荒らし対策）
--- 一定数を超えた投稿は自動的に非表示にする。
+-- 5 件そろった投稿は自動的に非表示にする。
+-- 同じ通報者の 2 回目以降は数えない（tactic_reports の主キーで弾く）。
+-- 戻り値の counted で「今回数えたか」が分かるので、
+-- 画面側は「通報しました」と「すでに通報済みです」を出し分けられる。
 -- =========================================================
-create or replace function public.report_post(p_post_id uuid)
-returns void
+
+-- 通報者を取らない旧版が残っていると呼び出しが曖昧になるので先に消す
+drop function if exists public.report_post(uuid);
+
+create or replace function public.report_post(p_post_id uuid, p_reporter text)
+returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_inserted int;
+  v_reports  int;
+  v_hidden   boolean;
 begin
-  update public.tactic_posts
-     set reports = reports + 1,
-         hidden  = (reports + 1) >= 5
-   where id = p_post_id;
+  insert into public.tactic_reports (post_id, reporter)
+  values (p_post_id, p_reporter)
+  on conflict do nothing;
+
+  get diagnostics v_inserted = row_count;
+
+  if v_inserted > 0 then
+    update public.tactic_posts
+       set reports = reports + 1,
+           hidden  = (reports + 1) >= 5
+     where id = p_post_id
+     returning reports, hidden into v_reports, v_hidden;
+  else
+    select reports, hidden into v_reports, v_hidden
+      from public.tactic_posts where id = p_post_id;
+  end if;
+
+  return jsonb_build_object(
+    'counted', v_inserted > 0,
+    'reports', coalesce(v_reports, 0),
+    'hidden',  coalesce(v_hidden, false)
+  );
 end;
 $$;
 
-grant execute on function public.report_post(uuid) to anon, authenticated;
+-- 通報も未ログインで押せる仕様なので、いいねと同じく意図して公開している。
+grant execute on function public.report_post(uuid, text) to anon, authenticated;
 
 -- =========================================================
 -- RLS — 行レベルセキュリティ
@@ -207,6 +249,7 @@ grant execute on function public.report_post(uuid) to anon, authenticated;
 -- =========================================================
 alter table public.tactic_posts enable row level security;
 alter table public.tactic_likes enable row level security;
+alter table public.tactic_reports enable row level security;
 alter table public.saved_setups enable row level security;
 
 -- --- 投稿: 非表示でないものは誰でも読める ---
@@ -246,6 +289,13 @@ create policy tactic_posts_delete
 drop policy if exists tactic_likes_none on public.tactic_likes;
 create policy tactic_likes_none
   on public.tactic_likes for select
+  to authenticated
+  using (false);
+
+-- --- 通報: 誰が通報したかは本人にも見せない。RPC 経由のみ ---
+drop policy if exists tactic_reports_none on public.tactic_reports;
+create policy tactic_reports_none
+  on public.tactic_reports for select
   to authenticated
   using (false);
 

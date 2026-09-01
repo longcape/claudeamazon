@@ -316,6 +316,36 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'community.savedSetups': '저장한 셋업',
   'community.saved': '저장했습니다.',
 
+  /* --- 신고 --- */
+  'community.report': '신고',
+  'community.reported': '신고함',
+  'community.reportConfirm': '"{name}" 게시물을 신고합니다. 도배나 부적절한 내용을 알릴 때 사용하세요. 계속할까요?',
+  'community.reportDone': '신고했습니다.',
+  'community.reportDup': '이미 신고한 게시물입니다.',
+
+  /* --- 내 게시물 편집 · 삭제 --- */
+  'community.edit': '편집',
+  'community.delete': '삭제',
+  'community.editTitle': '게시물 편집',
+  'community.editName': '전술 이름',
+  'community.editNote': '콜 상세',
+  'community.editSave': '저장',
+  'community.updated': '수정했습니다.',
+  'community.deleteConfirm': '"{name}" 게시물을 삭제합니다. 되돌릴 수 없습니다. 계속할까요?',
+  'community.deleted': '삭제했습니다.',
+  'community.loadFailed': '게시물을 불러오지 못했습니다: {msg}',
+
+  /* --- 오류 표시. 원본 DB 메시지는 노출하지 않는다 --- */
+  'err.nameTooLong': '전술 이름이 너무 깁니다. 60자 이내로 입력하세요.',
+  'err.noteTooLong': '콜 상세가 너무 깁니다. 600자 이내로 입력하세요.',
+  'err.authorTooLong': '작성자 이름이 너무 깁니다. 24자 이내로 입력하세요.',
+  'err.tooLong': '입력이 너무 깁니다. 줄여서 다시 시도하세요.',
+  'err.denied': '권한이 없습니다. 다시 로그인한 뒤 시도하세요.',
+  'err.duplicate': '이미 등록되어 있습니다.',
+  'err.rateLimit': '짧은 시간에 너무 많이 올렸습니다. 잠시 후 다시 시도하세요.',
+  'err.network': '통신에 실패했습니다. 연결을 확인한 뒤 다시 시도하세요.',
+  'err.unknown': '처리하지 못했습니다. 잠시 후 다시 시도하세요.',
+
   'toast.sampleAdded': '샘플 전술을 추가했습니다.',
   'toast.tacticAdded': '전술을 추가했습니다.',
   'toast.tacticUpdated': '전술을 수정했습니다.',

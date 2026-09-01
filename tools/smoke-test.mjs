@@ -558,6 +558,196 @@ check('カードにいいねと取り込みのボタンが出る',
   found.likeButtons === 2 && found.importButtons === 2,
   `like ${found.likeButtons} / import ${found.importButtons}`);
 
+/* --- 通報・編集・削除・エラー整形 ---
+   ここから先は通信の中身が要るので、fetch を差し替えて筋書きを作る。
+   RLS そのものは DB 側で確かめてあるので、ここで見るのは画面の出し分けと文言。 */
+async function withStub(script) {
+  return page.evaluate(script);
+}
+
+const reportUi = await withStub(async () => {
+  const g = (id) => document.getElementById(id);
+  const post = { id: 'p-report', name: '通報対象', note: 'x', map: 'ascent', side: 'ATK',
+                 site: 'A', kind: 'execute', author_name: 'SOMEONE', user_id: null,
+                 likes: 0, enemy_comp: [] };
+  let counted = true;
+  const orig = window.fetch;
+  window.fetch = (u, o) => {
+    const url = String(u), m = (o && o.method) || 'GET';
+    if (url.includes('/rest/v1/tactic_posts') && m === 'GET') {
+      return Promise.resolve(new Response(JSON.stringify([post]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (url.includes('/rpc/report_post')) {
+      const body = JSON.stringify({ counted, reports: counted ? 1 : 1, hidden: false });
+      counted = false;   /* 2 回目からはサーバ側で弾かれる筋書き */
+      return Promise.resolve(new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    return orig(u, o);
+  };
+  localStorage.removeItem('vct.reported');
+  localStorage.removeItem('vct.session');
+
+  document.querySelector('.phase-tab[data-phase="setup"]').click();
+  await new Promise((r) => setTimeout(r, 200));
+  document.querySelector('.phase-tab[data-phase="community"]').click();
+  await new Promise((r) => setTimeout(r, 600));
+
+  const out = {};
+  out.hasReportButton = !!document.querySelector('#post-grid [data-act="report"]');
+  out.noOwnerButtons = !document.querySelector('#post-grid [data-act="edit-post"]') &&
+                       !document.querySelector('#post-grid [data-act="delete-post"]');
+
+  /* 押したらまず確認が出る。誤操作で即通報にならないこと */
+  document.querySelector('#post-grid [data-act="report"]').click();
+  await new Promise((r) => setTimeout(r, 300));
+  out.confirmShown = !g('modal-ask').hidden;
+  out.confirmText = g('modal-ask').innerText;
+
+  g('ask-ok').click();
+  await new Promise((r) => setTimeout(r, 600));
+  out.firstToast = g('toast').textContent;
+  out.firstToastClass = g('toast').className;
+  const btn1 = document.querySelector('#post-grid [data-act="report"]');
+  out.buttonDisabledAfter = btn1.disabled;
+  out.buttonLabelAfter = btn1.textContent.trim();
+
+  /* 控えを消してもう一度。サーバ側が counted:false を返す筋書き */
+  localStorage.removeItem('vct.reported');
+  window.VCT_UI.renderPosts([post], null, '');
+  await new Promise((r) => setTimeout(r, 200));
+  document.querySelector('#post-grid [data-act="report"]').click();
+  await new Promise((r) => setTimeout(r, 300));
+  g('ask-ok').click();
+  await new Promise((r) => setTimeout(r, 600));
+  out.dupToast = g('toast').textContent;
+  out.dupToastClass = g('toast').className;
+
+  window.fetch = orig;
+  return out;
+});
+
+check('投稿カードに通報ボタンが出る', reportUi.hasReportButton);
+check('他人・匿名の投稿に編集と削除は出ない', reportUi.noOwnerButtons);
+check('通報は押してすぐには送らず確認を出す', reportUi.confirmShown);
+check('確認の文面に投稿名が入っている', /通報対象/.test(reportUi.confirmText), reportUi.confirmText.slice(0, 60));
+check('通報が通ると成功として知らせる', /ok/.test(reportUi.firstToastClass), reportUi.firstToast);
+check('通報したらボタンが押せなくなる',
+  reportUi.buttonDisabledAfter === true, reportUi.buttonLabelAfter);
+check('同じ相手の 2 回目は通報済みとして知らせる',
+  reportUi.dupToast !== reportUi.firstToast && /warn/.test(reportUi.dupToastClass),
+  reportUi.dupToast);
+
+const ownerUi = await withStub(async () => {
+  const g = (id) => document.getElementById(id);
+  const posts = [
+    { id: 'mine', name: '自分の投稿', note: 'もとのコール', map: 'ascent', side: 'ATK', site: 'A',
+      kind: 'execute', author_name: 'ME', user_id: 'me-123', likes: 0, enemy_comp: [] },
+    { id: 'other', name: '他人の投稿', note: 'y', map: 'bind', side: 'DEF', site: 'B',
+      kind: 'stack', author_name: 'YOU', user_id: 'other-999', likes: 0, enemy_comp: [] },
+    { id: 'anon', name: '匿名の投稿', note: 'z', map: 'haven', side: 'ATK', site: 'C',
+      kind: 'fake', author_name: 'ANONYMOUS', user_id: null, likes: 0, enemy_comp: [] }
+  ];
+  const orig = window.fetch;
+  window.fetch = (u, o) => {
+    const url = String(u), m = (o && o.method) || 'GET';
+    if (url.includes('/rest/v1/tactic_posts')) {
+      if (m === 'GET') return Promise.resolve(new Response(JSON.stringify(posts), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      if (m === 'PATCH') return Promise.resolve(new Response(JSON.stringify([{ id: 'mine', name: '編集後' }]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      if (m === 'DELETE') return Promise.resolve(new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    return orig(u, o);
+  };
+  localStorage.setItem('vct.session', JSON.stringify({
+    access_token: 'stub', refresh_token: '', expires_at: Math.floor(Date.now() / 1000) + 3600,
+    user: { id: 'me-123' }
+  }));
+  window.VCT_COMMUNITY.init();
+  await new Promise((r) => setTimeout(r, 200));
+
+  document.querySelector('.phase-tab[data-phase="setup"]').click();
+  await new Promise((r) => setTimeout(r, 200));
+  document.querySelector('.phase-tab[data-phase="community"]').click();
+  await new Promise((r) => setTimeout(r, 700));
+
+  const acts = {};
+  document.querySelectorAll('#post-grid .post-card').forEach((c) => {
+    acts[c.dataset.id] = [...c.querySelectorAll('.post-foot button')].map((b) => b.dataset.act);
+  });
+
+  const out = { acts };
+  document.querySelector('#post-grid [data-act="edit-post"]').click();
+  await new Promise((r) => setTimeout(r, 300));
+  out.editOpen = !g('modal-post-edit').hidden;
+  out.editName = g('post-edit-name').value;
+  out.editNote = g('post-edit-note').value;
+  out.nameMax = g('post-edit-name').maxLength;
+  out.noteMax = g('post-edit-note').maxLength;
+  g('post-edit-form').requestSubmit();
+  await new Promise((r) => setTimeout(r, 700));
+  out.savedToast = g('toast').textContent;
+  out.editClosed = g('modal-post-edit').hidden;
+
+  await new Promise((r) => setTimeout(r, 400));
+  const del = document.querySelector('#post-grid [data-act="delete-post"]');
+  if (del) {
+    del.click();
+    await new Promise((r) => setTimeout(r, 300));
+    out.deleteConfirm = g('modal-ask').hidden ? '' : g('modal-ask').innerText;
+    g('ask-ok').click();
+    await new Promise((r) => setTimeout(r, 700));
+    out.deletedToast = g('toast').textContent;
+  }
+
+  localStorage.removeItem('vct.session');
+  window.VCT_COMMUNITY.init();
+  window.fetch = orig;
+  return out;
+});
+
+check('自分の投稿には編集と削除が出る',
+  (ownerUi.acts.mine || []).includes('edit-post') && (ownerUi.acts.mine || []).includes('delete-post'),
+  JSON.stringify(ownerUi.acts.mine));
+check('他人の投稿には編集と削除が出ない',
+  !(ownerUi.acts.other || []).includes('edit-post') && !(ownerUi.acts.other || []).includes('delete-post'),
+  JSON.stringify(ownerUi.acts.other));
+check('匿名の投稿には編集と削除が出ない',
+  !(ownerUi.acts.anon || []).includes('edit-post') && !(ownerUi.acts.anon || []).includes('delete-post'),
+  JSON.stringify(ownerUi.acts.anon));
+check('編集モーダルに今の内容が入る',
+  ownerUi.editOpen === true && ownerUi.editName === '自分の投稿' && ownerUi.editNote === 'もとのコール');
+check('編集欄の上限が DB の制約と同じ', ownerUi.nameMax === 60 && ownerUi.noteMax === 600,
+  `name ${ownerUi.nameMax} / note ${ownerUi.noteMax}`);
+check('保存すると閉じて知らせる', ownerUi.editClosed === true && !!ownerUi.savedToast, ownerUi.savedToast);
+check('削除の前に確認を出す', /削除|Delete|삭제/.test(ownerUi.deleteConfirm || ''), ownerUi.deleteConfirm);
+check('削除できたことを知らせる', !!ownerUi.deletedToast, ownerUi.deletedToast);
+
+/* 生の Postgres メッセージを画面に出さないこと */
+const rawErr = await page.evaluate(async () => {
+  const g = (id) => document.getElementById(id);
+  const orig = window.fetch;
+  const body = JSON.stringify({
+    code: '23514', message:
+      'new row for relation "tactic_posts" violates check constraint "tactic_posts_note_check"'
+  });
+  window.fetch = (u, o) => {
+    if (String(u).includes('/rest/v1/tactic_posts') && o && o.method === 'POST') {
+      return Promise.resolve(new Response(body, { status: 400, headers: { 'Content-Type': 'application/json' } }));
+    }
+    return orig(u, o);
+  };
+  g('btn-open-post').click();
+  await new Promise((r) => setTimeout(r, 300));
+  g('post-form').requestSubmit();
+  await new Promise((r) => setTimeout(r, 700));
+  const text = g('toast').textContent;
+  g('modal-post').hidden = true;
+  window.fetch = orig;
+  return text;
+});
+check('失敗しても生の DB メッセージは出さない',
+  !/violates|constraint|relation |row-level|PGRST/i.test(rawErr), rawErr);
+check('失敗の理由は利用者向けの文言で出す', rawErr.length > 0 && /600|60|24|長|long|깁/.test(rawErr), rawErr);
+
 /* 並び替えと絞り込み */
 await page.click('#community-sort .chip[data-sort="top"]');
 await page.waitForTimeout(400);
@@ -607,11 +797,54 @@ for (const fn of ['touch_updated_at', 'enforce_post_rate_limit']) {
     schema.includes(`revoke all on function public.${fn}() from anon, authenticated;`));
 }
 
+/* 通報の重複防止。これが無いと 1 人が 5 回叩くだけで投稿を隠せる */
+check('tactic_reports の定義がある',
+  schema.includes('create table if not exists public.tactic_reports'));
+check('通報は投稿と通報者の組で一意になっている',
+  /tactic_reports[\s\S]{0,400}?primary key \(post_id, reporter\)/.test(schema));
+check('tactic_reports で RLS を有効にしている',
+  schema.includes('alter table public.tactic_reports enable row level security'));
+check('ポリシー tactic_reports_none がある', schema.includes('create policy tactic_reports_none'));
+check('report_post が通報者を受け取る',
+  schema.includes('create or replace function public.report_post(p_post_id uuid, p_reporter text)'));
+check('通報者を取らない旧 report_post を落としている',
+  schema.includes('drop function if exists public.report_post(uuid);'));
+check('重複した通報は数えない',
+  /report_post[\s\S]{0,900}?insert into public.tactic_reports[\s\S]{0,200}?on conflict do nothing/.test(schema));
+check('5 件で hidden にする仕様は残っている',
+  /report_post[\s\S]{0,1200}?hidden  = \(reports \+ 1\) >= 5/.test(schema));
+
 /* 逆に、いいねと通報は意図して公開しているので消えていないこと */
 check('like_post は anon / authenticated に公開したまま',
   schema.includes('grant execute on function public.like_post(uuid, text) to anon, authenticated;'));
 check('report_post は anon / authenticated に公開したまま',
-  schema.includes('grant execute on function public.report_post(uuid) to anon, authenticated;'));
+  schema.includes('grant execute on function public.report_post(uuid, text) to anon, authenticated;'));
+
+/* ---------------- 多言語 ----------------
+   キーを 1 つの言語にだけ足すと、その言語だけ英語のまま出る。 */
+console.log('\n多言語');
+const localeKeys = {};
+for (const lang of ['ja', 'en', 'ko']) {
+  const src = fs.readFileSync(path.join(ROOT, `assets/js/locales/${lang}.js`), 'utf8');
+  localeKeys[lang] = new Set((src.match(/^ {2}'[^']+':/gm) || []).map((m) => m.trim().slice(1, -2)));
+}
+const missingEn = [...localeKeys.ja].filter((k) => !localeKeys.en.has(k));
+const missingKo = [...localeKeys.ja].filter((k) => !localeKeys.ko.has(k));
+const extraEn = [...localeKeys.en].filter((k) => !localeKeys.ja.has(k));
+check(`3 言語のキー数がそろっている（${localeKeys.ja.size} 件）`,
+  localeKeys.ja.size === localeKeys.en.size && localeKeys.ja.size === localeKeys.ko.size,
+  `ja ${localeKeys.ja.size} / en ${localeKeys.en.size} / ko ${localeKeys.ko.size}`);
+check('en に足りないキーが無い', missingEn.length === 0, missingEn.join(', '));
+check('ko に足りないキーが無い', missingKo.length === 0, missingKo.join(', '));
+check('ja に無いキーが en に無い', extraEn.length === 0, extraEn.join(', '));
+for (const key of ['community.report', 'community.reported', 'community.reportConfirm',
+                   'community.reportDone', 'community.reportDup', 'community.edit',
+                   'community.delete', 'community.editTitle', 'community.updated',
+                   'community.deleteConfirm', 'community.deleted',
+                   'err.noteTooLong', 'err.denied', 'err.rateLimit', 'err.network', 'err.unknown']) {
+  check(`${key} が 3 言語にある`,
+    localeKeys.ja.has(key) && localeKeys.en.has(key) && localeKeys.ko.has(key));
+}
 
 /* ---------------- まとめ ---------------- */
 check('ページ内で例外が出ていない', pageErrors.length === 0, pageErrors.join(' / '));

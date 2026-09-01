@@ -46,6 +46,7 @@
     postSort: 'new',
     postMap: '',
     postQuery: '',            // コミュニティ側の検索語（自分のデッキとは別物）
+    editingPostId: null,      // 編集中の投稿
     postTacticId: null,
     treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
@@ -127,7 +128,7 @@
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -333,7 +334,7 @@
      ログインが切れた場合だけは専用の文言にする */
   function cloudError(err) {
     if (err && err.message === 'AUTH_REQUIRED') return t('cloud.needLogin');
-    return t('cloud.failed', { msg: (err && err.message) || '' });
+    return t('cloud.failed', { msg: friendlyError(err) });
   }
 
   function bindCloud() {
@@ -1105,6 +1106,35 @@
   }
 
   /* ================= コミュニティ ================= */
+  /* Postgres と PostgREST のメッセージをそのまま画面に出さない。
+     利用者に見せるのはここで作った文言だけで、生の中身は console にだけ残す。
+     （以前は「violates check constraint "tactic_posts_note_check"」が
+       そのままトーストに出ていた） */
+  function friendlyError(err) {
+    const raw = (err && (err.raw || err.message)) || '';
+    if (err) {
+      /* 切り分け用。ここだけが生の内容を持つ */
+      console.warn('[VCT] 通信エラー', (err && err.code) || '', raw);
+    }
+    if (err && err.message === 'AUTH_REQUIRED') return t('cloud.needLogin');
+
+    const code = err && err.code;
+    if (/RATE_LIMIT/.test(raw)) return t('err.rateLimit');
+    if (code === '23505' || /duplicate key/i.test(raw)) return t('err.duplicate');
+    if (code === '42501' || /row-level security/i.test(raw)) return t('err.denied');
+    if (code === '23514' || /check constraint/i.test(raw)) {
+      /* author_name_check は name_check を含むので先に見る */
+      if (/author_name_check/.test(raw)) return t('err.authorTooLong');
+      if (/note_check/.test(raw)) return t('err.noteTooLong');
+      if (/name_check/.test(raw)) return t('err.nameTooLong');
+      return t('err.tooLong');
+    }
+    if (err && err.status === 401) return t('err.denied');
+    /* status を持たない = そもそも届いていない */
+    if (!err || !err.status) return t('err.network');
+    return t('err.unknown');
+  }
+
   function loadPosts() {
     if (!C.enabled()) {
       U.renderPosts([], t('community.disabled'));
@@ -1115,7 +1145,7 @@
       ui.posts = Array.isArray(rows) ? rows : [];
       U.renderPosts(ui.posts, null, ui.postQuery);
     }, function (err) {
-      U.renderPosts([], t('community.postFailed', { msg: err.message }));
+      U.renderPosts([], t('community.loadFailed', { msg: friendlyError(err) }));
     });
   }
 
@@ -1215,7 +1245,34 @@
         C.likePost(post.id).then(function (likes) {
           post.likes = typeof likes === 'number' ? likes : (post.likes || 0) + 1;
           U.renderPosts(ui.posts, null, ui.postQuery);
-        }, function (err) { U.toast(err.message, 'err'); });
+        }, function (err) { U.toast(friendlyError(err), 'err'); });
+      } else if (el.dataset.act === 'report') {
+        /* 押し間違いが痛いので一度止める。文面で用途もはっきりさせる */
+        U.ask({ message: t('community.reportConfirm', { name: post.name }), danger: true })
+          .then(function (ok) {
+            if (!ok) return;
+            return C.reportPost(post.id).then(function (res) {
+              /* counted が false = 同じ通報者の 2 回目以降。サーバ側で弾かれている */
+              U.toast(res && res.counted === false ? t('community.reportDup') : t('community.reportDone'),
+                res && res.counted === false ? 'warn' : 'ok');
+              if (res && res.hidden) loadPosts();
+              else U.renderPosts(ui.posts, null, ui.postQuery);
+            }, function (err) { U.toast(friendlyError(err), 'err'); });
+          });
+      } else if (el.dataset.act === 'edit-post') {
+        ui.editingPostId = post.id;
+        $('post-edit-name').value = post.name || '';
+        $('post-edit-note').value = post.note || '';
+        openModal('modal-post-edit');
+      } else if (el.dataset.act === 'delete-post') {
+        U.ask({ message: t('community.deleteConfirm', { name: post.name }), danger: true })
+          .then(function (ok) {
+            if (!ok) return;
+            return C.deletePost(post.id).then(function () {
+              U.toast(t('community.deleted'), 'ok');
+              loadPosts();
+            }, function (err) { U.toast(friendlyError(err), 'err'); });
+          });
       } else if (el.dataset.act === 'import-post') {
         S.addTactic({
           name: post.name,
@@ -1256,8 +1313,24 @@
         U.toast(t('community.posted'), 'ok');
         if (ui.view === 'community') loadPosts();
       }, function (err) {
-        U.toast(t('community.postFailed', { msg: err.message }), 'err');
+        U.toast(t('community.postFailed', { msg: friendlyError(err) }), 'err');
       });
+    });
+
+    /* 投稿の編集。保存できるのは自分の行だけで、他人の行は RLS で 0 件になる */
+    $('post-edit-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const id = ui.editingPostId;
+      if (!id) return;
+      const name = ($('post-edit-name').value || '').trim();
+      if (!name) { U.toast(t('toast.nameRequired'), 'err'); return; }
+      C.updatePost(id, { name: name, note: ($('post-edit-note').value || '').trim() })
+        .then(function (row) {
+          if (!row) { U.toast(t('err.denied'), 'err'); return; }
+          closeModal('modal-post-edit');
+          U.toast(t('community.updated'), 'ok');
+          loadPosts();
+        }, function (err) { U.toast(friendlyError(err), 'err'); });
     });
 
     applyAuthConfig();
@@ -1490,7 +1563,7 @@
         return;
       }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;

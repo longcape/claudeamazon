@@ -324,6 +324,36 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'community.savedSetups': '保存したセットアップ',
   'community.saved': '保存しました。',
 
+  /* --- 通報 --- */
+  'community.report': '通報',
+  'community.reported': '通報済み',
+  'community.reportConfirm': '「{name}」を通報します。荒らしや不適切な内容の報告に使ってください。よろしいですか？',
+  'community.reportDone': '通報しました。',
+  'community.reportDup': 'この投稿はすでに通報済みです。',
+
+  /* --- 自分の投稿の編集・削除 --- */
+  'community.edit': '編集',
+  'community.delete': '削除',
+  'community.editTitle': '投稿を編集',
+  'community.editName': '戦術名',
+  'community.editNote': 'コール詳細',
+  'community.editSave': '保存',
+  'community.updated': '更新しました。',
+  'community.deleteConfirm': '「{name}」を削除します。取り消せません。よろしいですか？',
+  'community.deleted': '削除しました。',
+  'community.loadFailed': '投稿を読み込めませんでした: {msg}',
+
+  /* --- エラー表示。生の DB メッセージは出さない --- */
+  'err.nameTooLong': '戦術名が長すぎます。60 文字までにしてください。',
+  'err.noteTooLong': 'コール詳細が長すぎます。600 文字までにしてください。',
+  'err.authorTooLong': '投稿者名が長すぎます。24 文字までにしてください。',
+  'err.tooLong': '入力が長すぎます。短くしてから試してください。',
+  'err.denied': '権限がありません。ログインし直してから試してください。',
+  'err.duplicate': 'すでに登録されています。',
+  'err.rateLimit': '短い時間に投稿しすぎです。しばらく待ってから試してください。',
+  'err.network': '通信に失敗しました。接続を確かめてから試してください。',
+  'err.unknown': 'うまくいきませんでした。時間をおいて試してください。',
+
   /* --- トースト --- */
   'toast.sampleAdded': 'サンプル戦術を追加しました。',
   'toast.tacticAdded': '戦術を追加しました。',

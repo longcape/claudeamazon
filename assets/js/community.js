@@ -15,6 +15,7 @@
   const CFG = global.VCT_CONFIG;
   const SESSION_KEY = 'vct.session';
   const ANON_KEY = 'vct.anonId';
+  const REPORTED_KEY = 'vct.reported';
 
   let session = null;      // { access_token, refresh_token, expires_at, user }
 
@@ -31,6 +32,21 @@
       try { localStorage.setItem(ANON_KEY, id); } catch (e) { /* noop */ }
     }
     return id;
+  }
+
+  /* 通報済みの投稿。サーバ側は tactic_reports の主キーで弾いているので、
+     こちらは「押す前からボタンを通報済みにしておく」ためだけの控え。 */
+  function reportedIds() {
+    try { return JSON.parse(localStorage.getItem(REPORTED_KEY) || '{}') || {}; }
+    catch (e) { return {}; }
+  }
+
+  function rememberReported(postId) {
+    try {
+      const map = reportedIds();
+      map[postId] = 1;
+      localStorage.setItem(REPORTED_KEY, JSON.stringify(map));
+    } catch (e) { /* 保存できなくてもサーバ側で弾かれる */ }
   }
 
   /* ---------------- HTTP ---------------- */
@@ -57,6 +73,10 @@
           const msg = (data && (data.message || data.error_description || data.error || data.msg)) || ('HTTP ' + res.status);
           const err = new Error(msg);
           err.status = res.status;
+          /* 画面に出すのは呼び出し側で作った文言だけにする。
+             ここで拾った生の中身は、切り分けと console 用にだけ持たせる。 */
+          err.code = (data && data.code) || null;
+          err.raw = typeof data === 'string' ? data : JSON.stringify(data);
           throw err;
         }
         return data;
@@ -225,6 +245,44 @@
     });
   }
 
+  /**
+   * 通報。通報者は「ログインしていれば user id、していなければ匿名 ID」。
+   * 同じ通報者の 2 回目以降はサーバ側で数えられない（counted が false で返る）。
+   */
+  function reportPost(postId) {
+    return ensureFresh().then(function () {
+      return request('/rest/v1/rpc/report_post', {
+        method: 'POST',
+        body: { p_post_id: postId, p_reporter: currentUser() ? currentUser().id : anonId() }
+      });
+    }).then(function (res) {
+      rememberReported(postId);
+      return res || {};
+    });
+  }
+
+  /* 自分の投稿だけ編集できる。他人の行は RLS で 0 件になるだけで例外にはならない */
+  function updatePost(postId, patch) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/tactic_posts?id=eq.' + encodeURIComponent(postId), {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: patch
+      });
+    }).then(function (rows) { return Array.isArray(rows) ? rows[0] : rows; });
+  }
+
+  function deletePost(postId) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/tactic_posts?id=eq.' + encodeURIComponent(postId), {
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=representation' }
+      });
+    });
+  }
+
   /* ---------------- 保存したセットアップ（要ログイン） ---------------- */
   function listSetups() {
     return ensureFresh().then(function (s) {
@@ -304,6 +362,10 @@
     listPosts: listPosts,
     createPost: createPost,
     likePost: likePost,
+    reportPost: reportPost,
+    updatePost: updatePost,
+    deletePost: deletePost,
+    reportedIds: reportedIds,
     listSetups: listSetups,
     saveSetup: saveSetup,
     updateSetup: updateSetup,

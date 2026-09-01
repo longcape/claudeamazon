@@ -1269,6 +1269,12 @@
     }
     empty.hidden = true;
 
+    /* 自分の投稿かどうかで出すボタンが変わる。
+       匿名投稿（user_id が null）は誰の持ち物でもないので、誰にも編集させない。 */
+    const C = global.VCT_COMMUNITY;
+    const me = (C && C.currentUser && C.currentUser()) ? C.currentUser().id : null;
+    const reported = (C && C.reportedIds) ? C.reportedIds() : {};
+
     grid.innerHTML = posts.map(function (p) {
       const map = D.mapById(p.map);
       return '' +
@@ -1287,9 +1293,30 @@
               ? '<span class="post-score">' + p.analysis_score + '/100</span>' : '') +
             '<button class="btn-like" data-act="like" data-id="' + esc(p.id) + '">♥ ' + (p.likes || 0) + '</button>' +
             '<button class="btn btn-ghost btn-sm" data-act="import-post" data-id="' + esc(p.id) + '">' + t('community.import') + '</button>' +
+            reportButtonHTML(p, reported) +
+            ownerButtonsHTML(p, me) +
           '</div>' +
         '</article>';
     }).join('');
+  }
+
+  /* 通報ボタン。すでに押した投稿は押せない見た目にしておく
+     （サーバ側でも tactic_reports の主キーで弾いている） */
+  function reportButtonHTML(p, reported) {
+    const done = !!reported[p.id];
+    return '<button class="btn btn-ghost btn-sm btn-report" data-act="report" data-id="' + esc(p.id) + '"' +
+             (done ? ' disabled' : '') + '>' +
+             t(done ? 'community.reported' : 'community.report') +
+           '</button>';
+  }
+
+  /* 自分の投稿にだけ編集と削除を出す。匿名投稿は user_id が null なので出ない */
+  function ownerButtonsHTML(p, me) {
+    if (!me || !p.user_id || p.user_id !== me) return '';
+    return '<button class="btn btn-ghost btn-sm" data-act="edit-post" data-id="' + esc(p.id) + '">' +
+             t('community.edit') + '</button>' +
+           '<button class="btn btn-ghost btn-sm btn-danger" data-act="delete-post" data-id="' + esc(p.id) + '">' +
+             t('community.delete') + '</button>';
   }
 
   /** 想定されている相手構成をアイコンで並べる */

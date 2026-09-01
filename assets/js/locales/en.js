@@ -316,6 +316,36 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'community.savedSetups': 'Saved setups',
   'community.saved': 'Saved.',
 
+  /* --- Reporting --- */
+  'community.report': 'Report',
+  'community.reported': 'Reported',
+  'community.reportConfirm': 'Report "{name}"? Use this for spam or inappropriate content.',
+  'community.reportDone': 'Reported.',
+  'community.reportDup': 'You have already reported this post.',
+
+  /* --- Editing your own posts --- */
+  'community.edit': 'Edit',
+  'community.delete': 'Delete',
+  'community.editTitle': 'Edit post',
+  'community.editName': 'Tactic name',
+  'community.editNote': 'Call details',
+  'community.editSave': 'Save',
+  'community.updated': 'Updated.',
+  'community.deleteConfirm': 'Delete "{name}"? This cannot be undone.',
+  'community.deleted': 'Deleted.',
+  'community.loadFailed': 'Could not load posts: {msg}',
+
+  /* --- Errors. Never show the raw database message --- */
+  'err.nameTooLong': 'The tactic name is too long. Keep it under 60 characters.',
+  'err.noteTooLong': 'The call details are too long. Keep them under 600 characters.',
+  'err.authorTooLong': 'The author name is too long. Keep it under 24 characters.',
+  'err.tooLong': 'That is too long. Shorten it and try again.',
+  'err.denied': 'You do not have permission. Sign in again and retry.',
+  'err.duplicate': 'That already exists.',
+  'err.rateLimit': 'Too many posts in a short time. Wait a moment and try again.',
+  'err.network': 'The request did not go through. Check your connection and retry.',
+  'err.unknown': 'That did not work. Try again in a moment.',
+
   'toast.sampleAdded': 'Sample tactics added.',
   'toast.tacticAdded': 'Tactic added.',
   'toast.tacticUpdated': 'Tactic updated.',

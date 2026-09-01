@@ -264,12 +264,24 @@ native ダイアログが混ざったら機械的に落ちるので、この形�
 コール詳細でも絶対にヒットしない検索になっていた（投稿者とマップだけ引っかかっていた）。
 列名を変えるときは `renderPosts` とプレースホルダの文言も一緒に直すこと。
 
-### 通報・投稿の編集削除は画面が無い
+### 通報は「誰が」を必ず持たせる
 
-`report_post` の RPC も `tactic_posts_update` / `tactic_posts_delete` のポリシーも
-用意してあるが、**client 側に呼ぶコードが無い**。「実装済み」と勘違いしないこと。
-作るなら `report_post` に投票者ごとの一意制約を足すのが先（今は 1 人が 5 回叩けば
-どの投稿でも隠せる）。
+`report_post` は通報者（ログイン中なら user id、そうでなければ匿名 ID）を取り、
+`tactic_reports` の `primary key (post_id, reporter)` で 2 回目以降を弾く。
+これが無いと **1 人が 5 回叩くだけでどの投稿でも隠せる**。
+戻り値の `counted` が「今回数えたか」なので、画面はこれで
+「通報しました」と「すでに通報済みです」を出し分ける。5 件で hidden になる仕様は変えない。
+
+通報者を取らない旧 `report_post(uuid)` が残っていると呼び出しが曖昧になるので、
+`schema.sql` は `drop function if exists` を先に書いてある。
+
+### 生の DB メッセージを画面に出さない
+
+`friendlyError()`（app.js）が、文字数超過 / 権限なし / 重複 / レート制限 / 通信失敗 に
+振り分けて i18n の文言を返す。**生の内容は `console.warn` にだけ残す。**
+以前は `violates check constraint "tactic_posts_note_check"` がそのままトーストに出ていた。
+新しい失敗の種類を足すときは、`err.*` のキーを ja / en / ko の 3 つに足すこと。
+smoke-test が「生の DB メッセージが出ないこと」を見張っている。
 
 ### Supabase の関数まわりで踏んだもの
 
