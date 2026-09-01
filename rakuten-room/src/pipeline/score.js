@@ -30,8 +30,78 @@
 const T = require('../util/text');
 const velocityLib = require('./velocity');
 const giftLib = require('./gift');
+const facetsLib = require('./facets');
+const selectLib = require('./select');
 /* 語彙は extras で差し替えられる。未指定なら同梱の定義を使う（テストが素で通るように） */
 const DEFAULT_GIFT_LEXICON = require('../../config/gift-lexicon.json');
+
+/* ---------- スコアリング位相 ----------
+   velocity が未観測のまま順位差を作ると、実測でない値で棚が決まる。
+   観測率が十分になるまでは velocity を全商品同じ中立値にし、
+   その分の配点を識別力のある軸へ回す。 */
+function resolvePhase(candidates, strategy, extras) {
+  const cfg = strategy.scoring || {};
+  const vIndex = (extras && extras.velocityIndex) || new Map();
+  const snapshotDays = (extras && extras.snapshotCount) || 0;
+  const known = candidates.filter(function (i) { return vIndex.has(i.itemCode); }).length;
+  const knownRate = candidates.length ? known / candidates.length : 0;
+
+  const enough = knownRate >= (cfg.velocityKnownRateThreshold || 0.6) &&
+    snapshotDays >= (cfg.minSnapshotDays || 2);
+
+  /* 観測へ切り替わっても一度に全開にしない。collect を重ねるほど効かせる。
+     スナップショットの日数から導くので、追加の状態を持たずに済む */
+  const rampCollects = cfg.rampCollects || 3;
+  const step = snapshotDays - (cfg.minSnapshotDays || 2) + 1;
+  const ramp = enough ? Math.max(0, Math.min(1, step / rampCollects)) : 0;
+
+  return {
+    phase: enough ? 'observed' : 'cold_start',
+    velocityKnownRate: Number(knownRate.toFixed(4)),
+    snapshotDays: snapshotDays,
+    velocityRamp: Number(ramp.toFixed(4))
+  };
+}
+
+/* 料率が候補のほとんどで同値なら、その軸は順位付けに効いていない。
+   実データでは1,510件中1,162件（77%）が4%だった。 */
+function affiliateDominance(candidates, strategy) {
+  const threshold = (strategy.scoring || {}).affiliateDominanceThreshold || 0.7;
+  if (!candidates.length) return { dominant: false, share: 0, rate: null };
+  const counts = {};
+  candidates.forEach(function (i) {
+    const r = Number(i.affiliateRate) || 0;
+    counts[r] = (counts[r] || 0) + 1;
+  });
+  const top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0];
+  const share = counts[top] / candidates.length;
+  return { dominant: share >= threshold, share: Number(share.toFixed(4)), rate: Number(top) };
+}
+
+function resolveWeights(strategy, phase, dominance) {
+  const w = {};
+  Object.keys(strategy.weights).forEach(function (k) {
+    if (k.charAt(0) !== '$') w[k] = strategy.weights[k];
+  });
+
+  if (phase === 'cold_start') {
+    const cold = (strategy.scoring || {}).coldStartWeights || {};
+    Object.keys(cold).forEach(function (k) { w[k] = cold[k]; });
+  }
+
+  if (dominance && dominance.dominant && w.affiliate) {
+    const cut = w.affiliate / 2;
+    w.affiliate -= cut;
+    w.trust = (w.trust || 0) + cut / 2;
+    w.velocity = (w.velocity || 0) + cut / 2;
+  }
+
+  const sum = Object.keys(w).reduce(function (a, k) { return a + w[k]; }, 0);
+  if (sum > 0 && Math.abs(sum - 1) > 1e-9) {
+    Object.keys(w).forEach(function (k) { w[k] = w[k] / sum; });
+  }
+  return w;
+}
 
 const ROLES = ['bait', 'cv', 'traffic'];
 const VARIATION_WORDS = ['カラー', '色違い', 'サイズ', '選べる', '種類', 'バリエーション', '全', 'タイプ'];
@@ -219,9 +289,21 @@ function roleScores(scores, item, strategy) {
 function scoreAll(candidates, strategy, extras) {
   const ctx = buildContext(candidates, strategy, extras);
   const vIndex = extras.velocityIndex || new Map();
+  const phaseInfo = resolvePhase(candidates, strategy, extras);
+  const dominance = affiliateDominance(candidates, strategy);
+  const weights = resolveWeights(strategy, phaseInfo.phase, dominance);
+  const cold = phaseInfo.phase === 'cold_start';
 
   const scored = candidates.map(function (item) {
-    const velocity = velocityLib.velocityScore(vIndex.get(item.itemCode), strategy.velocity);
+    const measured = velocityLib.velocityScore(vIndex.get(item.itemCode), strategy.velocity);
+    /* 冷開始では velocity で順位差を作らない。観測直後もランプで徐々に効かせる */
+    const neutral = strategy.velocity.unknownScore;
+    const velocity = cold
+      ? Object.assign({}, measured, { score: neutral, applied: false })
+      : Object.assign({}, measured, {
+        score: neutral + (measured.score - neutral) * phaseInfo.velocityRamp,
+        applied: true
+      });
     const ad = adHeatScore(item, ctx);
     const trust = trustScore(item, ctx);
     const craft = craftScore(item);
@@ -244,8 +326,6 @@ function scoreAll(candidates, strategy, extras) {
       videoFit: gift.scores.videoFit,
       versatility: gift.scores.versatility
     };
-    const weights = {};
-    Object.keys(strategy.weights).forEach(function (k) { if (!k.startsWith('$')) weights[k] = strategy.weights[k]; });
 
     const roles = roleScores(scores, item, strategy);
     const bestRole = ROLES.reduce(function (a, b) { return roles[b] > roles[a] ? b : a; }, ROLES[0]);
@@ -258,6 +338,9 @@ function scoreAll(candidates, strategy, extras) {
       velocityInfo: velocity,
       aiBreakdown: ai.breakdown,
       adHeatInfo: { topKeywordCount: ad.topKeywordCount, onRanking: ad.onRanking },
+      facets: facetsLib.derive(item, strategy, gift.occasionLabels || []),
+      signature: selectLib.productSignature(item),
+      scoringPhase: phaseInfo.phase,
       giftScores: gift.scores,
       giftSources: gift.sources,
       giftCollections: gift.collections,
@@ -269,6 +352,10 @@ function scoreAll(candidates, strategy, extras) {
   });
 
   scored.sort(function (a, b) { return b.total - a.total; });
+  /* 呼び出し側が doctor / レポートで出せるよう、配列に情報を添える */
+  scored.phase = phaseInfo;
+  scored.affiliateDominance = dominance;
+  scored.weights = weights;
   return scored;
 }
 
@@ -314,4 +401,4 @@ function buildContext(candidates, strategy, extras) {
   };
 }
 
-module.exports = { scoreAll, adHeatScore, trustScore, craftScore, priceFitScore, aiFitScore, roleScores, buildContext, ROLES };
+module.exports = { scoreAll, resolvePhase, affiliateDominance, resolveWeights, adHeatScore, trustScore, craftScore, priceFitScore, aiFitScore, roleScores, buildContext, ROLES };
