@@ -1244,7 +1244,12 @@
     if (query && Array.isArray(posts)) {
       const words = query.toLowerCase().split(/\s+/).filter(Boolean);
       posts = posts.filter(function (p) {
-        const hay = [p.title, p.body, p.map, p.author_name].join(' ').toLowerCase();
+        /* 列名は name / note。title / body という列はテーブルに無い。
+           以前ここを title / body にしていたせいで、戦術名でもコール詳細でも
+           絶対にヒットしない検索になっていた（投稿者とマップだけ引っかかっていた）。 */
+        const map = D.mapById(p.map);
+        const hay = [p.name, p.note, p.site, p.kind, p.map, map ? map.name : '', p.author_name]
+          .join(' ').toLowerCase();
         return words.every(function (w) { return hay.indexOf(w) >= 0; });
       });
       if (!posts.length) { status = t('community.noMatch'); }

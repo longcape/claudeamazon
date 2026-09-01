@@ -78,7 +78,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'ask.delete': '削除する',
   'ask.reset': 'リセットする',
   'menu.title': 'データの書き出し・読み込み・初期化',
-  'community.searchPh': 'みんなの戦術を検索（タイトル・本文・投稿者）',
+  'community.searchPh': 'みんなの戦術を検索（名前・コール・マップ・投稿者）',
   'community.noMatch': '条件に合う投稿がありません。',
   'share.matchText': '{map} {ally}-{enemy}\n使った戦術:',
   'common.close': '閉じる',

@@ -76,7 +76,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'ask.delete': '삭제',
   'ask.reset': '초기화',
   'menu.title': '내보내기 · 가져오기 · 초기화',
-  'community.searchPh': '공유된 전술 검색 (제목 · 본문 · 작성자)',
+  'community.searchPh': '공유된 전술 검색 (이름 · 콜 · 맵 · 작성자)',
   'community.noMatch': '조건에 맞는 게시물이 없습니다.',
   'share.matchText': '{map} {ally}-{enemy}\n사용한 전술:',
   'common.close': '닫기',

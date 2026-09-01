@@ -85,6 +85,24 @@ node tools/smoke-test.mjs   # 動作確認（playwright が無ければ黙って
 RLS は `saved_setups_all`（`for all to authenticated using (user_id = auth.uid())`）が
 意図どおり効いている。`tactic_likes` と `ai_usage` も直接読めないことを確認済み。
 
+### コミュニティ投稿 — **2026-09-01 実地検証済み**
+
+| 経路 | 結果 |
+| --- | --- |
+| COMMUNITY タブから匿名投稿 | 成功。`user_id` は null、成功トーストが出てモーダルが閉じる |
+| 投稿一覧への反映 | 投稿直後に再取得されてカードが並ぶ |
+| 検索（名前 / コール / マップ / 投稿者 / AND） | **修正後に**通るようになった（下記「問題点」） |
+| いいね | `likes` が増える |
+| 重複いいね | 同じブラウザから 4 回押しても `tactic_likes` は 1 行のまま |
+| 通報（RPC 直叩き） | 5 件で `hidden` になり、匿名の一覧から消える |
+| ログインユーザーの投稿 | `user_id` が自動で入る。他人の `user_id` を入れた投稿は RLS 違反で弾かれる |
+| 自分の投稿の編集・削除 | 本人なら 1 行更新・削除できる |
+| 他人の投稿の編集・削除 | **UPDATE 0 行 / DELETE 0 行**。匿名投稿は誰も編集・削除できない |
+| 並び替え・マップ絞り込み | `order=likes.desc,created_at.desc` と `map=eq.` が正しく飛ぶ |
+| 失敗メッセージ | 制約違反でモーダルは開いたまま、`toast err` が出る |
+
+> 通報・編集・削除は**画面からの導線が無い**ため、RPC と RLS のレベルで確認した。
+
 ### その他
 - 戦術の検索・グループ分け（サイト / 種別 / サイド）
 - 構成プリセット（`state.comps`、上限 12）と入力の高速化
@@ -117,6 +135,8 @@ RLS は `saved_setups_all`（`for all to authenticated using (user_id = auth.uid
 | 項目 | メモ |
 | --- | --- |
 | **BUY マネー計算** | ユーザーが「一旦よい」と判断して保留。着手していない |
+| **投稿の通報 UI** | `report_post` の RPC と RLS は動くが、**画面から呼ぶ導線が無い**。5 件で自動的に隠れるところまで実測済み |
+| **投稿の編集・削除 UI** | `tactic_posts_update` / `tactic_posts_delete` のポリシーはあるが、**client 側に該当のコードが無い**（`community.js` に関数も無い）。サーバ側は本人のみ可・他人は 0 行になることを実測済み |
 
 ---
 
@@ -151,7 +171,16 @@ RLS は `saved_setups_all`（`for all to authenticated using (user_id = auth.uid
 | Actions の自動コミットが毎回空 | 生成物に生成日時を書いていた | 日時の行をやめた |
 | **匿名の戦術投稿が丸ごと通らない** | レート制限トリガが `digest()`（pgcrypto）を呼ぶが、pgcrypto は `extensions` スキーマにいる。関数の `search_path` を `public` だけに絞っていたため `function digest(text, unknown) does not exist` で insert が必ず失敗していた。コミュニティ投稿は一度も成功したことがなかった | `set search_path = public, extensions` に直した。匿名投稿 201 / いいね RPC / 重複いいねの無視まで実測で確認済み |
 | トリガ関数が REST の RPC として外から叩けた | `revoke ... from anon, authenticated` だけでは足りない。**PUBLIC に EXECUTE が付いたまま**で、anon と authenticated は PUBLIC のメンバーなので実質そのまま呼べる | `revoke all ... from public` も入れた。`/rest/v1/rpc/` から 404 になることを確認済み |
+| **コミュニティ検索が戦術名でもコール詳細でも当たらない** | `renderPosts` が `p.title` / `p.body` で絞っていたが、`tactic_posts` にその列は無い（`name` / `note`）。投稿者とマップだけ引っかかる状態だった | `name` / `note` / `site` / `kind` / `map` / 投稿者 に当てるよう修正。プレースホルダの文言も ja / en / ko の 3 つとも直した |
 | Discord ボタンが押しても必ず失敗する | Supabase 側で Discord を有効にしていないのに、ボタンが HTML 直書きで常に出ていた。`config.js` の `AUTH_PROVIDERS` はどこからも参照されない死んだ設定だった | `AUTH_PROVIDERS` と `AUTH_EMAIL` で表示を出し分けるようにし、既定を `[]` にした |
+
+### まだ直していないもの
+
+- **通報に重複防止が無い。** `report_post` は誰が何回でも呼べるので、1 人が 5 回叩けば
+  どの投稿でも隠せる。いいねと同じように投票者ごとの一意制約を入れるのが素直。
+- **失敗トーストに Postgres のメッセージがそのまま出る。**
+  `投稿に失敗しました: new row for relation "tactic_posts" violates check constraint ...` のような
+  出方をする。動作としては正しいが、利用者に見せる文言ではない。
 
 ### 既知の制約（不具合ではない）
 

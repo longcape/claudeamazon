@@ -257,6 +257,20 @@ Esc / Enter は capture で拾って、後ろのモーダルまで閉じない�
 smoke-test は `dialog` イベントを検出したら失敗する。
 native ダイアログが混ざったら機械的に落ちるので、この形を崩さないこと。
 
+### コミュニティ検索が当たる先
+
+`tactic_posts` の列は **`name` / `note`** で、`title` / `body` という列は無い。
+`renderPosts` の絞り込みを `p.title` / `p.body` に当てていたせいで、戦術名でも
+コール詳細でも絶対にヒットしない検索になっていた（投稿者とマップだけ引っかかっていた）。
+列名を変えるときは `renderPosts` とプレースホルダの文言も一緒に直すこと。
+
+### 通報・投稿の編集削除は画面が無い
+
+`report_post` の RPC も `tactic_posts_update` / `tactic_posts_delete` のポリシーも
+用意してあるが、**client 側に呼ぶコードが無い**。「実装済み」と勘違いしないこと。
+作るなら `report_post` に投票者ごとの一意制約を足すのが先（今は 1 人が 5 回叩けば
+どの投稿でも隠せる）。
+
 ### Supabase の関数まわりで踏んだもの
 
 **pgcrypto は `extensions` スキーマにいる。** `enforce_post_rate_limit` が `digest()` を

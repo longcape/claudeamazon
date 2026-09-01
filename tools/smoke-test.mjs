@@ -414,6 +414,205 @@ check('再読み込みしても配置が残る',
   JSON.stringify(saved) === JSON.stringify(reloaded),
   `${JSON.stringify(saved)} → ${JSON.stringify(reloaded)}`);
 
+/* ---------------- 設定による出し分け ----------------
+   config.js の値でしか変わらないところは、dist の中身を書き換えた
+   一時ファイルを開いて確かめる。dist は 1 枚の HTML なので置換で足りる。
+   接続情報はリポジトリに置かない方針なので、ここではダミーを使う。 */
+console.log('\n設定による出し分け');
+
+const distHtml = fs.readFileSync(DIST, 'utf8');
+
+/* 接続情報を入れたままコミットすると、この下の変種テストが成立しなくなるうえ
+   「未設定ならクラウド保存は隠れる」も落ちる。まずそこを見る。 */
+check('config.js に接続情報が残っていない',
+  distHtml.includes("SUPABASE_URL: ''") && distHtml.includes("SUPABASE_ANON_KEY: ''"));
+
+/* 変種を開く間は通信させない。空配列を返しておけば一覧は「投稿なし」になる */
+await context.addInitScript(() => {
+  window.fetch = () => Promise.resolve(
+    new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } })
+  );
+});
+
+async function openVariant(name, replacements) {
+  let html = distHtml;
+  for (const [from, to] of replacements) {
+    if (!html.includes(from)) throw new Error(`変種 ${name}: 置換元が見つからない → ${from}`);
+    html = html.split(from).join(to);
+  }
+  const file = path.join(os.tmpdir(), `vct-smoke-${name}.html`);
+  fs.writeFileSync(file, html);
+  await page.goto('file://' + file);
+  await page.waitForTimeout(600);
+  /* file:// は localStorage を共有するので、前のテストで開始したマッチの続きから
+     立ち上がることがある。見るのはセットアップ画面なので戻しておく。 */
+  await page.click('.phase-tab[data-phase="setup"]');
+  await page.waitForTimeout(300);
+  return file;
+}
+
+/* ログインモーダルは閉じているので、中の要素は「見えない」としか答えられない。
+   applyAuthConfig() が触るのは hidden 属性なので、そちらを直接見る。 */
+async function loginBoxes() {
+  return page.evaluate(() => {
+    const g = (id) => document.getElementById(id);
+    return {
+      discord: g('btn-login-discord').hidden,
+      providers: g('login-providers').hidden,
+      sep: g('login-sep').hidden,
+      email: g('login-email-block').hidden
+    };
+  });
+}
+
+const CFG_URL = ["SUPABASE_URL: ''", "SUPABASE_URL: 'https://example.supabase.co'"];
+const CFG_KEY = ["SUPABASE_ANON_KEY: ''", "SUPABASE_ANON_KEY: 'dummy-anon-key'"];
+
+/* --- 未設定のとき --- */
+await openVariant('default', []);
+check('未設定ならコミュニティタブも隠れる', await page.locator('#tab-community').isHidden());
+check('未設定ならクラウド保存ボタンも隠れる', await page.locator('#btn-cloud').isHidden());
+
+/* Discord を有効にしていないのにボタンを出すと、押した先で必ず失敗する。
+   出すかどうかは AUTH_PROVIDERS だけで決まること。 */
+let authBox = await loginBoxes();
+check('AUTH_PROVIDERS が空なら Discord ボタンは出ない', authBox.discord === true);
+check('AUTH_PROVIDERS が空ならプロバイダ欄ごと隠れる', authBox.providers === true);
+check('AUTH_EMAIL が true ならメールログインは出る', authBox.email === false);
+check('プロバイダが無いときは区切り線も出ない', authBox.sep === true);
+
+/* --- Discord を足したとき --- */
+await openVariant('discord', [["AUTH_PROVIDERS: []", "AUTH_PROVIDERS: ['discord']"]]);
+authBox = await loginBoxes();
+check('AUTH_PROVIDERS に足せば Discord ボタンが出る', authBox.discord === false);
+check('プロバイダがあれば区切り線も出る', authBox.sep === false);
+check('Discord を足してもメールログインは残る', authBox.email === false);
+
+/* --- 接続情報を入れたとき --- */
+await openVariant('community', [CFG_URL, CFG_KEY]);
+check('接続情報を入れるとコミュニティタブが出る',
+  await page.locator('#tab-community').isHidden() === false);
+check('接続情報を入れるとクラウド保存ボタンが出る',
+  await page.locator('#btn-cloud').isHidden() === false);
+
+await page.click('.phase-tab[data-phase="community"]');
+await page.waitForTimeout(500);
+check('コミュニティ画面が開く', await page.locator('#view-community').isVisible());
+check('未ログインならログインへの導線が出る',
+  (await page.locator('#community-account [data-act="login"]').count()) === 1);
+
+/* ここは実際にモーダルを開けるので、hidden 属性ではなく見た目で確かめる */
+await page.click('#community-account [data-act="login"]');
+await page.waitForTimeout(400);
+check('ログインモーダルが開く', await page.locator('#modal-login').isVisible());
+check('開いた状態でも Discord ボタンは見えない',
+  await page.locator('#btn-login-discord').isVisible() === false);
+check('開いた状態でメールログインは見える',
+  await page.locator('#login-email').isVisible());
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+
+await page.click('#btn-open-post');
+await page.waitForTimeout(400);
+check('投稿モーダルが開く', await page.locator('#modal-post').isVisible());
+check('投稿モーダルに戦術が並ぶ', (await page.locator('#post-tactic option').count()) > 0);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+
+/* コミュニティ検索。列名は name / note で、title / body という列は無い。
+   以前ここを title / body に当てていて、戦術名でもコール詳細でも
+   絶対にヒットしない検索になっていた。 */
+const found = await page.evaluate(() => {
+  const U = window.VCT_UI;
+  const posts = [
+    { id: 'p1', name: 'B ファストラッシュ', note: 'フラッシュ2枚先行', map: 'ascent',
+      side: 'ATK', site: 'B', kind: 'fast', author_name: 'ALPHA', likes: 0, enemy_comp: [] },
+    { id: 'p2', name: 'A スタック', note: '3枚寄せ', map: 'bind',
+      side: 'DEF', site: 'A', kind: 'stack', author_name: 'BRAVO', likes: 0, enemy_comp: [] }
+  ];
+  const n = (q) => {
+    U.renderPosts(posts, null, q);
+    return document.querySelectorAll('#post-grid .post-card').length;
+  };
+  const out = { all: n(''), byName: n('ファストラッシュ'), byNote: n('フラッシュ2枚'),
+                byAuthor: n('BRAVO'), byMap: n('bind'), andWords: n('スタック BRAVO'),
+                none: n('該当しない語') };
+  out.emptyText = document.getElementById('post-empty').textContent;
+  /* 最後に絞り込みを解いてから、カード内のボタンを数える */
+  n('');
+  out.likeButtons = document.querySelectorAll('#post-grid [data-act="like"]').length;
+  out.importButtons = document.querySelectorAll('#post-grid [data-act="import-post"]').length;
+  return out;
+});
+check('検索なしでは全件出る', found.all === 2, String(found.all));
+check('戦術名で検索できる', found.byName === 1, String(found.byName));
+check('コール詳細（本文）で検索できる', found.byNote === 1, String(found.byNote));
+check('投稿者で検索できる', found.byAuthor === 1, String(found.byAuthor));
+check('マップで検索できる', found.byMap === 1, String(found.byMap));
+check('スペース区切りは AND になる', found.andWords === 1, String(found.andWords));
+check('ヒットしなければその旨を出す', found.none === 0 && /ありません|No |없습니다/.test(found.emptyText),
+  found.emptyText);
+
+/* いいねボタンと取り込みボタンはカードごとに出ていること */
+check('カードにいいねと取り込みのボタンが出る',
+  found.likeButtons === 2 && found.importButtons === 2,
+  `like ${found.likeButtons} / import ${found.importButtons}`);
+
+/* 並び替えと絞り込み */
+await page.click('#community-sort .chip[data-sort="top"]');
+await page.waitForTimeout(400);
+check('人気ソートに切り替わる',
+  await page.locator('#community-sort .chip[data-sort="top"]').evaluate((el) => el.classList.contains('is-active')));
+
+await page.fill('#community-query', 'ラッシュ');
+await page.waitForTimeout(300);
+check('検索するとクリアボタンが出る', await page.locator('#btn-community-clear').isHidden() === false);
+await page.click('#btn-community-clear');
+await page.waitForTimeout(300);
+check('クリアボタンで検索語が消える', (await page.locator('#community-query').inputValue()) === '');
+
+/* ---------------- スキーマ ----------------
+   DB へは繋がないので、schema.sql の中身だけを見る。
+   ここに並んでいるのは、実際に壊れて事故になったものだけ。 */
+console.log('\nスキーマ');
+const schema = fs.readFileSync(path.join(ROOT, 'supabase/schema.sql'), 'utf8');
+
+for (const table of ['tactic_posts', 'tactic_likes', 'saved_setups', 'ai_usage']) {
+  check(`${table} の定義がある`, schema.includes(`create table if not exists public.${table}`));
+}
+for (const table of ['tactic_posts', 'tactic_likes', 'saved_setups', 'ai_usage']) {
+  check(`${table} で RLS を有効にしている`,
+    schema.includes(`alter table public.${table} enable row level security`));
+}
+for (const policy of ['tactic_posts_read', 'tactic_posts_insert', 'tactic_posts_update',
+                      'tactic_posts_delete', 'tactic_likes_none', 'saved_setups_all']) {
+  check(`ポリシー ${policy} がある`, schema.includes(`create policy ${policy}`));
+}
+for (const fn of ['touch_updated_at', 'enforce_post_rate_limit', 'like_post', 'report_post']) {
+  check(`関数 ${fn} の定義がある`,
+    schema.includes(`create or replace function public.${fn}`));
+}
+
+/* pgcrypto は extensions スキーマに入る。search_path を public だけに絞ると
+   digest() が見つからず、tactic_posts への insert が丸ごと失敗する。 */
+check('レート制限の search_path に extensions が入っている',
+  /enforce_post_rate_limit[\s\S]{0,400}?set search_path = public, extensions/.test(schema));
+
+/* revoke ... from anon, authenticated だけでは効かない。関数には既定で PUBLIC に
+   EXECUTE が付いていて、anon も authenticated もその PUBLIC のメンバーだから。 */
+for (const fn of ['touch_updated_at', 'enforce_post_rate_limit']) {
+  check(`トリガ関数 ${fn} の EXECUTE を PUBLIC から落としている`,
+    schema.includes(`revoke all on function public.${fn}() from public;`));
+  check(`トリガ関数 ${fn} の EXECUTE を anon / authenticated からも落としている`,
+    schema.includes(`revoke all on function public.${fn}() from anon, authenticated;`));
+}
+
+/* 逆に、いいねと通報は意図して公開しているので消えていないこと */
+check('like_post は anon / authenticated に公開したまま',
+  schema.includes('grant execute on function public.like_post(uuid, text) to anon, authenticated;'));
+check('report_post は anon / authenticated に公開したまま',
+  schema.includes('grant execute on function public.report_post(uuid) to anon, authenticated;'));
+
 /* ---------------- まとめ ---------------- */
 check('ページ内で例外が出ていない', pageErrors.length === 0, pageErrors.join(' / '));
 

@@ -76,7 +76,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'ask.delete': 'Delete',
   'ask.reset': 'Reset',
   'menu.title': 'Export, import and reset',
-  'community.searchPh': 'Search shared tactics (title, body, author)',
+  'community.searchPh': 'Search shared tactics (name, call, map, author)',
   'community.noMatch': 'No post matches.',
   'share.matchText': '{map} {ally}-{enemy}\nTactics used:',
   'common.close': 'Close',

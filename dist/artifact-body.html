@@ -3240,7 +3240,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'ask.delete': '削除する',
   'ask.reset': 'リセットする',
   'menu.title': 'データの書き出し・読み込み・初期化',
-  'community.searchPh': 'みんなの戦術を検索（タイトル・本文・投稿者）',
+  'community.searchPh': 'みんなの戦術を検索（名前・コール・マップ・投稿者）',
   'community.noMatch': '条件に合う投稿がありません。',
   'share.matchText': '{map} {ally}-{enemy}\n使った戦術:',
   'common.close': '閉じる',
@@ -3651,7 +3651,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'ask.delete': 'Delete',
   'ask.reset': 'Reset',
   'menu.title': 'Export, import and reset',
-  'community.searchPh': 'Search shared tactics (title, body, author)',
+  'community.searchPh': 'Search shared tactics (name, call, map, author)',
   'community.noMatch': 'No post matches.',
   'share.matchText': '{map} {ally}-{enemy}\nTactics used:',
   'common.close': 'Close',
@@ -4054,7 +4054,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'ask.delete': '삭제',
   'ask.reset': '초기화',
   'menu.title': '내보내기 · 가져오기 · 초기화',
-  'community.searchPh': '공유된 전술 검색 (제목 · 본문 · 작성자)',
+  'community.searchPh': '공유된 전술 검색 (이름 · 콜 · 맵 · 작성자)',
   'community.noMatch': '조건에 맞는 게시물이 없습니다.',
   'share.matchText': '{map} {ally}-{enemy}\n사용한 전술:',
   'common.close': '닫기',
@@ -8786,7 +8786,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     if (query && Array.isArray(posts)) {
       const words = query.toLowerCase().split(/\s+/).filter(Boolean);
       posts = posts.filter(function (p) {
-        const hay = [p.title, p.body, p.map, p.author_name].join(' ').toLowerCase();
+        /* 列名は name / note。title / body という列はテーブルに無い。
+           以前ここを title / body にしていたせいで、戦術名でもコール詳細でも
+           絶対にヒットしない検索になっていた（投稿者とマップだけ引っかかっていた）。 */
+        const map = D.mapById(p.map);
+        const hay = [p.name, p.note, p.site, p.kind, p.map, map ? map.name : '', p.author_name]
+          .join(' ').toLowerCase();
         return words.every(function (w) { return hay.indexOf(w) >= 0; });
       });
       if (!posts.length) { status = t('community.noMatch'); }
