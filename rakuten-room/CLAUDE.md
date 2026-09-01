@@ -1,5 +1,21 @@
 # rakuten-room — 楽天ROOM運用エンジン
 
+## 現行方針（2026-09-01確定）
+
+**ソーシャルギフト特化「贈りもの迷子｜住所なしギフト」。**
+
+- 棚は1つ、テーマはソーシャルギフト。**価格帯や用途の違いは別ジャンルではなく、同じ棚の中のコレクション**として扱う
+- 導線は TikTok / YouTube Shorts / Instagram Reels → 楽天ROOM → 楽天市場。
+  商品選定では「ROOM内で売れるか」だけでなく**短尺動画のネタとして成立するか**も見る
+- NG検査の1項目めは「ジャンル散乱」ではなく**「ギフト用途として成立しない商品の混入」**
+- ジャンルは横断する（`rootGenreId: "0"`）。棚の同一性はジャンルではなくギフト適性で担保する
+
+**旧方針「キッチンと収納」は2026-09-01に廃止した。** 経緯は上位の
+`03_楽天ROOM自動化/PROJECT_CONTEXT.md` の旧方針節を正とする。
+`README.md` / `START-HERE.md` / `HANDOFF.md` には旧方針時点の記述が残っており、
+各文書の冒頭に注意書きを付けてある。**現行の評価軸と重みは `config/strategy.json` と
+`src/pipeline/gift.js` を正とする。**
+
 楽天市場のデータから、楽天ROOMの商品選定・紹介文・投稿順・投稿時刻を自動生成する。
 **依存パッケージなし**（Node.js 18+ と標準ライブラリのみ）。CommonJS。
 
@@ -21,11 +37,14 @@
 ## コマンド
 
 ```bash
-npm test                    # 29件。変更したら必ず通す
-node bin/room.js doctor     # 設定と接続
-node bin/room.js probe      # 実データの充足率を点検
-node bin/room.js launch     # 初動30件の計画
-node bin/room.js plan       # 通常運用の計画
+npm test                     # 43件。変更したら必ず通す
+node bin/room.js doctor      # 設定と接続
+node bin/room.js probe       # 実データの充足率を点検
+node bin/room.js collect     # 候補収集。定点観測を1日分残す（毎日）
+node bin/room.js portfolio   # 100商品の台帳（主力20/準主力30/ロングテール50）
+node bin/room.js launch      # 初動30件の投稿計画
+node bin/room.js plan        # 通常運用の投稿計画
+node bin/room.js backup      # 作り直せないデータの退避
 ```
 
 ## 壊してはいけない不変条件
@@ -73,8 +92,12 @@ node bin/room.js plan       # 通常運用の計画
   `node bin/room.js genre 0` で必ず実物を引くこと
 - **商品のジャンルIDは3〜4階層目に付く。** 直下の子だけで所属を判定すると候補の7割が「圏外」になり、
   aiFitのカテゴリ相関とNG1が同時に壊れる。`src/index.js` の `genreDescendants` は祖先まで辿る実装
-- **`data/` はGit管理外。消えると復元できない。** 2026-09-01にフォルダ消失で定点観測2日分を失った。
-  コードはGitHubのブランチから復旧できたが `data/` は戻らなかった
+- **定点観測・投稿履歴・実績は消えると復元できない。** 2026-09-01にフォルダ消失で
+  定点観測2日分を失い、売上速度の計測がゼロに戻った。対策として
+  `data/snapshot-*.json` / `history.json` / `results.json` だけ **Git追跡対象に変更した**
+  （商品コードと公開値のみで秘密情報を含まない）。`candidates-*` と `plan-*` は
+  作り直せるので追跡しない。`node bin/room.js backup` でローカル退避も取れる。
+  **collect のあとはコミットすること。**
 - レートは1リクエスト1.1秒（`src/rakuten/client.js`）。429が続くなら間隔を上げる
 - 初日は売上速度が未計測なのでスコアが低く出る。選定基準の自動緩和はこのための仕組みで、
   初回に緩むのは正常

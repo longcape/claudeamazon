@@ -41,12 +41,17 @@ test('ハードフィルタが仕様どおりに弾く', function () {
 });
 
 test('ゴールデン価格帯の適合度がピークで最大になる', function () {
+  /* 価格帯は戦略で動く（キッチン収納の1980-2680円 → ギフトの2500-3500円）。
+     値を直に書くと戦略変更のたびに落ちるので、設定から導いて検証する */
   const g = strategy.goldenPrice;
-  const peak = score.priceFitScore(2300, g);
-  assert.strictEqual(peak, 1);
-  assert.ok(score.priceFitScore(1600, g) < peak);
-  assert.ok(score.priceFitScore(9800, g) < score.priceFitScore(3200, g));
-  assert.ok(score.priceFitScore(500, g) >= 0);
+  const mid = Math.round((g.peakMin + g.peakMax) / 2);
+  const peak = score.priceFitScore(mid, g);
+  assert.strictEqual(peak, 1, 'ピーク帯の中央は最大値になる');
+  assert.strictEqual(score.priceFitScore(g.peakMin, g), 1, 'ピーク帯の下端も最大値');
+  assert.strictEqual(score.priceFitScore(g.peakMax, g), 1, 'ピーク帯の上端も最大値');
+  assert.ok(score.priceFitScore(g.min, g) < peak, 'ゴールデン帯の下端はピークより低い');
+  assert.ok(score.priceFitScore(g.max + 4000, g) < score.priceFitScore(g.max, g), '帯から離れるほど下がる');
+  assert.ok(score.priceFitScore(100, g) >= 0, '極端に安くても0未満にはしない');
 });
 
 test('売上速度は計測できないとき中庸の値になる', function () {
