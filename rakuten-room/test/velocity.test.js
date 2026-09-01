@@ -88,9 +88,15 @@ test('速度の差が総合点と順位へ反映される', function () {
   writeSnapshots(items, deltas);
   const v = velocity.buildVelocityIndex(strategy);
 
+  /* 冷開始では velocity で順位差を作らない仕様なので、
+     観測位相へ入る条件（既知率60%以上・スナップショット2日以上）を満たして比べる */
   const opts = { lexicon: copyLexicon, trend: { rising: [], decaying: [] } };
   const before = score.scoreAll(items, strategy, opts);
-  const after = score.scoreAll(items, strategy, Object.assign({ velocityIndex: v.index }, opts));
+  const after = score.scoreAll(items, strategy,
+    Object.assign({ velocityIndex: v.index, snapshotCount: v.snapshotCount }, opts));
+
+  assert.strictEqual(before.phase.phase, 'cold_start', '速度が無ければ冷開始');
+  assert.strictEqual(after.phase.phase, 'observed', '2日分そろえば観測位相');
 
   const code = items[11].itemCode;
   const b = before.find(function (i) { return i.itemCode === code; });

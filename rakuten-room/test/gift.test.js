@@ -11,6 +11,7 @@ const store = require('../src/util/store');
 const score = require('../src/pipeline/score');
 const gift = require('../src/pipeline/gift');
 const portfolio = require('../src/pipeline/portfolio');
+const facets = require('../src/pipeline/facets');
 const ngcheck = require('../src/guard/ngcheck');
 const fixtures = require('./fixtures');
 
@@ -200,13 +201,52 @@ test('秘密情報がGit管理対象にも出力にも含まれない', function
 });
 
 test('固定カテゴリ上限で関連商品のまとまりを切らない', function () {
+  /* 一律の占有率上限は撤廃した。上限で機械的に切ると、
+     買い物目的でまとまった関連商品の束まで壊れる */
   assert.strictEqual(strategy.portfolio.maxCollectionShare, undefined);
-  assert.ok(strategy.portfolio.dominanceWarningShare > 0.5);
-  const warnings = portfolio.dominanceWarnings([
-    { giftCollections: ['食品'] }, { giftCollections: ['食品'] },
-    { giftCollections: ['食品'] }, { giftCollections: ['雑貨'] }
-  ], 0.7);
-  assert.strictEqual(warnings[0].collection, '食品');
+  assert.strictEqual(strategy.portfolio.dominanceWarningShare, undefined);
+  /* 代わりに、商品カテゴリだけへ警告を当てる */
+  assert.ok(strategy.portfolio.dominance.productCategoryWarn > 0.5);
+});
+
+test('利用場面が78%を占めても商品カテゴリの偏り警告は出ない', function () {
+  /* 誕生日タグは候補の78%が持つ。場面が広いだけで棚の偏りではない。
+     旧実装は giftCollections へ一律の上限を当てていたため、
+     これを食品の偏りと同じ扱いで警告していた */
+  const items = [];
+  for (let i = 0; i < 100; i += 1) {
+    items.push({
+      facets: {
+        productCategory: i < 30 ? 'sweets' : (i < 60 ? 'towel' : 'cosmetic'),
+        occasion: i < 78 ? ['birthday'] : ['thanks'],
+        recipient: [], priceBand: '3000', deliveryMode: 'address_free'
+      }
+    });
+  }
+  const warns = facets.categoryDominance(items, strategy);
+  assert.strictEqual(warns.length, 0, '商品カテゴリはどれも70%を超えていない');
+
+  const cov = facets.coverage(items, strategy);
+  assert.ok(cov.occasion, '場面はカバレッジとして別に集計される');
+  assert.strictEqual(cov.occasion.counts.birthday, 78);
+});
+
+test('商品カテゴリが71%を占めると警告が出る。ただし自動除外はしない', function () {
+  const items = [];
+  for (let i = 0; i < 100; i += 1) {
+    items.push({
+      facets: {
+        productCategory: i < 71 ? 'sweets' : 'towel',
+        occasion: ['birthday'], recipient: [], priceBand: '3000', deliveryMode: 'unknown'
+      }
+    });
+  }
+  const warns = facets.categoryDominance(items, strategy);
+  assert.strictEqual(warns.length, 1);
+  assert.strictEqual(warns[0].productCategory, 'sweets');
+  assert.ok(warns[0].share > 0.70);
+  /* 警告であって除外ではない。件数はそのまま残る */
+  assert.strictEqual(items.length, 100);
 });
 
 test('紹介文が検証できない断定と誇張を含まない', function () {

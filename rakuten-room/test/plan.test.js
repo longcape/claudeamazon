@@ -86,16 +86,47 @@ test('評価取りと売上のペアは日をまたいで分断されない', fu
 });
 
 test('動画由来の3仮説に対応する観測指標が計算できる', function () {
+  /* 旧実装は clicks/likes を「閲覧率」、trafficClicks/allClicks を
+     「外部送客量」と呼んでいた。前者はいいねがインプレッション母数ではないので率ではなく、
+     後者は量ではなく構成比である。どちらも廃止した。 */
   const entries = [
-    { role: 'bait', likes: 100, clicks: 40, conversions: 0, revenue: 0 },
-    { role: 'cv', likes: 60, clicks: 30, conversions: 3, revenue: 7000 },
-    { role: 'traffic', likes: 40, clicks: 20, conversions: 1, revenue: 2000 }
+    { role: 'bait', likes: 100, outboundClicks: 40, uniqueOutboundUsers: null, conversionsConfirmed: null, conversionsPending: 0, revenueConfirmed: 0, revenuePending: 0, maturity: 'click_ready' },
+    { role: 'cv', likes: 60, outboundClicks: 30, uniqueOutboundUsers: null, conversionsConfirmed: 3, conversionsPending: 0, revenueConfirmed: 7000, revenuePending: 0, maturity: 'cv_mature' },
+    { role: 'traffic', likes: 40, outboundClicks: 20, uniqueOutboundUsers: null, conversionsConfirmed: 1, conversionsPending: 0, revenueConfirmed: 2000, revenuePending: 0, maturity: 'cv_mature' }
   ];
-  const h = feedback.hiddenScores(entries);
-  assert.strictEqual(h.閲覧誘導.value, 90 / 200);
-  assert.strictEqual(h.CV誘導.value, 4 / 90);
-  assert.strictEqual(h.外部送客.value, 20 / 90);
-  assert.strictEqual(h.売上金額, 9000);
+  const o = feedback.observations(entries, strategy);
+
+  /* ROOM反応観測は 外部クリック / 投稿数 */
+  assert.strictEqual(o.ROOM反応観測.value, 90 / 3);
+  /* 楽天市場送客観測はユニーク送客者が取れないのでクリック/投稿へ退避する */
+  assert.strictEqual(o.楽天市場送客観測.uniqueAvailable, false);
+  assert.strictEqual(o.楽天市場送客観測.value, 90 / 3);
+  /* 購買転換観測は成熟した投稿だけを母集団にする（1件目は未成熟なので除く） */
+  assert.strictEqual(o.購買転換観測.maturePosts, 2);
+  assert.strictEqual(o.購買転換観測.value, 4 / 50);
+  assert.strictEqual(o.売上金額.confirmed, 9000);
+  assert.ok(o.note.indexOf('楽天公式') >= 0, '公式内部スコアではないと明示する');
+});
+
+test('ユニーク送客者が全投稿で取れていれば楽天市場送客観測はそちらを使う', function () {
+  const entries = [
+    { likes: 10, outboundClicks: 40, uniqueOutboundUsers: 22, conversionsConfirmed: null, conversionsPending: 0, maturity: 'click_ready' },
+    { likes: 10, outboundClicks: 20, uniqueOutboundUsers: 15, conversionsConfirmed: null, conversionsPending: 0, maturity: 'click_ready' }
+  ];
+  const o = feedback.observations(entries, strategy);
+  assert.strictEqual(o.楽天市場送客観測.uniqueAvailable, true);
+  assert.strictEqual(o.楽天市場送客観測.value, 37 / 2);
+});
+
+test('いいねが0でも観測指標が壊れない', function () {
+  const entries = [
+    { likes: 0, outboundClicks: 12, uniqueOutboundUsers: null, conversionsConfirmed: null, conversionsPending: 0, maturity: 'click_ready' }
+  ];
+  const o = feedback.observations(entries, strategy);
+  assert.strictEqual(o.ROOM反応観測.value, 12);
+  assert.strictEqual(o.ROOM反応観測.補助_クリック対いいね比, null,
+    'いいね0のとき比率は出さない。0除算も無限大も作らない');
+  assert.ok(Number.isFinite(o.購買転換観測.value));
 });
 
 test('関連コレクションを持つ商品がペアとして優先される', function () {
