@@ -76,6 +76,18 @@ create table if not exists public.tactic_reports (
   primary key (post_id, reporter)
 );
 
+-- 通報の理由と、その他を選んだときの短い補足。
+-- 既存のテーブルにも足せるように alter で書く。
+alter table public.tactic_reports add column if not exists reason text not null default 'other';
+alter table public.tactic_reports drop constraint if exists tactic_reports_reason_check;
+alter table public.tactic_reports add constraint tactic_reports_reason_check
+  check (reason in ('spam', 'abuse', 'misleading', 'offtopic', 'other'));
+
+alter table public.tactic_reports add column if not exists detail text not null default '';
+alter table public.tactic_reports drop constraint if exists tactic_reports_detail_check;
+alter table public.tactic_reports add constraint tactic_reports_detail_check
+  check (char_length(detail) <= 200);
+
 -- ---------------------------------------------------------
 -- 4. 運営者
 --    ポリシーを 1 つも作らないので、anon / authenticated からは
@@ -111,7 +123,33 @@ values ('report_threshold', '5'::jsonb)
 on conflict (key) do nothing;
 
 -- ---------------------------------------------------------
--- 6. 保存したセットアップ（ログイン必須）
+-- 6. モデレーションの監査ログ
+--    運営操作の記録。読めるのは運営者だけ、書けるのは RPC だけ。
+--    投稿や運営者が消えても記録は残したいので、外部キーは
+--    on delete set null にしてある。
+-- ---------------------------------------------------------
+create table if not exists public.moderation_log (
+  id             bigserial primary key,
+  action         text not null,
+  post_id        uuid references public.tactic_posts (id) on delete set null,
+  admin_user_id  uuid references auth.users (id) on delete set null,
+  created_at     timestamptz not null default now(),
+  old_value      jsonb,
+  new_value      jsonb,
+  moderator_note text not null default ''
+);
+
+alter table public.moderation_log drop constraint if exists moderation_log_action_check;
+alter table public.moderation_log add constraint moderation_log_action_check
+  check (action in ('restore', 'force_hide', 'set_threshold'));
+alter table public.moderation_log drop constraint if exists moderation_log_note_check;
+alter table public.moderation_log add constraint moderation_log_note_check
+  check (char_length(moderator_note) <= 300);
+
+create index if not exists moderation_log_created_idx on public.moderation_log (created_at desc);
+
+-- ---------------------------------------------------------
+-- 7. 保存したセットアップ（ログイン必須）
 -- ---------------------------------------------------------
 create table if not exists public.saved_setups (
   id         uuid primary key default gen_random_uuid(),
@@ -289,7 +327,15 @@ grant execute on function public.like_post(uuid, text) to anon, authenticated;
 -- 通報者を取らない旧版が残っていると呼び出しが曖昧になるので先に消す
 drop function if exists public.report_post(uuid);
 
-create or replace function public.report_post(p_post_id uuid, p_reporter text)
+-- 理由を足したので引数が増えた。旧版が残ると呼び出しが曖昧になるので先に消す。
+drop function if exists public.report_post(uuid, text);
+
+create or replace function public.report_post(
+  p_post_id  uuid,
+  p_reporter text,
+  p_reason   text default 'other',
+  p_detail   text default ''
+)
 returns jsonb
 language plpgsql
 security definer
@@ -298,11 +344,18 @@ as $$
 declare
   v_inserted  int;
   v_threshold int := public.report_threshold();
+  v_reason    text := coalesce(nullif(p_reason, ''), 'other');
   v_reports   int;
   v_hidden    boolean;
 begin
-  insert into public.tactic_reports (post_id, reporter)
-  values (p_post_id, p_reporter)
+  /* 知らない理由が来ても落とさず other にまとめる。
+     画面の選択肢が増減しても DB 側で弾かれないようにするため。 */
+  if v_reason not in ('spam', 'abuse', 'misleading', 'offtopic', 'other') then
+    v_reason := 'other';
+  end if;
+
+  insert into public.tactic_reports (post_id, reporter, reason, detail)
+  values (p_post_id, p_reporter, v_reason, left(coalesce(p_detail, ''), 200))
   on conflict do nothing;
 
   get diagnostics v_inserted = row_count;
@@ -334,19 +387,67 @@ end;
 $$;
 
 -- 通報も未ログインで押せる仕様なので、いいねと同じく意図して公開している。
-grant execute on function public.report_post(uuid, text) to anon, authenticated;
+grant execute on function public.report_post(uuid, text, text, text) to anon, authenticated;
+
+-- =========================================================
+-- 投稿ごとの通報の内訳（運営者のみ）
+-- 通報者そのものは運営者にも見せない。理由と補足だけを返す。
+-- =========================================================
+create or replace function public.admin_report_breakdown(p_post_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_out jsonb;
+begin
+  if not public.is_admin() then
+    raise exception 'NOT_ADMIN' using errcode = 'insufficient_privilege';
+  end if;
+
+  select jsonb_build_object(
+    'post_id', p_post_id,
+    'total', (select count(*) from public.tactic_reports where post_id = p_post_id),
+    'by_reason', coalesce((
+      select jsonb_object_agg(reason, n)
+      from (select reason, count(*) as n from public.tactic_reports
+             where post_id = p_post_id group by reason) x
+    ), '{}'::jsonb),
+    'details', coalesce((
+      select jsonb_agg(jsonb_build_object('reason', reason, 'detail', detail, 'created_at', created_at)
+                       order by created_at desc)
+      from public.tactic_reports
+      where post_id = p_post_id and detail <> ''
+    ), '[]'::jsonb)
+  ) into v_out;
+
+  return v_out;
+end;
+$$;
+
+revoke all on function public.admin_report_breakdown(uuid) from public;
+revoke all on function public.admin_report_breakdown(uuid) from anon;
+grant execute on function public.admin_report_breakdown(uuid) to authenticated;
 
 -- =========================================================
 -- 運営操作
 -- 画面に出す・出さないは当てにせず、必ずここで is_admin() を見る。
 -- =========================================================
-create or replace function public.admin_set_hidden(p_post_id uuid, p_hidden boolean)
+-- 運営メモを足したので引数が増えた。旧版は先に消す。
+drop function if exists public.admin_set_hidden(uuid, boolean);
+
+create or replace function public.admin_set_hidden(
+  p_post_id uuid,
+  p_hidden  boolean,
+  p_note    text default ''
+)
 returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
+  v_old     public.tactic_posts;
   v_id      uuid;
   v_hidden  boolean;
   v_reports int;
@@ -356,8 +457,13 @@ begin
     raise exception 'NOT_ADMIN' using errcode = 'insufficient_privilege';
   end if;
 
+  select * into v_old from public.tactic_posts where id = p_post_id;
+  if v_old.id is null then
+    raise exception 'NOT_FOUND' using errcode = 'no_data_found';
+  end if;
+
   /* 復旧なら restored、運営が隠したなら forced。
-     通報の履歴（tactic_reports）は消さない。消すと、同じ 5 人がもう一度
+     通報の履歴（tactic_reports）は消さない。消すと、同じ人がもう一度
      通報できるようになって復旧の意味がなくなるうえ、経緯も追えなくなる。 */
   update public.tactic_posts
      set hidden     = p_hidden,
@@ -365,25 +471,34 @@ begin
    where id = p_post_id
    returning id, hidden, reports, moderation into v_id, v_hidden, v_reports, v_mod;
 
-  if v_id is null then
-    raise exception 'NOT_FOUND' using errcode = 'no_data_found';
-  end if;
+  insert into public.moderation_log (action, post_id, admin_user_id, old_value, new_value, moderator_note)
+  values (
+    case when p_hidden then 'force_hide' else 'restore' end,
+    p_post_id,
+    auth.uid(),
+    jsonb_build_object('hidden', v_old.hidden, 'moderation', v_old.moderation, 'reports', v_old.reports),
+    jsonb_build_object('hidden', v_hidden, 'moderation', v_mod, 'reports', v_reports),
+    left(coalesce(p_note, ''), 300)
+  );
 
   return jsonb_build_object('id', v_id, 'hidden', v_hidden,
                             'reports', v_reports, 'moderation', v_mod);
 end;
 $$;
 
-revoke all on function public.admin_set_hidden(uuid, boolean) from public;
-revoke all on function public.admin_set_hidden(uuid, boolean) from anon;
-grant execute on function public.admin_set_hidden(uuid, boolean) to authenticated;
+revoke all on function public.admin_set_hidden(uuid, boolean, text) from public;
+revoke all on function public.admin_set_hidden(uuid, boolean, text) from anon;
+grant execute on function public.admin_set_hidden(uuid, boolean, text) to authenticated;
 
-create or replace function public.admin_set_report_threshold(p_value int)
+drop function if exists public.admin_set_report_threshold(int);
+
+create or replace function public.admin_set_report_threshold(p_value int, p_note text default '')
 returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare v_old int := public.report_threshold();
 begin
   if not public.is_admin() then
     raise exception 'NOT_ADMIN' using errcode = 'insufficient_privilege';
@@ -396,13 +511,19 @@ begin
   values ('report_threshold', to_jsonb(p_value), now())
   on conflict (key) do update set value = excluded.value, updated_at = now();
 
+  insert into public.moderation_log (action, post_id, admin_user_id, old_value, new_value, moderator_note)
+  values ('set_threshold', null, auth.uid(),
+          jsonb_build_object('report_threshold', v_old),
+          jsonb_build_object('report_threshold', p_value),
+          left(coalesce(p_note, ''), 300));
+
   return jsonb_build_object('report_threshold', p_value);
 end;
 $$;
 
-revoke all on function public.admin_set_report_threshold(int) from public;
-revoke all on function public.admin_set_report_threshold(int) from anon;
-grant execute on function public.admin_set_report_threshold(int) to authenticated;
+revoke all on function public.admin_set_report_threshold(int, text) from public;
+revoke all on function public.admin_set_report_threshold(int, text) from anon;
+grant execute on function public.admin_set_report_threshold(int, text) to authenticated;
 
 -- =========================================================
 -- RLS — 行レベルセキュリティ
@@ -415,6 +536,7 @@ alter table public.tactic_reports enable row level security;
 alter table public.saved_setups enable row level security;
 alter table public.admins enable row level security;
 alter table public.community_config enable row level security;
+alter table public.moderation_log enable row level security;
 
 -- --- 投稿: 非表示でないものは誰でも読める ---
 drop policy if exists tactic_posts_read on public.tactic_posts;
@@ -477,6 +599,14 @@ create policy community_config_read
   on public.community_config for select
   to anon, authenticated
   using (true);
+
+-- --- 監査ログ: 読めるのは運営者だけ。書き込みポリシーは作らないので、
+--     入るのは SECURITY DEFINER の運営 RPC からだけ ---
+drop policy if exists moderation_log_admin_read on public.moderation_log;
+create policy moderation_log_admin_read
+  on public.moderation_log for select
+  to authenticated
+  using (public.is_admin());
 
 -- --- 運営者名簿: ポリシーを作らない。誰からも読めない ---
 

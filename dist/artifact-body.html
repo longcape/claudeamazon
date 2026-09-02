@@ -1529,6 +1529,35 @@ select { appearance: none; cursor: pointer; }
 .post-mod-hidden { border-color: var(--red) !important; color: var(--red) !important; }
 .post-mod-state  { border-color: var(--gold) !important; color: var(--gold) !important; }
 
+/* --- 通報の理由・運営の一覧 --- */
+.report-reasons { display: grid; gap: 8px; }
+.report-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.report-reason:hover { border-color: var(--text-mute); }
+.mod-list { list-style: none; margin: 6px 0 14px; padding: 0; display: grid; gap: 6px; }
+.mod-list li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+.mod-reason { color: var(--text); min-width: 9em; }
+.mod-count  { margin-left: auto; font-family: var(--font-display); color: var(--red); }
+.mod-detail { color: var(--text-dim); word-break: break-word; }
+.mod-when   { color: var(--text-mute); font-size: 11px; white-space: nowrap; }
+.mod-action { color: var(--gold); font-size: 11px; white-space: nowrap; }
+.mod-note   { color: var(--text-dim); font-style: italic; }
+.mod-log-row { flex-wrap: wrap; }
+
 /* --- ログイン --- */
 .modal-narrow { width: min(430px, 100%); }
 .login-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.7; margin: 0 0 18px; }
@@ -2802,6 +2831,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
             <input type="checkbox" id="community-show-hidden" />
             <span data-i18n="community.showHidden"></span>
           </label>
+          <button class="btn btn-ghost btn-sm" id="btn-modlog" data-i18n="community.modLog" hidden></button>
           <button class="btn btn-primary btn-sm" id="btn-open-post" data-i18n="community.post"></button>
         </div>
         <div class="post-grid" id="post-grid"></div>
@@ -3034,6 +3064,65 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
         <button type="submit" class="btn btn-primary" data-i18n="community.editSave"></button>
       </footer>
     </form>
+  </div>
+</div>
+
+<!-- ============ REPORT MODAL ============ -->
+<!-- 押し間違いで即通報にならないよう、理由を選ばせてから送る。
+     選択肢を増やすときは DB 側の tactic_reports_reason_check も一緒に直すこと。 -->
+<div class="modal" id="modal-report" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-narrow" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <header class="modal-head">
+      <h2 id="report-title" data-i18n="community.reportTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <form class="modal-body" id="report-form">
+      <p class="login-note" id="report-target"></p>
+      <div class="field">
+        <label data-i18n="community.reportReason"></label>
+        <div class="report-reasons" id="report-reasons">
+          <label class="report-reason"><input type="radio" name="report-reason" value="spam" checked /><span data-i18n="community.reason.spam"></span></label>
+          <label class="report-reason"><input type="radio" name="report-reason" value="abuse" /><span data-i18n="community.reason.abuse"></span></label>
+          <label class="report-reason"><input type="radio" name="report-reason" value="misleading" /><span data-i18n="community.reason.misleading"></span></label>
+          <label class="report-reason"><input type="radio" name="report-reason" value="offtopic" /><span data-i18n="community.reason.offtopic"></span></label>
+          <label class="report-reason"><input type="radio" name="report-reason" value="other" /><span data-i18n="community.reason.other"></span></label>
+        </div>
+      </div>
+      <div class="field" id="report-detail-field" hidden>
+        <label for="report-detail" data-i18n="community.reportDetail"></label>
+        <input type="text" id="report-detail" maxlength="200" data-i18n-ph="community.reportDetailPh" />
+      </div>
+      <footer class="modal-foot">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary btn-danger" data-i18n="community.report"></button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<!-- ============ ADMIN: 通報の内訳 ============ -->
+<div class="modal" id="modal-breakdown" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-narrow" role="dialog" aria-modal="true" aria-labelledby="breakdown-title">
+    <header class="modal-head">
+      <h2 id="breakdown-title" data-i18n="community.breakdownTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body" id="breakdown-body"></div>
+  </div>
+</div>
+
+<!-- ============ ADMIN: 監査ログ ============ -->
+<div class="modal" id="modal-modlog" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-wide" role="dialog" aria-modal="true" aria-labelledby="modlog-title">
+    <header class="modal-head">
+      <h2 id="modlog-title" data-i18n="community.modLogTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body" id="modlog-body"></div>
   </div>
 </div>
 
@@ -3589,6 +3678,29 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'community.forceHidden': '非表示にしました。',
   'err.notAdmin': 'この操作は運営者だけが行えます。',
 
+  /* --- 通報の理由 --- */
+  'community.reportTitle': '投稿を通報する',
+  'community.reportReason': '通報の理由',
+  'community.reason.spam': 'スパム',
+  'community.reason.abuse': '攻撃的・不適切な内容',
+  'community.reason.misleading': '虚偽・誤解を招く内容',
+  'community.reason.offtopic': 'VALORANT の戦術と無関係',
+  'community.reason.other': 'その他',
+  'community.reportDetail': '補足',
+  'community.reportDetailPh': 'どこが問題かを短く',
+
+  /* --- 運営の確認画面 --- */
+  'community.reasons': '理由を見る',
+  'community.breakdownTitle': '通報の内訳',
+  'community.breakdownEmpty': 'まだ通報はありません。',
+  'community.modNotePh': '運営メモ（任意）',
+  'community.modLog': '監査ログ',
+  'community.modLogTitle': '運営操作の記録',
+  'community.modLogEmpty': 'まだ記録はありません。',
+  'community.action.restore': '再表示',
+  'community.action.force_hide': '非表示',
+  'community.action.set_threshold': 'しきい値の変更',
+
   /* --- トースト --- */
   'toast.sampleAdded': 'サンプル戦術を追加しました。',
   'toast.tacticAdded': '戦術を追加しました。',
@@ -4036,6 +4148,29 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'community.forceHidden': 'Hidden.',
   'err.notAdmin': 'Only moderators can do that.',
 
+  /* --- Report reasons --- */
+  'community.reportTitle': 'Report this post',
+  'community.reportReason': 'Reason',
+  'community.reason.spam': 'Spam',
+  'community.reason.abuse': 'Abusive or inappropriate',
+  'community.reason.misleading': 'False or misleading',
+  'community.reason.offtopic': 'Not about VALORANT tactics',
+  'community.reason.other': 'Other',
+  'community.reportDetail': 'Details',
+  'community.reportDetailPh': 'Briefly, what is wrong',
+
+  /* --- Moderator views --- */
+  'community.reasons': 'Reasons',
+  'community.breakdownTitle': 'Report breakdown',
+  'community.breakdownEmpty': 'No reports yet.',
+  'community.modNotePh': 'Moderator note (optional)',
+  'community.modLog': 'Audit log',
+  'community.modLogTitle': 'Moderation history',
+  'community.modLogEmpty': 'Nothing recorded yet.',
+  'community.action.restore': 'Restored',
+  'community.action.force_hide': 'Hidden',
+  'community.action.set_threshold': 'Threshold changed',
+
   'toast.sampleAdded': 'Sample tactics added.',
   'toast.tacticAdded': 'Tactic added.',
   'toast.tacticUpdated': 'Tactic updated.',
@@ -4480,6 +4615,29 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'community.forceHideConfirm': '"{name}" 게시물을 숨깁니다. 계속할까요?',
   'community.forceHidden': '숨겼습니다.',
   'err.notAdmin': '운영자만 할 수 있는 작업입니다.',
+
+  /* --- 신고 사유 --- */
+  'community.reportTitle': '게시물 신고',
+  'community.reportReason': '신고 사유',
+  'community.reason.spam': '스팸',
+  'community.reason.abuse': '공격적 · 부적절한 내용',
+  'community.reason.misleading': '허위 · 오해를 부르는 내용',
+  'community.reason.offtopic': 'VALORANT 전술과 무관',
+  'community.reason.other': '기타',
+  'community.reportDetail': '보충 설명',
+  'community.reportDetailPh': '무엇이 문제인지 짧게',
+
+  /* --- 운영 확인 화면 --- */
+  'community.reasons': '사유 보기',
+  'community.breakdownTitle': '신고 내역',
+  'community.breakdownEmpty': '아직 신고가 없습니다.',
+  'community.modNotePh': '운영 메모 (선택)',
+  'community.modLog': '감사 로그',
+  'community.modLogTitle': '운영 작업 기록',
+  'community.modLogEmpty': '아직 기록이 없습니다.',
+  'community.action.restore': '다시 표시',
+  'community.action.force_hide': '숨김',
+  'community.action.set_threshold': '기준값 변경',
 
   'toast.sampleAdded': '샘플 전술을 추가했습니다.',
   'toast.tacticAdded': '전술을 추가했습니다.',
@@ -7669,11 +7827,16 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
    * 通報。通報者は「ログインしていれば user id、していなければ匿名 ID」。
    * 同じ通報者の 2 回目以降はサーバ側で数えられない（counted が false で返る）。
    */
-  function reportPost(postId) {
+  function reportPost(postId, reason, detail) {
     return ensureFresh().then(function () {
       return request('/rest/v1/rpc/report_post', {
         method: 'POST',
-        body: { p_post_id: postId, p_reporter: currentUser() ? currentUser().id : anonId() }
+        body: {
+          p_post_id: postId,
+          p_reporter: currentUser() ? currentUser().id : anonId(),
+          p_reason: reason || 'other',
+          p_detail: detail || ''
+        }
       });
     }).then(function (res) {
       rememberReported(postId);
@@ -7757,13 +7920,32 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function isAdmin() { return admin; }
 
   /** 投稿を隠す / 戻す。復旧すると以後は通報が集まっても自動では隠れない */
-  function adminSetHidden(postId, hidden) {
+  function adminSetHidden(postId, hidden, note) {
     return ensureFresh().then(function (s) {
       if (!s) throw new Error('AUTH_REQUIRED');
       return request('/rest/v1/rpc/admin_set_hidden', {
         method: 'POST',
-        body: { p_post_id: postId, p_hidden: !!hidden }
+        body: { p_post_id: postId, p_hidden: !!hidden, p_note: note || '' }
       });
+    });
+  }
+
+  /** 投稿ごとの通報の内訳。通報者そのものは返ってこない */
+  function adminReportBreakdown(postId) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/rpc/admin_report_breakdown', {
+        method: 'POST',
+        body: { p_post_id: postId }
+      });
+    });
+  }
+
+  /** 運営操作の記録。RLS で運営者にしか返らない */
+  function adminLog(limit) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/moderation_log?select=*&order=created_at.desc&limit=' + (limit || 50));
     });
   }
 
@@ -7814,6 +7996,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     isAdmin: isAdmin,
     refreshAdmin: refreshAdmin,
     adminSetHidden: adminSetHidden,
+    adminReportBreakdown: adminReportBreakdown,
+    adminLog: adminLog,
     updatePost: updatePost,
     deletePost: deletePost,
     reportedIds: reportedIds,
@@ -8408,6 +8592,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       function accept() {
         if (o.input) {
           const v = input.value.trim();
+          /* 運営メモのように「書かなくてよい」入力もある。
+             そのときは空でも決定させたいが、空文字を返すと
+             呼び出し側の if (!ok) return; に引っかかるのでオブジェクトで返す。 */
+          if (o.allowEmpty) { done({ value: v }); return; }
           if (!v) { input.focus(); return; }   /* 空では決定させない */
           done(v);
           return;
@@ -9157,11 +9345,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
      ここは「見せる / 見せない」だけの話 */
   function adminButtonsHTML(p, admin) {
     if (!admin) return '';
-    return p.hidden
-      ? '<button class="btn btn-ghost btn-sm" data-act="admin-restore" data-id="' + esc(p.id) + '">' +
-          t('community.restore') + '</button>'
-      : '<button class="btn btn-ghost btn-sm btn-danger" data-act="admin-hide" data-id="' + esc(p.id) + '">' +
-          t('community.forceHide') + '</button>';
+    return '<button class="btn btn-ghost btn-sm" data-act="admin-reasons" data-id="' + esc(p.id) + '">' +
+             t('community.reasons') + '</button>' +
+           (p.hidden
+             ? '<button class="btn btn-ghost btn-sm" data-act="admin-restore" data-id="' + esc(p.id) + '">' +
+                 t('community.restore') + '</button>'
+             : '<button class="btn btn-ghost btn-sm btn-danger" data-act="admin-hide" data-id="' + esc(p.id) + '">' +
+                 t('community.forceHide') + '</button>');
   }
 
   /* 自分の投稿にだけ編集と削除を出す。匿名投稿は user_id が null なので出ない */
@@ -9180,6 +9370,49 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
              '<span class="comp-label">' + t('tag.enemy') + '</span>' +
              comp.map(function (id) { return avatarHTML(id, 'avatar-sm'); }).join('') +
            '</div>';
+  }
+
+  /* 通報の内訳。運営者にしか届かないデータなので、そのまま並べてよい */
+  function renderReportBreakdown(data) {
+    const box = $('breakdown-body');
+    const by = (data && data.by_reason) || {};
+    const keys = Object.keys(by);
+    if (!keys.length) {
+      box.innerHTML = '<p class="deck-empty">' + t('community.breakdownEmpty') + '</p>';
+      return;
+    }
+    const rows = keys.sort(function (a, b) { return by[b] - by[a]; }).map(function (k) {
+      return '<li><span class="mod-reason">' + t('community.reason.' + k) + '</span>' +
+             '<span class="mod-count">' + by[k] + '</span></li>';
+    }).join('');
+    const details = (data.details || []).map(function (d) {
+      return '<li><span class="mod-reason">' + t('community.reason.' + d.reason) + '</span>' +
+             '<span class="mod-detail">' + esc(d.detail) + '</span></li>';
+    }).join('');
+    box.innerHTML =
+      '<p class="login-note">' + t('community.reportsCount', { n: data.total || 0 }) + '</p>' +
+      '<ul class="mod-list">' + rows + '</ul>' +
+      (details ? '<p class="login-note">' + t('community.reportDetail') + '</p><ul class="mod-list">' + details + '</ul>' : '');
+  }
+
+  /* 運営操作の記録 */
+  function renderModLog(rows) {
+    const box = $('modlog-body');
+    if (!rows || !rows.length) {
+      box.innerHTML = '<p class="deck-empty">' + t('community.modLogEmpty') + '</p>';
+      return;
+    }
+    box.innerHTML = '<ul class="mod-list">' + rows.map(function (r) {
+      const when = String(r.created_at || '').replace('T', ' ').slice(0, 16);
+      const from = r.old_value ? JSON.stringify(r.old_value) : '';
+      const to2 = r.new_value ? JSON.stringify(r.new_value) : '';
+      return '<li class="mod-log-row">' +
+               '<span class="mod-when">' + esc(when) + '</span>' +
+               '<span class="mod-action">' + t('community.action.' + r.action) + '</span>' +
+               '<span class="mod-detail">' + esc(from) + ' → ' + esc(to2) + '</span>' +
+               (r.moderator_note ? '<span class="mod-note">' + esc(r.moderator_note) + '</span>' : '') +
+             '</li>';
+    }).join('') + '</ul>';
   }
 
   function renderPostForm(selectedId) {
@@ -9308,6 +9541,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     renderAccount: renderAccount,
     renderCommunityMapFilter: renderCommunityMapFilter,
     renderPosts: renderPosts,
+    renderReportBreakdown: renderReportBreakdown,
+    renderModLog: renderModLog,
     renderPostForm: renderPostForm,
     renderPostPreview: renderPostPreview,
     renderRoleFilter: renderRoleFilter,
@@ -9375,6 +9610,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     postQuery: '',            // コミュニティ側の検索語（自分のデッキとは別物）
     editingPostId: null,      // 編集中の投稿
     showHidden: false,        // 運営者が非表示の投稿も見るか
+    reportingPostId: null,    // 通報しようとしている投稿
     postTacticId: null,
     treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
@@ -9417,6 +9653,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     /* 運営操作は運営者にしか出さない。ここは見た目だけの話で、
        実際の可否は RPC の is_admin() が毎回見ている */
     $('admin-tools').hidden = !C.isAdmin();
+    $('btn-modlog').hidden = !C.isAdmin();
     U.renderPosts(ui.posts, null, ui.postQuery);
   }
 
@@ -9459,7 +9696,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-report', 'modal-breakdown', 'modal-modlog', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -10560,6 +10797,42 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       $('community-query').focus();
     });
 
+    /* その他を選んだときだけ補足欄を出す */
+    $('report-reasons').addEventListener('change', function (e) {
+      const r = e.target.closest('input[name="report-reason"]');
+      if (!r) return;
+      $('report-detail-field').hidden = r.value !== 'other';
+      if (r.value === 'other') $('report-detail').focus();
+    });
+
+    $('report-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const id = ui.reportingPostId;
+      if (!id) return;
+      const picked = $('report-reasons').querySelector('input[name="report-reason"]:checked');
+      const reason = picked ? picked.value : 'other';
+      const detail = reason === 'other' ? ($('report-detail').value || '').trim() : '';
+      C.reportPost(id, reason, detail).then(function (res) {
+        closeModal('modal-report');
+        /* counted が false = 同じ通報者の 2 回目以降。サーバ側で弾かれている */
+        U.toast(res && res.counted === false ? t('community.reportDup') : t('community.reportDone'),
+          res && res.counted === false ? 'warn' : 'ok');
+        if (res && res.hidden) loadPosts();
+        else U.renderPosts(ui.posts, null, ui.postQuery);
+      }, function (err) { U.toast(friendlyError(err), 'err'); });
+    });
+
+    $('btn-modlog').addEventListener('click', function () {
+      U.renderModLog(null);
+      openModal('modal-modlog');
+      C.adminLog(50).then(function (rows) {
+        U.renderModLog(Array.isArray(rows) ? rows : []);
+      }, function (err) {
+        closeModal('modal-modlog');
+        U.toast(friendlyError(err), 'err');
+      });
+    });
+
     $('community-show-hidden').addEventListener('change', function (e) {
       ui.showHidden = e.target.checked;
       loadPosts();
@@ -10593,18 +10866,22 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
           U.renderPosts(ui.posts, null, ui.postQuery);
         }, function (err) { U.toast(friendlyError(err), 'err'); });
       } else if (el.dataset.act === 'report') {
-        /* 押し間違いが痛いので一度止める。文面で用途もはっきりさせる */
-        U.ask({ message: t('community.reportConfirm', { name: post.name }), danger: true })
-          .then(function (ok) {
-            if (!ok) return;
-            return C.reportPost(post.id).then(function (res) {
-              /* counted が false = 同じ通報者の 2 回目以降。サーバ側で弾かれている */
-              U.toast(res && res.counted === false ? t('community.reportDup') : t('community.reportDone'),
-                res && res.counted === false ? 'warn' : 'ok');
-              if (res && res.hidden) loadPosts();
-              else U.renderPosts(ui.posts, null, ui.postQuery);
-            }, function (err) { U.toast(friendlyError(err), 'err'); });
-          });
+        /* 押し間違いが痛いので一度止める。あわせて理由も選ばせる */
+        ui.reportingPostId = post.id;
+        $('report-target').textContent = t('community.reportConfirm', { name: post.name });
+        $('report-form').reset();
+        $('report-detail').value = '';
+        $('report-detail-field').hidden = true;
+        openModal('modal-report');
+      } else if (el.dataset.act === 'admin-reasons') {
+        U.renderReportBreakdown(null);
+        openModal('modal-breakdown');
+        C.adminReportBreakdown(post.id).then(function (data) {
+          U.renderReportBreakdown(data);
+        }, function (err) {
+          closeModal('modal-breakdown');
+          U.toast(friendlyError(err), 'err');
+        });
       } else if (el.dataset.act === 'edit-post') {
         ui.editingPostId = post.id;
         $('post-edit-name').value = post.name || '';
@@ -10621,12 +10898,16 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
           });
       } else if (el.dataset.act === 'admin-restore' || el.dataset.act === 'admin-hide') {
         const hide = el.dataset.act === 'admin-hide';
+        /* 運営メモは書かなくてよい。allowEmpty なので空でも決定できる */
         U.ask({
           message: t(hide ? 'community.forceHideConfirm' : 'community.restoreConfirm', { name: post.name }),
+          input: true,
+          allowEmpty: true,
+          placeholder: t('community.modNotePh'),
           danger: true
-        }).then(function (ok) {
-          if (!ok) return;
-          return C.adminSetHidden(post.id, hide).then(function () {
+        }).then(function (res) {
+          if (!res) return;
+          return C.adminSetHidden(post.id, hide, res.value).then(function () {
             U.toast(t(hide ? 'community.forceHidden' : 'community.restored'), 'ok');
             loadPosts();
           }, function (err) { U.toast(friendlyError(err), 'err'); });

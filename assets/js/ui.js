@@ -578,6 +578,10 @@
       function accept() {
         if (o.input) {
           const v = input.value.trim();
+          /* 運営メモのように「書かなくてよい」入力もある。
+             そのときは空でも決定させたいが、空文字を返すと
+             呼び出し側の if (!ok) return; に引っかかるのでオブジェクトで返す。 */
+          if (o.allowEmpty) { done({ value: v }); return; }
           if (!v) { input.focus(); return; }   /* 空では決定させない */
           done(v);
           return;
@@ -1327,11 +1331,13 @@
      ここは「見せる / 見せない」だけの話 */
   function adminButtonsHTML(p, admin) {
     if (!admin) return '';
-    return p.hidden
-      ? '<button class="btn btn-ghost btn-sm" data-act="admin-restore" data-id="' + esc(p.id) + '">' +
-          t('community.restore') + '</button>'
-      : '<button class="btn btn-ghost btn-sm btn-danger" data-act="admin-hide" data-id="' + esc(p.id) + '">' +
-          t('community.forceHide') + '</button>';
+    return '<button class="btn btn-ghost btn-sm" data-act="admin-reasons" data-id="' + esc(p.id) + '">' +
+             t('community.reasons') + '</button>' +
+           (p.hidden
+             ? '<button class="btn btn-ghost btn-sm" data-act="admin-restore" data-id="' + esc(p.id) + '">' +
+                 t('community.restore') + '</button>'
+             : '<button class="btn btn-ghost btn-sm btn-danger" data-act="admin-hide" data-id="' + esc(p.id) + '">' +
+                 t('community.forceHide') + '</button>');
   }
 
   /* 自分の投稿にだけ編集と削除を出す。匿名投稿は user_id が null なので出ない */
@@ -1350,6 +1356,49 @@
              '<span class="comp-label">' + t('tag.enemy') + '</span>' +
              comp.map(function (id) { return avatarHTML(id, 'avatar-sm'); }).join('') +
            '</div>';
+  }
+
+  /* 通報の内訳。運営者にしか届かないデータなので、そのまま並べてよい */
+  function renderReportBreakdown(data) {
+    const box = $('breakdown-body');
+    const by = (data && data.by_reason) || {};
+    const keys = Object.keys(by);
+    if (!keys.length) {
+      box.innerHTML = '<p class="deck-empty">' + t('community.breakdownEmpty') + '</p>';
+      return;
+    }
+    const rows = keys.sort(function (a, b) { return by[b] - by[a]; }).map(function (k) {
+      return '<li><span class="mod-reason">' + t('community.reason.' + k) + '</span>' +
+             '<span class="mod-count">' + by[k] + '</span></li>';
+    }).join('');
+    const details = (data.details || []).map(function (d) {
+      return '<li><span class="mod-reason">' + t('community.reason.' + d.reason) + '</span>' +
+             '<span class="mod-detail">' + esc(d.detail) + '</span></li>';
+    }).join('');
+    box.innerHTML =
+      '<p class="login-note">' + t('community.reportsCount', { n: data.total || 0 }) + '</p>' +
+      '<ul class="mod-list">' + rows + '</ul>' +
+      (details ? '<p class="login-note">' + t('community.reportDetail') + '</p><ul class="mod-list">' + details + '</ul>' : '');
+  }
+
+  /* 運営操作の記録 */
+  function renderModLog(rows) {
+    const box = $('modlog-body');
+    if (!rows || !rows.length) {
+      box.innerHTML = '<p class="deck-empty">' + t('community.modLogEmpty') + '</p>';
+      return;
+    }
+    box.innerHTML = '<ul class="mod-list">' + rows.map(function (r) {
+      const when = String(r.created_at || '').replace('T', ' ').slice(0, 16);
+      const from = r.old_value ? JSON.stringify(r.old_value) : '';
+      const to2 = r.new_value ? JSON.stringify(r.new_value) : '';
+      return '<li class="mod-log-row">' +
+               '<span class="mod-when">' + esc(when) + '</span>' +
+               '<span class="mod-action">' + t('community.action.' + r.action) + '</span>' +
+               '<span class="mod-detail">' + esc(from) + ' → ' + esc(to2) + '</span>' +
+               (r.moderator_note ? '<span class="mod-note">' + esc(r.moderator_note) + '</span>' : '') +
+             '</li>';
+    }).join('') + '</ul>';
   }
 
   function renderPostForm(selectedId) {
@@ -1478,6 +1527,8 @@
     renderAccount: renderAccount,
     renderCommunityMapFilter: renderCommunityMapFilter,
     renderPosts: renderPosts,
+    renderReportBreakdown: renderReportBreakdown,
+    renderModLog: renderModLog,
     renderPostForm: renderPostForm,
     renderPostPreview: renderPostPreview,
     renderRoleFilter: renderRoleFilter,

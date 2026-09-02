@@ -85,8 +85,12 @@ on conflict (user_id) do nothing;
 通報のしきい値（既定 5）を変えるときも運営者としてログインした状態で:
 
 ```sql
-select public.admin_set_report_threshold(10);
+select public.admin_set_report_threshold(10, '利用者が増えたので引き上げ');
 ```
+
+第 2 引数は運営メモです（省略できます）。しきい値の変更も投稿の復旧も、
+すべて `moderation_log` に記録が残ります。記録はコミュニティ画面の
+「監査ログ」から見られます（運営者のみ）。
 
 > `admins` テーブルは RLS を有効にしたうえでポリシーを 1 つも作っていないので、
 > 一般の利用者からは名簿の存在すら見えません。

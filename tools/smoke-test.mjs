@@ -571,6 +571,7 @@ const reportUi = await withStub(async () => {
                  site: 'A', kind: 'execute', author_name: 'SOMEONE', user_id: null,
                  likes: 0, enemy_comp: [] };
   let counted = true;
+  const sent = [];   /* RPC に何を渡したか */
   const orig = window.fetch;
   window.fetch = (u, o) => {
     const url = String(u), m = (o && o.method) || 'GET';
@@ -578,7 +579,8 @@ const reportUi = await withStub(async () => {
       return Promise.resolve(new Response(JSON.stringify([post]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     }
     if (url.includes('/rpc/report_post')) {
-      const body = JSON.stringify({ counted, reports: counted ? 1 : 1, hidden: false });
+      sent.push(JSON.parse(o.body));
+      const body = JSON.stringify({ counted, reports: 1, hidden: false, threshold: 5 });
       counted = false;   /* 2 回目からはサーバ側で弾かれる筋書き */
       return Promise.resolve(new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } }));
     }
@@ -597,30 +599,50 @@ const reportUi = await withStub(async () => {
   out.noOwnerButtons = !document.querySelector('#post-grid [data-act="edit-post"]') &&
                        !document.querySelector('#post-grid [data-act="delete-post"]');
 
-  /* 押したらまず確認が出る。誤操作で即通報にならないこと */
+  /* 押したらまず理由を選ばせる。誤操作で即通報にならないこと */
   document.querySelector('#post-grid [data-act="report"]').click();
   await new Promise((r) => setTimeout(r, 300));
-  out.confirmShown = !g('modal-ask').hidden;
-  out.confirmText = g('modal-ask').innerText;
+  out.modalShown = !g('modal-report').hidden;
+  out.targetText = g('report-target').textContent;
+  out.reasonCount = g('report-reasons').querySelectorAll('input[name="report-reason"]').length;
+  out.reasonValues = [...g('report-reasons').querySelectorAll('input[name="report-reason"]')].map((r) => r.value);
+  out.detailHiddenAtFirst = g('report-detail-field').hidden;
+  out.sentBeforeSubmit = sent.length;
 
-  g('ask-ok').click();
-  await new Promise((r) => setTimeout(r, 600));
+  /* 「その他」を選ぶと補足欄が出る */
+  const other = g('report-reasons').querySelector('input[value="other"]');
+  other.checked = true;
+  other.dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  out.detailShownForOther = g('report-detail-field').hidden === false;
+  g('report-detail').value = 'マップ違いの内容';
+
+  g('report-form').requestSubmit();
+  await new Promise((r) => setTimeout(r, 700));
   out.firstToast = g('toast').textContent;
   out.firstToastClass = g('toast').className;
+  out.modalClosed = g('modal-report').hidden;
+  out.firstSent = sent[0];
   const btn1 = document.querySelector('#post-grid [data-act="report"]');
   out.buttonDisabledAfter = btn1.disabled;
   out.buttonLabelAfter = btn1.textContent.trim();
 
-  /* 控えを消してもう一度。サーバ側が counted:false を返す筋書き */
+  /* 理由を選び直したときに、その値が渡ること */
   localStorage.removeItem('vct.reported');
   window.VCT_UI.renderPosts([post], null, '');
   await new Promise((r) => setTimeout(r, 200));
   document.querySelector('#post-grid [data-act="report"]').click();
   await new Promise((r) => setTimeout(r, 300));
-  g('ask-ok').click();
-  await new Promise((r) => setTimeout(r, 600));
+  const spam = g('report-reasons').querySelector('input[value="spam"]');
+  spam.checked = true;
+  spam.dispatchEvent(new Event('change', { bubbles: true }));
+  await new Promise((r) => setTimeout(r, 150));
+  out.detailHiddenForSpam = g('report-detail-field').hidden;
+  g('report-form').requestSubmit();
+  await new Promise((r) => setTimeout(r, 700));
   out.dupToast = g('toast').textContent;
   out.dupToastClass = g('toast').className;
+  out.secondSent = sent[1];
 
   window.fetch = orig;
   return out;
@@ -628,9 +650,27 @@ const reportUi = await withStub(async () => {
 
 check('投稿カードに通報ボタンが出る', reportUi.hasReportButton);
 check('他人・匿名の投稿に編集と削除は出ない', reportUi.noOwnerButtons);
-check('通報は押してすぐには送らず確認を出す', reportUi.confirmShown);
-check('確認の文面に投稿名が入っている', /通報対象/.test(reportUi.confirmText), reportUi.confirmText.slice(0, 60));
+check('通報は押してすぐには送らず理由を選ばせる',
+  reportUi.modalShown === true && reportUi.sentBeforeSubmit === 0);
+check('理由の選択肢が 5 つある', reportUi.reasonCount === 5, String(reportUi.reasonCount));
+check('選択肢は DB の check 制約と同じ並び',
+  JSON.stringify(reportUi.reasonValues) ===
+  JSON.stringify(['spam', 'abuse', 'misleading', 'offtopic', 'other']),
+  JSON.stringify(reportUi.reasonValues));
+check('通報の文面に投稿名が入っている', /通報対象/.test(reportUi.targetText), reportUi.targetText.slice(0, 60));
+check('補足欄は「その他」を選んだときだけ出る',
+  reportUi.detailHiddenAtFirst === true && reportUi.detailShownForOther === true &&
+  reportUi.detailHiddenForSpam === true);
+check('選んだ理由と補足が RPC へ渡る',
+  reportUi.firstSent && reportUi.firstSent.p_reason === 'other' &&
+  reportUi.firstSent.p_detail === 'マップ違いの内容',
+  JSON.stringify(reportUi.firstSent));
+check('別の理由を選べばその値が渡る',
+  reportUi.secondSent && reportUi.secondSent.p_reason === 'spam' &&
+  reportUi.secondSent.p_detail === '',
+  JSON.stringify(reportUi.secondSent));
 check('通報が通ると成功として知らせる', /ok/.test(reportUi.firstToastClass), reportUi.firstToast);
+check('通報が通ったらモーダルが閉じる', reportUi.modalClosed === true);
 check('通報したらボタンが押せなくなる',
   reportUi.buttonDisabledAfter === true, reportUi.buttonLabelAfter);
 check('同じ相手の 2 回目は通報済みとして知らせる',
@@ -744,6 +784,21 @@ const modUi = await page.evaluate(async () => {
       return Promise.resolve(new Response(JSON.stringify({ id: 'hiddenone', hidden: false, reports: 5, moderation: 'restored' }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }));
     }
+    if (url.includes('/rpc/admin_report_breakdown')) {
+      return Promise.resolve(new Response(JSON.stringify({
+        post_id: 'hiddenone', total: 5,
+        by_reason: { spam: 3, abuse: 1, other: 1 },
+        details: [{ reason: 'other', detail: 'マップ違い', created_at: '2026-09-02T00:00:00Z' }]
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
+    if (url.includes('/rest/v1/moderation_log')) {
+      return Promise.resolve(new Response(JSON.stringify([
+        { id: 2, action: 'restore', post_id: 'hiddenone', created_at: '2026-09-02T01:02:03Z',
+          old_value: { hidden: true }, new_value: { hidden: false }, moderator_note: '誤通報だった' },
+        { id: 1, action: 'set_threshold', post_id: null, created_at: '2026-09-02T01:00:00Z',
+          old_value: { report_threshold: 5 }, new_value: { report_threshold: 6 }, moderator_note: '' }
+      ]), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }
     if (url.includes('/rest/v1/tactic_posts') && m === 'GET') {
       return Promise.resolve(new Response(JSON.stringify(posts), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     }
@@ -760,6 +815,7 @@ const modUi = await page.evaluate(async () => {
   document.querySelector('.phase-tab[data-phase="community"]').click();
   await new Promise((r) => setTimeout(r, 600));
   out.toolsHiddenForGuest = g('admin-tools').hidden;
+  out.modLogHiddenForGuest = g('btn-modlog').hidden;
   out.guestActs = [...document.querySelectorAll('#post-grid .post-foot button')].map((b) => b.dataset.act);
   out.guestSeesModBadge = !!document.querySelector('.post-mod');
 
@@ -781,11 +837,30 @@ const modUi = await page.evaluate(async () => {
   });
   out.adminActs = acts;
   out.badgeText = (document.querySelector('#post-grid .post-card:nth-child(2) .post-mod') || {}).innerText || '';
+  out.modLogButtonShown = g('btn-modlog').hidden === false;
 
-  /* 復旧を押す */
+  /* 通報の内訳を見る */
+  document.querySelector('#post-grid [data-act="admin-reasons"]').click();
+  await new Promise((r) => setTimeout(r, 500));
+  out.breakdownOpen = g('modal-breakdown').hidden === false;
+  out.breakdownText = g('breakdown-body').innerText;
+  document.querySelector('#modal-breakdown [data-close]').click();
+  await new Promise((r) => setTimeout(r, 300));
+
+  /* 監査ログを見る */
+  g('btn-modlog').click();
+  await new Promise((r) => setTimeout(r, 500));
+  out.modLogOpen = g('modal-modlog').hidden === false;
+  out.modLogText = g('modlog-body').innerText;
+  document.querySelector('#modal-modlog [data-close]').click();
+  await new Promise((r) => setTimeout(r, 300));
+
+  /* 復旧を押す。運営メモは書かなくてよい */
   document.querySelector('#post-grid [data-act="admin-restore"]').click();
   await new Promise((r) => setTimeout(r, 300));
   out.confirmText = g('modal-ask').hidden ? '' : g('modal-ask').innerText;
+  out.noteInputShown = g('ask-input').hidden === false;
+  g('ask-input').value = '誤通報だった';
   g('ask-ok').click();
   await new Promise((r) => setTimeout(r, 700));
   out.restoreCalled = restoreCalled;
@@ -798,6 +873,9 @@ const modUi = await page.evaluate(async () => {
 });
 
 check('一般ユーザーに運営メニューは出ない', modUi.toolsHiddenForGuest === true);
+check('一般ユーザーに監査ログのボタンは出ない', modUi.modLogHiddenForGuest === true);
+check('一般ユーザーのカードに通報理由のボタンは出ない',
+  !modUi.guestActs.includes('admin-reasons'), JSON.stringify(modUi.guestActs));
 check('一般ユーザーのカードに運営ボタンは出ない',
   !modUi.guestActs.includes('admin-restore') && !modUi.guestActs.includes('admin-hide'),
   JSON.stringify(modUi.guestActs));
@@ -817,6 +895,22 @@ check('復旧は hidden=false で呼ばれる',
   modUi.restoreCalled && modUi.restoreCalled.p_hidden === false,
   JSON.stringify(modUi.restoreCalled));
 check('復旧できたことを知らせる', !!modUi.toast, modUi.toast);
+check('運営者には監査ログのボタンが出る', modUi.modLogButtonShown === true);
+check('通報の内訳が開く', modUi.breakdownOpen === true);
+check('内訳に理由ごとの件数が出る',
+  /スパム|Spam|스팸/.test(modUi.breakdownText) && /3/.test(modUi.breakdownText),
+  modUi.breakdownText.slice(0, 120));
+check('その他の補足も内訳に出る', /マップ違い/.test(modUi.breakdownText), modUi.breakdownText.slice(0, 160));
+check('監査ログが開く', modUi.modLogOpen === true);
+check('監査ログに操作と運営メモが出る',
+  /再表示|Restored|다시 표시/.test(modUi.modLogText) && /誤通報だった/.test(modUi.modLogText),
+  modUi.modLogText.slice(0, 160));
+check('監査ログにしきい値の変更も出る',
+  /report_threshold/.test(modUi.modLogText), modUi.modLogText.slice(0, 200));
+check('運営操作では運営メモを書ける', modUi.noteInputShown === true);
+check('運営メモが RPC へ渡る',
+  modUi.restoreCalled && modUi.restoreCalled.p_note === '誤通報だった',
+  JSON.stringify(modUi.restoreCalled));
 
 /* 生の Postgres メッセージを画面に出さないこと */
 const rawErr = await page.evaluate(async () => {
@@ -902,8 +996,8 @@ check('通報は投稿と通報者の組で一意になっている',
 check('tactic_reports で RLS を有効にしている',
   schema.includes('alter table public.tactic_reports enable row level security'));
 check('ポリシー tactic_reports_none がある', schema.includes('create policy tactic_reports_none'));
-check('report_post が通報者を受け取る',
-  schema.includes('create or replace function public.report_post(p_post_id uuid, p_reporter text)'));
+check('report_post が通報者と理由を受け取る',
+  /create or replace function public\.report_post\(\s*p_post_id\s+uuid,\s*p_reporter\s+text,\s*p_reason\s+text[\s\S]{0,80}?p_detail\s+text/.test(schema));
 check('通報者を取らない旧 report_post を落としている',
   schema.includes('drop function if exists public.report_post(uuid);'));
 check('重複した通報は数えない',
@@ -935,7 +1029,8 @@ check('community_config は読み取りだけ許している',
 check('is_admin の定義がある', schema.includes('create or replace function public.is_admin()'));
 check('is_admin を anon から呼べないようにしている',
   schema.includes('revoke all on function public.is_admin() from anon;'));
-for (const fn of ['admin_set_hidden(uuid, boolean)', 'admin_set_report_threshold(int)']) {
+for (const fn of ['admin_set_hidden(uuid, boolean, text)', 'admin_set_report_threshold(int, text)',
+                  'admin_report_breakdown(uuid)']) {
   check(`${fn} を anon から呼べないようにしている`,
     schema.includes(`revoke all on function public.${fn} from anon;`));
   check(`${fn} を authenticated にだけ渡している`,
@@ -961,7 +1056,52 @@ check('schema.sql に service role キーらしきものが無い', !/sb_secret_
 check('like_post は anon / authenticated に公開したまま',
   schema.includes('grant execute on function public.like_post(uuid, text) to anon, authenticated;'));
 check('report_post は anon / authenticated に公開したまま',
-  schema.includes('grant execute on function public.report_post(uuid, text) to anon, authenticated;'));
+  schema.includes('grant execute on function public.report_post(uuid, text, text, text) to anon, authenticated;'));
+
+/* --- 通報理由 --- */
+check('通報に理由の列がある',
+  schema.includes("alter table public.tactic_reports add column if not exists reason text not null default 'other'"));
+check('理由は決められた 5 つに限っている',
+  schema.includes("check (reason in ('spam', 'abuse', 'misleading', 'offtopic', 'other'))"));
+check('その他の補足を入れる列がある',
+  schema.includes("alter table public.tactic_reports add column if not exists detail text not null default ''"));
+check('補足の長さに上限がある', /tactic_reports_detail_check[\s\S]{0,120}?char_length\(detail\) <= 200/.test(schema));
+check('知らない理由が来ても other に寄せる',
+  /report_post[\s\S]{0,900}?v_reason := 'other';/.test(schema));
+check('理由を足しても重複通報は弾いたまま',
+  /report_post[\s\S]{0,1200}?insert into public\.tactic_reports \(post_id, reporter, reason, detail\)[\s\S]{0,300}?on conflict do nothing/.test(schema));
+check('引数が増えた旧 report_post を落としている',
+  schema.includes('drop function if exists public.report_post(uuid, text);'));
+check('通報の内訳は運営者だけが引ける',
+  /admin_report_breakdown[\s\S]{0,300}?if not public\.is_admin\(\) then/.test(schema));
+check('通報の内訳に通報者そのものは含めない',
+  !/admin_report_breakdown[\s\S]{0,1200}?'reporter'/.test(schema));
+
+/* --- 監査ログ --- */
+check('moderation_log テーブルの定義がある',
+  schema.includes('create table if not exists public.moderation_log'));
+for (const col of ['action', 'post_id', 'admin_user_id', 'created_at', 'old_value', 'new_value', 'moderator_note']) {
+  check(`監査ログに ${col} がある`,
+    new RegExp('create table if not exists public\\.moderation_log[\\s\\S]{0,700}?' + col).test(schema));
+}
+check('記録する操作を 3 つに限っている',
+  schema.includes("check (action in ('restore', 'force_hide', 'set_threshold'))"));
+check('moderation_log で RLS を有効にしている',
+  schema.includes('alter table public.moderation_log enable row level security'));
+check('監査ログを読めるのは運営者だけ',
+  /create policy moderation_log_admin_read[\s\S]{0,200}?using \(public\.is_admin\(\)\)/.test(schema));
+check('監査ログに書き込みポリシーは作らない',
+  !/create policy \w+\s+on public\.moderation_log for (insert|update|delete|all)/.test(schema));
+check('復旧と強制非表示は必ず記録する',
+  /admin_set_hidden[\s\S]{0,2000}?insert into public\.moderation_log[\s\S]{0,400}?case when p_hidden then 'force_hide' else 'restore' end/.test(schema));
+check('しきい値の変更も必ず記録する',
+  /admin_set_report_threshold[\s\S]{0,1400}?insert into public\.moderation_log[\s\S]{0,200}?'set_threshold'/.test(schema));
+check('記録には変更前後の値を残す',
+  /admin_set_hidden[\s\S]{0,2200}?old_value[\s\S]{0,400}?jsonb_build_object\('hidden', v_old\.hidden/.test(schema));
+check('引数が増えた旧 admin_set_hidden を落としている',
+  schema.includes('drop function if exists public.admin_set_hidden(uuid, boolean);'));
+check('引数が増えた旧 admin_set_report_threshold を落としている',
+  schema.includes('drop function if exists public.admin_set_report_threshold(int);'));
 
 /* ---------------- 多言語 ----------------
    キーを 1 つの言語にだけ足すと、その言語だけ英語のまま出る。 */
@@ -988,7 +1128,14 @@ for (const key of ['community.report', 'community.reported', 'community.reportCo
                    'community.showHidden', 'community.hiddenBadge', 'community.reportsCount',
                    'community.restore', 'community.forceHide', 'community.restoreConfirm',
                    'community.restored', 'community.forceHideConfirm', 'community.forceHidden',
-                   'err.notAdmin']) {
+                   'err.notAdmin',
+                   'community.reportTitle', 'community.reportReason', 'community.reportDetail',
+                   'community.reason.spam', 'community.reason.abuse', 'community.reason.misleading',
+                   'community.reason.offtopic', 'community.reason.other',
+                   'community.reasons', 'community.breakdownTitle', 'community.breakdownEmpty',
+                   'community.modNotePh', 'community.modLog', 'community.modLogTitle',
+                   'community.modLogEmpty', 'community.action.restore',
+                   'community.action.force_hide', 'community.action.set_threshold']) {
   check(`${key} が 3 言語にある`,
     localeKeys.ja.has(key) && localeKeys.en.has(key) && localeKeys.ko.has(key));
 }

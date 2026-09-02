@@ -366,6 +366,29 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'community.forceHidden': '非表示にしました。',
   'err.notAdmin': 'この操作は運営者だけが行えます。',
 
+  /* --- 通報の理由 --- */
+  'community.reportTitle': '投稿を通報する',
+  'community.reportReason': '通報の理由',
+  'community.reason.spam': 'スパム',
+  'community.reason.abuse': '攻撃的・不適切な内容',
+  'community.reason.misleading': '虚偽・誤解を招く内容',
+  'community.reason.offtopic': 'VALORANT の戦術と無関係',
+  'community.reason.other': 'その他',
+  'community.reportDetail': '補足',
+  'community.reportDetailPh': 'どこが問題かを短く',
+
+  /* --- 運営の確認画面 --- */
+  'community.reasons': '理由を見る',
+  'community.breakdownTitle': '通報の内訳',
+  'community.breakdownEmpty': 'まだ通報はありません。',
+  'community.modNotePh': '運営メモ（任意）',
+  'community.modLog': '監査ログ',
+  'community.modLogTitle': '運営操作の記録',
+  'community.modLogEmpty': 'まだ記録はありません。',
+  'community.action.restore': '再表示',
+  'community.action.force_hide': '非表示',
+  'community.action.set_threshold': 'しきい値の変更',
+
   /* --- トースト --- */
   'toast.sampleAdded': 'サンプル戦術を追加しました。',
   'toast.tacticAdded': '戦術を追加しました。',

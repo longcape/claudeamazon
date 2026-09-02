@@ -257,11 +257,16 @@
    * 通報。通報者は「ログインしていれば user id、していなければ匿名 ID」。
    * 同じ通報者の 2 回目以降はサーバ側で数えられない（counted が false で返る）。
    */
-  function reportPost(postId) {
+  function reportPost(postId, reason, detail) {
     return ensureFresh().then(function () {
       return request('/rest/v1/rpc/report_post', {
         method: 'POST',
-        body: { p_post_id: postId, p_reporter: currentUser() ? currentUser().id : anonId() }
+        body: {
+          p_post_id: postId,
+          p_reporter: currentUser() ? currentUser().id : anonId(),
+          p_reason: reason || 'other',
+          p_detail: detail || ''
+        }
       });
     }).then(function (res) {
       rememberReported(postId);
@@ -345,13 +350,32 @@
   function isAdmin() { return admin; }
 
   /** 投稿を隠す / 戻す。復旧すると以後は通報が集まっても自動では隠れない */
-  function adminSetHidden(postId, hidden) {
+  function adminSetHidden(postId, hidden, note) {
     return ensureFresh().then(function (s) {
       if (!s) throw new Error('AUTH_REQUIRED');
       return request('/rest/v1/rpc/admin_set_hidden', {
         method: 'POST',
-        body: { p_post_id: postId, p_hidden: !!hidden }
+        body: { p_post_id: postId, p_hidden: !!hidden, p_note: note || '' }
       });
+    });
+  }
+
+  /** 投稿ごとの通報の内訳。通報者そのものは返ってこない */
+  function adminReportBreakdown(postId) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/rpc/admin_report_breakdown', {
+        method: 'POST',
+        body: { p_post_id: postId }
+      });
+    });
+  }
+
+  /** 運営操作の記録。RLS で運営者にしか返らない */
+  function adminLog(limit) {
+    return ensureFresh().then(function (s) {
+      if (!s) throw new Error('AUTH_REQUIRED');
+      return request('/rest/v1/moderation_log?select=*&order=created_at.desc&limit=' + (limit || 50));
     });
   }
 
@@ -402,6 +426,8 @@
     isAdmin: isAdmin,
     refreshAdmin: refreshAdmin,
     adminSetHidden: adminSetHidden,
+    adminReportBreakdown: adminReportBreakdown,
+    adminLog: adminLog,
     updatePost: updatePost,
     deletePost: deletePost,
     reportedIds: reportedIds,

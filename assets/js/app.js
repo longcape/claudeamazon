@@ -48,6 +48,7 @@
     postQuery: '',            // コミュニティ側の検索語（自分のデッキとは別物）
     editingPostId: null,      // 編集中の投稿
     showHidden: false,        // 運営者が非表示の投稿も見るか
+    reportingPostId: null,    // 通報しようとしている投稿
     postTacticId: null,
     treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
     cloudSetups: [],          // クラウドに保存済みのセットアップ
@@ -90,6 +91,7 @@
     /* 運営操作は運営者にしか出さない。ここは見た目だけの話で、
        実際の可否は RPC の is_admin() が毎回見ている */
     $('admin-tools').hidden = !C.isAdmin();
+    $('btn-modlog').hidden = !C.isAdmin();
     U.renderPosts(ui.posts, null, ui.postQuery);
   }
 
@@ -132,7 +134,7 @@
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-report', 'modal-breakdown', 'modal-modlog', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -1233,6 +1235,42 @@
       $('community-query').focus();
     });
 
+    /* その他を選んだときだけ補足欄を出す */
+    $('report-reasons').addEventListener('change', function (e) {
+      const r = e.target.closest('input[name="report-reason"]');
+      if (!r) return;
+      $('report-detail-field').hidden = r.value !== 'other';
+      if (r.value === 'other') $('report-detail').focus();
+    });
+
+    $('report-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const id = ui.reportingPostId;
+      if (!id) return;
+      const picked = $('report-reasons').querySelector('input[name="report-reason"]:checked');
+      const reason = picked ? picked.value : 'other';
+      const detail = reason === 'other' ? ($('report-detail').value || '').trim() : '';
+      C.reportPost(id, reason, detail).then(function (res) {
+        closeModal('modal-report');
+        /* counted が false = 同じ通報者の 2 回目以降。サーバ側で弾かれている */
+        U.toast(res && res.counted === false ? t('community.reportDup') : t('community.reportDone'),
+          res && res.counted === false ? 'warn' : 'ok');
+        if (res && res.hidden) loadPosts();
+        else U.renderPosts(ui.posts, null, ui.postQuery);
+      }, function (err) { U.toast(friendlyError(err), 'err'); });
+    });
+
+    $('btn-modlog').addEventListener('click', function () {
+      U.renderModLog(null);
+      openModal('modal-modlog');
+      C.adminLog(50).then(function (rows) {
+        U.renderModLog(Array.isArray(rows) ? rows : []);
+      }, function (err) {
+        closeModal('modal-modlog');
+        U.toast(friendlyError(err), 'err');
+      });
+    });
+
     $('community-show-hidden').addEventListener('change', function (e) {
       ui.showHidden = e.target.checked;
       loadPosts();
@@ -1266,18 +1304,22 @@
           U.renderPosts(ui.posts, null, ui.postQuery);
         }, function (err) { U.toast(friendlyError(err), 'err'); });
       } else if (el.dataset.act === 'report') {
-        /* 押し間違いが痛いので一度止める。文面で用途もはっきりさせる */
-        U.ask({ message: t('community.reportConfirm', { name: post.name }), danger: true })
-          .then(function (ok) {
-            if (!ok) return;
-            return C.reportPost(post.id).then(function (res) {
-              /* counted が false = 同じ通報者の 2 回目以降。サーバ側で弾かれている */
-              U.toast(res && res.counted === false ? t('community.reportDup') : t('community.reportDone'),
-                res && res.counted === false ? 'warn' : 'ok');
-              if (res && res.hidden) loadPosts();
-              else U.renderPosts(ui.posts, null, ui.postQuery);
-            }, function (err) { U.toast(friendlyError(err), 'err'); });
-          });
+        /* 押し間違いが痛いので一度止める。あわせて理由も選ばせる */
+        ui.reportingPostId = post.id;
+        $('report-target').textContent = t('community.reportConfirm', { name: post.name });
+        $('report-form').reset();
+        $('report-detail').value = '';
+        $('report-detail-field').hidden = true;
+        openModal('modal-report');
+      } else if (el.dataset.act === 'admin-reasons') {
+        U.renderReportBreakdown(null);
+        openModal('modal-breakdown');
+        C.adminReportBreakdown(post.id).then(function (data) {
+          U.renderReportBreakdown(data);
+        }, function (err) {
+          closeModal('modal-breakdown');
+          U.toast(friendlyError(err), 'err');
+        });
       } else if (el.dataset.act === 'edit-post') {
         ui.editingPostId = post.id;
         $('post-edit-name').value = post.name || '';
@@ -1294,12 +1336,16 @@
           });
       } else if (el.dataset.act === 'admin-restore' || el.dataset.act === 'admin-hide') {
         const hide = el.dataset.act === 'admin-hide';
+        /* 運営メモは書かなくてよい。allowEmpty なので空でも決定できる */
         U.ask({
           message: t(hide ? 'community.forceHideConfirm' : 'community.restoreConfirm', { name: post.name }),
+          input: true,
+          allowEmpty: true,
+          placeholder: t('community.modNotePh'),
           danger: true
-        }).then(function (ok) {
-          if (!ok) return;
-          return C.adminSetHidden(post.id, hide).then(function () {
+        }).then(function (res) {
+          if (!res) return;
+          return C.adminSetHidden(post.id, hide, res.value).then(function () {
             U.toast(t(hide ? 'community.forceHidden' : 'community.restored'), 'ok');
             loadPosts();
           }, function (err) { U.toast(friendlyError(err), 'err'); });

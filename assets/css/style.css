@@ -1525,6 +1525,35 @@ select { appearance: none; cursor: pointer; }
 .post-mod-hidden { border-color: var(--red) !important; color: var(--red) !important; }
 .post-mod-state  { border-color: var(--gold) !important; color: var(--gold) !important; }
 
+/* --- 通報の理由・運営の一覧 --- */
+.report-reasons { display: grid; gap: 8px; }
+.report-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.report-reason:hover { border-color: var(--text-mute); }
+.mod-list { list-style: none; margin: 6px 0 14px; padding: 0; display: grid; gap: 6px; }
+.mod-list li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+.mod-reason { color: var(--text); min-width: 9em; }
+.mod-count  { margin-left: auto; font-family: var(--font-display); color: var(--red); }
+.mod-detail { color: var(--text-dim); word-break: break-word; }
+.mod-when   { color: var(--text-mute); font-size: 11px; white-space: nowrap; }
+.mod-action { color: var(--gold); font-size: 11px; white-space: nowrap; }
+.mod-note   { color: var(--text-dim); font-style: italic; }
+.mod-log-row { flex-wrap: wrap; }
+
 /* --- ログイン --- */
 .modal-narrow { width: min(430px, 100%); }
 .login-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.7; margin: 0 0 18px; }

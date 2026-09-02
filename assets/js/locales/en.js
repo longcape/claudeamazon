@@ -358,6 +358,29 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'community.forceHidden': 'Hidden.',
   'err.notAdmin': 'Only moderators can do that.',
 
+  /* --- Report reasons --- */
+  'community.reportTitle': 'Report this post',
+  'community.reportReason': 'Reason',
+  'community.reason.spam': 'Spam',
+  'community.reason.abuse': 'Abusive or inappropriate',
+  'community.reason.misleading': 'False or misleading',
+  'community.reason.offtopic': 'Not about VALORANT tactics',
+  'community.reason.other': 'Other',
+  'community.reportDetail': 'Details',
+  'community.reportDetailPh': 'Briefly, what is wrong',
+
+  /* --- Moderator views --- */
+  'community.reasons': 'Reasons',
+  'community.breakdownTitle': 'Report breakdown',
+  'community.breakdownEmpty': 'No reports yet.',
+  'community.modNotePh': 'Moderator note (optional)',
+  'community.modLog': 'Audit log',
+  'community.modLogTitle': 'Moderation history',
+  'community.modLogEmpty': 'Nothing recorded yet.',
+  'community.action.restore': 'Restored',
+  'community.action.force_hide': 'Hidden',
+  'community.action.set_threshold': 'Threshold changed',
+
   'toast.sampleAdded': 'Sample tactics added.',
   'toast.tacticAdded': 'Tactic added.',
   'toast.tacticUpdated': 'Tactic updated.',

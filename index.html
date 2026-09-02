@@ -268,6 +268,7 @@
             <input type="checkbox" id="community-show-hidden" />
             <span data-i18n="community.showHidden"></span>
           </label>
+          <button class="btn btn-ghost btn-sm" id="btn-modlog" data-i18n="community.modLog" hidden></button>
           <button class="btn btn-primary btn-sm" id="btn-open-post" data-i18n="community.post"></button>
         </div>
         <div class="post-grid" id="post-grid"></div>
@@ -500,6 +501,65 @@
         <button type="submit" class="btn btn-primary" data-i18n="community.editSave"></button>
       </footer>
     </form>
+  </div>
+</div>
+
+<!-- ============ REPORT MODAL ============ -->
+<!-- 押し間違いで即通報にならないよう、理由を選ばせてから送る。
+     選択肢を増やすときは DB 側の tactic_reports_reason_check も一緒に直すこと。 -->
+<div class="modal" id="modal-report" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-narrow" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <header class="modal-head">
+      <h2 id="report-title" data-i18n="community.reportTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <form class="modal-body" id="report-form">
+      <p class="login-note" id="report-target"></p>
+      <div class="field">
+        <label data-i18n="community.reportReason"></label>
+        <div class="report-reasons" id="report-reasons">
+          <label class="report-reason"><input type="radio" name="report-reason" value="spam" checked /><span data-i18n="community.reason.spam"></span></label>
+          <label class="report-reason"><input type="radio" name="report-reason" value="abuse" /><span data-i18n="community.reason.abuse"></span></label>
+          <label class="report-reason"><input type="radio" name="report-reason" value="misleading" /><span data-i18n="community.reason.misleading"></span></label>
+          <label class="report-reason"><input type="radio" name="report-reason" value="offtopic" /><span data-i18n="community.reason.offtopic"></span></label>
+          <label class="report-reason"><input type="radio" name="report-reason" value="other" /><span data-i18n="community.reason.other"></span></label>
+        </div>
+      </div>
+      <div class="field" id="report-detail-field" hidden>
+        <label for="report-detail" data-i18n="community.reportDetail"></label>
+        <input type="text" id="report-detail" maxlength="200" data-i18n-ph="community.reportDetailPh" />
+      </div>
+      <footer class="modal-foot">
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary btn-danger" data-i18n="community.report"></button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<!-- ============ ADMIN: 通報の内訳 ============ -->
+<div class="modal" id="modal-breakdown" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-narrow" role="dialog" aria-modal="true" aria-labelledby="breakdown-title">
+    <header class="modal-head">
+      <h2 id="breakdown-title" data-i18n="community.breakdownTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body" id="breakdown-body"></div>
+  </div>
+</div>
+
+<!-- ============ ADMIN: 監査ログ ============ -->
+<div class="modal" id="modal-modlog" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip modal-wide" role="dialog" aria-modal="true" aria-labelledby="modlog-title">
+    <header class="modal-head">
+      <h2 id="modlog-title" data-i18n="community.modLogTitle"></h2>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body" id="modlog-body"></div>
   </div>
 </div>
 

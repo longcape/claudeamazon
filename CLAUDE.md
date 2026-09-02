@@ -299,6 +299,26 @@ native ダイアログが混ざったら機械的に落ちるので、この形�
 通報できるようになり、復旧した端からまた隠される。かといって `hidden` だけ戻すと
 `reports` がしきい値を超えたままなので次の 1 件で隠れる。だから状態を別に持つ。
 
+### 通報の理由と、その見せ方
+
+理由は `spam` / `abuse` / `misleading` / `offtopic` / `other` の 5 つ。
+**画面の選択肢を増やすときは `tactic_reports_reason_check` も一緒に直すこと。**
+`report_post` は知らない理由を `other` に寄せるので落ちはしないが、
+そのままだと全部 other にまとまってしまう。
+
+**通報者そのものは運営者にも見せない。** `tactic_reports` に読み取りポリシーを作らず、
+`admin_report_breakdown()` が理由ごとの件数と補足だけを返す形にしてある。
+「誰が通報したか」を運営画面に出したくなったときは、報復のリスクを考えてから。
+
+### 監査ログは RPC からしか書かない
+
+`moderation_log` に書き込みポリシーを作っていないので、入るのは
+SECURITY DEFINER の運営 RPC からだけ。**運営操作を足すときは、その中で
+moderation_log に 1 行入れること。** smoke-test が「復旧・強制非表示・しきい値変更が
+必ず記録される」ことを見張っている。
+
+投稿や運営者が消えても記録は残したいので、外部キーは `on delete set null`。
+
 ### 通報のしきい値はコードに書かない
 
 `community_config` の `report_threshold`（初期値 5）を `report_threshold()` が読む。

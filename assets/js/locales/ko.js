@@ -358,6 +358,29 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'community.forceHidden': '숨겼습니다.',
   'err.notAdmin': '운영자만 할 수 있는 작업입니다.',
 
+  /* --- 신고 사유 --- */
+  'community.reportTitle': '게시물 신고',
+  'community.reportReason': '신고 사유',
+  'community.reason.spam': '스팸',
+  'community.reason.abuse': '공격적 · 부적절한 내용',
+  'community.reason.misleading': '허위 · 오해를 부르는 내용',
+  'community.reason.offtopic': 'VALORANT 전술과 무관',
+  'community.reason.other': '기타',
+  'community.reportDetail': '보충 설명',
+  'community.reportDetailPh': '무엇이 문제인지 짧게',
+
+  /* --- 운영 확인 화면 --- */
+  'community.reasons': '사유 보기',
+  'community.breakdownTitle': '신고 내역',
+  'community.breakdownEmpty': '아직 신고가 없습니다.',
+  'community.modNotePh': '운영 메모 (선택)',
+  'community.modLog': '감사 로그',
+  'community.modLogTitle': '운영 작업 기록',
+  'community.modLogEmpty': '아직 기록이 없습니다.',
+  'community.action.restore': '다시 표시',
+  'community.action.force_hide': '숨김',
+  'community.action.set_threshold': '기준값 변경',
+
   'toast.sampleAdded': '샘플 전술을 추가했습니다.',
   'toast.tacticAdded': '전술을 추가했습니다.',
   'toast.tacticUpdated': '전술을 수정했습니다.',
