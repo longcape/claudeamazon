@@ -95,6 +95,22 @@ select public.admin_set_report_threshold(10, '利用者が増えたので引き�
 > `admins` テーブルは RLS を有効にしたうえでポリシーを 1 つも作っていないので、
 > 一般の利用者からは名簿の存在すら見えません。
 
+## 5.5. 本番 URL を Supabase に登録する
+
+公開ページからメールでログインするには、Supabase 側にその URL を教えておく必要があります。
+ここが未設定だと、メールのリンクが既定の `localhost:3000` へ飛んでログインが成立しません。
+
+**Authentication → URL Configuration**
+
+| 項目 | 値 |
+| --- | --- |
+| Site URL | `https://longcape.github.io/claudeamazon/` |
+| Redirect URLs | `https://longcape.github.io/claudeamazon/**` |
+| Redirect URLs（開発用に残す） | `http://localhost:8080/**` |
+
+開発用の `localhost` は消さないでください。手元で確認するときに要ります。
+両方を登録しておけば、本番でも手元でも同じようにログインできます。
+
 ## 4. AI 寸評（Claude API）を有効にする
 
 AI 寸評は Edge Function 経由で呼び出します。**API キーをブラウザに置かないため**です。
@@ -180,17 +196,33 @@ AI は付加価値**という今の構成のほうが、収益化前でも運用
 
 コミュニティ版を公開するには通常のホスティングが必要です。
 
-### GitHub Pages
+### GitHub Pages（このプロジェクトで採用しているやり方）
 
-**`main` は空で、コードは作業ブランチ `claude/valorant-tactical-setup-card-iiiog3` にしかありません。**
-先に作業ブランチを `main` へマージするか、Pages の公開元にそのブランチを指定してください。
+**すでに公開してあります: https://longcape.github.io/claudeamazon/**
 
-```bash
-# 作業ブランチを main へマージしたうえで
-# リポジトリの Settings → Pages → Source を "main / (root)" に設定
-```
+`.github/workflows/pages.yml` が、作業ブランチへ push されるたびに公開ページを更新します。
+Pages の公開元は「GitHub Actions」で、`index.html` と `assets/` と `dist/` だけを載せます。
 
-`https://<ユーザー名>.github.io/<リポジトリ名>/` で公開されます。
+接続情報はリポジトリの **Variables** から流し込みます。
+`assets/js/config.js` は空のままコミットしてあるので、公開のときだけ
+`tools/write-config.mjs` が書き込みます。
+
+> Settings → Secrets and variables → Actions → **Variables**
+>
+> | 名前 | 値 |
+> | --- | --- |
+> | `SUPABASE_URL` | `https://xxxxxxxx.supabase.co` |
+> | `SUPABASE_ANON_KEY` | `sb_publishable_...` |
+
+anon key はブラウザに露出する前提の公開キーなので、Secrets ではなく Variables に置いています。
+`write-config.mjs` は service role キーらしき値を渡されたら中断します。
+Variables が空でもページは出ます。その場合はコミュニティとクラウド保存が隠れた、
+オフライン用のソロ版として公開されます。
+
+**Supabase 側も本番 URL に合わせてください**（下の「5.5. 本番 URL を Supabase に登録する」）。
+
+独自ドメインを足すときは Settings → Pages → Custom domain。
+`CNAME` が作業ブランチへ入るので、そのあと Supabase の URL 設定も直します。
 
 ### Vercel / Netlify
 

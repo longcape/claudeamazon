@@ -7,6 +7,8 @@ VALORANT 競技シーン向けの **ラウンド戦術セットアップカー�
 ビルド不要の静的アプリ（HTML + CSS + Vanilla JS、依存パッケージなし）。
 `index.html` をブラウザで開くだけで動きます。
 
+**公開ページ: https://longcape.github.io/claudeamazon/**
+
 - **相性判定** — 味方と相手のエージェント構成から、その戦術が刺さるかを判定（完全オフライン）
 - **配置盤** — マップ上にエージェント・スキル・プラント位置を配置し、進行ルートを矢印で描く。スキルには使用順の番号が付く。1 つの戦術に**局面を最大 4 枚**持てるので、A フェイク → B のような多段の動きも分けて書ける
 - **分岐ツリー** — 「この戦術で勝ったら次はこれ、負けたらこれ」をつなぎ、ラウンドの勝敗が付いた時点で次の候補を先頭に出す
@@ -46,8 +48,7 @@ VALORANT 競技シーン向けの **ラウンド戦術セットアップカー�
 ### 未着手
 
 - **BUY マネー計算** — 保留中。着手していない
-- **常設の公開先** — 現在の公開ページはクラウドセッション発行のもので、ローカルからは更新できない。
-  `dist/valorant-tactical-setup-card.html` は依存ゼロの HTML 1 枚なので、GitHub Pages 等にそのまま置ける
+- ~~常設の公開先~~ — **2026-09-02 に GitHub Pages で公開した**（下記）
 
 進捗の詳細は **[docs/STATUS.md](docs/STATUS.md)** が正本です。
 
@@ -339,9 +340,11 @@ tools/smoke-test.mjs            動作確認 257 項目（要 playwright）
 ## 開発する
 
 ```bash
-git clone -b claude/valorant-tactical-setup-card-iiiog3 \
-  https://github.com/longcape/claudeamazon.git
+git clone https://github.com/longcape/claudeamazon.git
 ```
+
+`claude/valorant-tactical-setup-card-iiiog3` が既定ブランチなので、
+ブランチを指定しなくてもこのアプリが取れます（`main` というブランチはありません）。
 
 `index.html` をブラウザで開けばそのまま動きます。ビルドは不要です。
 `assets/` を触ったら `node build.js` で `dist/` を作り直してください。

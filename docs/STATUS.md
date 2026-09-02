@@ -16,17 +16,18 @@ VALORANT 競技シーン向けの、ラウンド単位の戦術コール管理�
 | 項目 | 値 |
 | --- | --- |
 | リポジトリ | `longcape/claudeamazon` |
-| **ブランチ** | `claude/valorant-tactical-setup-card-iiiog3`（`main` には何も入っていない） |
+| **ブランチ** | `claude/valorant-tactical-setup-card-iiiog3`（**これが既定ブランチ**。`main` というブランチは存在しない） |
+| **公開ページ** | https://longcape.github.io/claudeamazon/ （push すると自動で更新される） |
 | 最新コミット | `3003b8b` 進捗と引き継ぎの資料を docs/STATUS.md にまとめる |
 | **未コミット変更** | **なし**（リモートと一致） |
 | テスト | `node tools/smoke-test.mjs` → **50 件 ok / 0 件 NG** |
 | 公開 URL | https://claude.ai/code/artifact/c9ecf3b7-a7c1-4ce8-b3ca-1fe31de768ef |
 
-公開 URL は最新コミットの内容で更新済み。
-**この URL の発行元は Claude のクラウドセッションで、ローカルからは更新できない。**
-ローカルで続けた変更を公開したい場合は、ホスティング先を別に用意することになる
-（`dist/valorant-tactical-setup-card.html` は依存ゼロの HTML 1 枚なので、
-GitHub Pages / Cloudflare Pages / Netlify にそのまま置ける）。
+**2026-09-02 から GitHub Pages で常設公開している: https://longcape.github.io/claudeamazon/**
+作業ブランチへ push すると `.github/workflows/pages.yml` が自動で更新する。
+
+`https://claude.ai/code/artifact/c9ecf3b7-...` の方は、Claude のクラウドセッションが
+発行した古い公開ページ。ローカルからは更新できないので、**今後は GitHub Pages の方を見ること。**
 
 ### 起動方法
 

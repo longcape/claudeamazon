@@ -57,8 +57,9 @@ git clone -b claude/valorant-tactical-setup-card-iiiog3 https://github.com/longc
 cd valorant-setup-card
 ```
 
-> `-b claude/valorant-tactical-setup-card-iiiog3` を**必ず付けること**。
-> コードは作業ブランチにしか入っていない。付け忘れると中身が空になる。
+> `-b` はブランチの指定。実際には `claude/valorant-tactical-setup-card-iiiog3` が
+> このリポジトリの既定ブランチなので、付けなくても同じものが取れる（`main` というブランチは無い）。
+> 付けておくと、あとで既定ブランチが変わっても同じものが取れる。
 
 初回は GitHub のログインを求められる。ブラウザが開くので許可する。
 
@@ -216,7 +217,7 @@ GitHub の Actions タブ → 「公式画像の取得」→ Run workflow を押
 | 症状 | 対処 |
 | --- | --- |
 | `git` が見つからない | [1] をやり直す。インストール後は黒い画面を開き直すこと |
-| clone したのに中身が空 | `-b claude/valorant-tactical-setup-card-iiiog3` を付け忘れている |
+| clone したのに中身が空 | 別のリポジトリを取っている。`claudeamazon` の既定ブランチは作業ブランチなので、ブランチ指定の有無では空にならない |
 | 画像が出ない | `index.html` を直接開いているか確認。`dist/` の方ではない |
 | Claude Code が経緯を知らない | プロジェクトのフォルダで起動できていない。`CLAUDE.md` がある階層で起動する |
 | `node` が見つからない | https://nodejs.org/ja から推奨版を入れる |
@@ -229,11 +230,16 @@ GitHub の Actions タブ → 「公式画像の取得」→ Run workflow を押
 
 ## 公開 URL について
 
-現在の公開ページはクラウドセッションから発行したもので、
-**ローカルからは更新できない**。ローカルで続けた変更を公開したい場合は、
-ホスティング先を用意することになる。
+**https://longcape.github.io/claudeamazon/**
 
-`dist/valorant-tactical-setup-card.html` は依存ゼロの HTML 1 枚なので、
-どこにでも置ける。GitHub Pages / Cloudflare Pages / Netlify あたりが
-無料で、ファイルを置くだけで動く。必要になったら Claude Code に
-「GitHub Pages で公開したい」と頼めば設定してもらえる。
+作業ブランチへ push すると、GitHub Actions が公開ページを更新する。
+特別な操作は要らない。`git push` した数十秒後には新しい内容になっている。
+
+更新されないときは、GitHub の Actions タブで「公開ページの更新」が
+失敗していないか見ること。
+
+公開先で Supabase を使うので、URL を変えたときは Supabase の
+Authentication → URL Configuration も直す（詳細は `docs/SETUP.md`）。
+
+`https://claude.ai/code/artifact/...` の方は Claude のクラウドセッションが
+発行した古いページ。ローカルからは更新できないので、今後はこちらを見なくてよい。

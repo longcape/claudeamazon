@@ -470,6 +470,24 @@ smoke-test がこの文言を見張っている。
 
 ---
 
+## 公開
+
+**https://longcape.github.io/claudeamazon/** — 作業ブランチへ push すると
+`.github/workflows/pages.yml` が更新する。載せるのは `index.html` と `assets/` と `dist/` だけ。
+
+**`main` というブランチは無い。** 作業ブランチがそのまま既定ブランチなので、
+`git clone` にブランチ指定は要らない（付けても同じ）。
+「main が空だから -b を付けろ」という古い説明が残っていたら直すこと。
+
+接続情報は `assets/js/config.js` に**入れずに**、リポジトリの Variables から
+`tools/write-config.mjs` が公開時に書き込む。コミットすると smoke-test の
+「未設定ならクラウド保存は隠れる」が落ちる。
+`write-config.mjs` は service role キーらしき値を渡されたら中断する。
+
+公開 URL を変えたら、**Supabase の Authentication → URL Configuration も直すこと。**
+Site URL と Redirect URLs が合っていないと、メールのリンクからログインできない。
+開発用の `http://localhost:8080/**` は残しておく。
+
 ## リポジトリ
 
 ```
