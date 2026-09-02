@@ -1,0 +1,82 @@
+# =========================================================
+# GitHub Pages への公開
+# ---------------------------------------------------------
+# 作業ブランチへ push すると、そのまま公開ページが更新される。
+#
+# 公開先: https://longcape.github.io/claudeamazon/
+#
+# Supabase の接続情報は「リポジトリの Variables」から流し込む。
+# assets/js/config.js は空のままコミットしてあるので、
+# ここで書き込んでから公開する。
+#
+#   Settings → Secrets and variables → Actions → Variables
+#     SUPABASE_URL        https://xxxxxxxx.supabase.co
+#     SUPABASE_ANON_KEY   sb_publishable_...
+#
+# anon key はブラウザに露出する前提の公開キーなので Secrets ではなく
+# Variables に置いている。実際のアクセス制御は Supabase 側の RLS。
+# service role キーはここにも置かない。
+#
+# Variables を設定していない場合でもページは出る。
+# その場合はコミュニティとクラウド保存が丸ごと隠れた、
+# オフライン用のソロ版として公開される。
+# =========================================================
+name: 公開ページの更新
+
+on:
+  push:
+    branches: [claude/valorant-tactical-setup-card-iiiog3]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 走っている途中に次の push が来たら、新しい方を優先する
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: 接続情報を書き込む
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: node tools/write-config.mjs
+
+      - name: 配布ファイルを作り直す
+        run: node build.js
+
+      # 公開するのは画面に要るものだけ。tools/ や supabase/ は載せない
+      - name: 公開するファイルを集める
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -r assets _site/
+          cp -r dist _site/
+          echo "公開したもの:" >> "$GITHUB_STEP_SUMMARY"
+          du -sh _site >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
