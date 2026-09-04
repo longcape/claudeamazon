@@ -103,6 +103,11 @@ function renderExperimentKit(experiment, strategy) {
     L.push('## ' + p.order + '. ' + p.date + '（' + p.timeJst + '）　' + ROLE_STEP[p.role] + '　' + yen(p.price));
     L.push('');
     L.push('- 束: **' + p.clusterId + '** / 時間帯: **' + p.slotVariant + '**');
+    /* 動画「3品セットなどで1回の買い物単価を上げる」。束は3投稿で1回の買い物。 */
+    if (p.clusterBasketTotal) {
+      L.push('- この束を3つとも買ったときの合計: **' + yen(p.clusterBasketTotal) + '**' +
+        (p.clusterBasketOk ? '' : '（単価の目標に届いていません）'));
+    }
     L.push('- セッション（この投稿が属する晩）: **' + p.sessionDate + '**');
     L.push('- コレクション: ' + ((p.giftCollections || []).join(' / ') || '—'));
     L.push('');

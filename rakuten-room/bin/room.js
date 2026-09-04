@@ -558,7 +558,13 @@ async function cmdDoctor() {
   log.detail('RAKUTEN_ACCESS_KEY: ' + (process.env.RAKUTEN_ACCESS_KEY ? '設定済み' : '未設定 ← 必須'));
   log.detail('RAKUTEN_APP_URL: ' + (process.env.RAKUTEN_APP_URL || '未設定 ← 必須'));
   log.detail('RAKUTEN_AFFILIATE_ID: ' + (process.env.RAKUTEN_AFFILIATE_ID ? '設定済み' : '未設定（リンクが非アフィリになります）'));
-  log.detail('ANTHROPIC_API_KEY: ' + (process.env.ANTHROPIC_API_KEY ? '設定済み（紹介文を自然化します）' : '未設定（ルールベースのみ）'));
+  let overrideCount = 0;
+  try {
+    overrideCount = Object.keys(require('../config/copy-overrides.json'))
+      .filter(function (k) { return k.charAt(0) !== '$'; }).length;
+  } catch (e) { overrideCount = 0; }
+  log.detail('ANTHROPIC_API_KEY: ' + (process.env.ANTHROPIC_API_KEY ? '設定済み（実行時に紹介文を自然化します）' : '未設定（実行時の自然化は動きません）'));
+  log.detail('AIが書いた紹介文  : ' + (overrideCount ? overrideCount + ' 件（config/copy-overrides.json。ルールベースより優先されます）' : 'なし'));
   log.detail('投稿アダプタ: ' + (process.env.ROOM_POST_ADAPTER || 'manual'));
 
   log.step('データ');

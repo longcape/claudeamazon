@@ -198,7 +198,11 @@ function buildClusters(pool, strategy, opts) {
         const scores = members.map(function (m) { return relatedness(m, cand, strategy).score; });
         const min = Math.min.apply(null, scores);
         if (min < (cfg.minRelatedScore || 0)) continue;
-        const total = scores.reduce(function (x, y) { return x + y; }, 0);
+        /* 動画「3品セットなどで1回の買い物単価を上げるのが重要」。
+           ただし単価を関連度より優先させない。加点は1,000円で0.4点にとどめ、
+           関連度が同点のときだけ高いほうが勝つようにしている。 */
+        const basketBonus = (Number(cand.price) || 0) * ((cfg.basket || {}).weight || 0);
+        const total = scores.reduce(function (x, y) { return x + y; }, 0) + basketBonus;
         if (total > bestScore) { bestScore = total; best = cand; }
       }
       if (!best) break;
@@ -220,6 +224,11 @@ function buildClusters(pool, strategy, opts) {
       }),
       facets: members[0].facets,
       complementary: hasComplementaryPair(members, strategy),
+      /* 束は「1回の買い物」。合計が目標に届かない束は、同じ棚を安い順に
+         並べているだけで買い物単価が上がらない。 */
+      basketTotal: members.reduce(function (a, m) { return a + (Number(m.price) || 0); }, 0),
+      basketOk: members.reduce(function (a, m) { return a + (Number(m.price) || 0); }, 0)
+        >= ((cfg.basket || {}).targetMin || 0),
       cohesion: members.length > 1
         ? Number((members.slice(1).reduce(function (a, m) {
           return a + relatedness(members[0], m, strategy).score;

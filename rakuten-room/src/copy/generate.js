@@ -13,6 +13,18 @@
 
 const T = require('../util/text');
 
+/* AIが書いた紹介文の置き場。ANTHROPIC_API_KEY が無い環境でも、
+   Claude が直接書いた文をここに置けばルールベースより優先して使う。
+   キーがあるときの llm.js（実行時に自然化する経路）とは別で、こちらは
+   「書いた結果を資産として残す」ための経路。商品コードで引く。 */
+let overrides = null;
+function copyOverrides() {
+  if (overrides) return overrides;
+  try { overrides = require('../../config/copy-overrides.json'); }
+  catch (e) { overrides = {}; }
+  return overrides;
+}
+
 /* 同じ商品なら毎回同じ文、違う商品なら違う文になるよう
    乱数ではなく商品コードのハッシュで選ぶ（再現性のため） */
 function pick(list, seed, offset) {
@@ -161,14 +173,22 @@ function compose(item, strategy, lexicon, trend) {
     ];
   }
 
-  const body = lines.filter(Boolean).join('\n');
   const tags = hashtags(item, strategy, trend);
+
+  /* AIが書いた文があればそれを使う。ルールベースの文は組み立ての骨組みとしては
+     正しいが、量産すると型が見える。上書きがあっても parts はそのまま残すので、
+     validateCopy の「誰の・悩み・変化」検査と禁止表現の検査は同じように働く。 */
+  const override = copyOverrides()[item.baseItemCode || item.itemCode];
+  const body = override && override.body
+    ? String(override.body).trim()
+    : lines.filter(Boolean).join('\n');
   const text = body + '\n' + tags.join(' ');
 
   return {
     text: text,
     body: body,
     hashtags: tags,
+    source: override && override.body ? (override.source || 'override') : 'rules',
     parts: { who: who, problem: problem, change: change, core: core, feature: feature ? feature.matched : null, proof: proofFor(item), link: link }
   };
 }
@@ -224,7 +244,11 @@ function generateAll(seq, strategy, lexicon, trend) {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const seeded = attempt === 0
         ? item
-        : Object.assign({}, item, { itemCode: (item.itemCode || item.name) + String.fromCharCode(35) + attempt });
+        : Object.assign({}, item, {
+            itemCode: (item.itemCode || item.name) + String.fromCharCode(35) + attempt,
+            /* seed をずらしても上書き文は元の商品コードで引く */
+            baseItemCode: item.itemCode
+          });
       copy = fit(compose(seeded, strategy, lexicon, trend), strategy);
       if (!collides(copy)) break;
     }

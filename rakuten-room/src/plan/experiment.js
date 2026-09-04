@@ -93,11 +93,27 @@ function buildExperimentClusters(scored, strategy) {
      それだけで本数が足りない場合は補完なしも許すが、束に印を残して
      運用者が入れ替えを判断できるようにする */
   const strict = facetsLib.buildClusters(combined, strategy,
-    Object.assign({}, base, { requireComplementary: true }));
-  if (strict.length >= want) return strict;
+    Object.assign({}, base, { requireComplementary: true, count: want * 3 }));
+  const strictPicked = preferHigherBasket(strict, want);
+  if (strictPicked.length >= want) return strictPicked;
 
-  const loose = facetsLib.buildClusters(combined, strategy, base);
-  return loose;
+  const loose = facetsLib.buildClusters(combined, strategy,
+    Object.assign({}, base, { count: want * 3 }));
+  return preferHigherBasket(loose, want);
+}
+
+/* 動画「3品セットなどの1回の買い物単価を上げるのが重要。1,200円の商品を
+   あらゆるジャンルで投稿しても意味がない」。多めに束を作っておき、
+   1回の買い物として金額が立つものから採る。目標に届く束を優先し、
+   その中では元の（＝スコア順の）並びを保つ。届く束だけで足りなければ
+   届かない束を金額の高い順に足す。 */
+function preferHigherBasket(clusters, want) {
+  const ok = clusters.filter(function (c) { return c.basketOk; });
+  if (ok.length >= want) return ok.slice(0, want);
+  const rest = clusters
+    .filter(function (c) { return !c.basketOk; })
+    .sort(function (a, b) { return (b.basketTotal || 0) - (a.basketTotal || 0); });
+  return ok.concat(rest).slice(0, want);
 }
 
 /* クラスターを時間帯へ割り当てる。reverse=true で反転（クロスオーバー） */
@@ -137,6 +153,9 @@ function buildPosts(clusters, strategy, startDateKey) {
         order: order,
         role: member.clusterRole,
         clusterId: cluster.id,
+        /* 束は「1回の買い物」。運用者がキットで単価を確認できるようにする */
+        clusterBasketTotal: cluster.basketTotal,
+        clusterBasketOk: cluster.basketOk,
         slotVariant: cluster.slotVariant,
         date: date,
         sessionDate: sessionDate,

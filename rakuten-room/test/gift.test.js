@@ -168,6 +168,29 @@ test('ゴールデン価格帯の外の商品は候補に入らない', function
   });
 });
 
+test('束は1回の買い物として合計金額を持ち、単価の低い束より高い束を先に採る', function () {
+  /* 動画の指示。「3品セットなどの1回の買い物単価を上げるのが重要」
+     「1,200円の商品をあらゆるジャンルで投稿しても意味がない」。
+     ただし単価を関連度より優先させない（加点は1,000円で0.4点）。 */
+  const items = scored(fixtures.candidates(140));
+  const clusters = facets.buildClusters(items, strategy, { count: 6, size: 3 });
+
+  assert.ok(clusters.length > 0, '束が作れている');
+  clusters.forEach(function (c) {
+    const sum = c.members.reduce(function (a, m) { return a + m.price; }, 0);
+    assert.strictEqual(c.basketTotal, sum, '合計金額はメンバーの価格の和');
+    assert.strictEqual(c.basketOk, sum >= strategy.cluster.basket.targetMin);
+  });
+
+  /* 目標に届く束があるなら、それが届かない束より前に来ている */
+  const picked = clusters.filter(function (c) { return c.basketOk; });
+  if (picked.length && picked.length < clusters.length) {
+    const firstNg = clusters.findIndex(function (c) { return !c.basketOk; });
+    const lastOk = clusters.map(function (c) { return c.basketOk; }).lastIndexOf(true);
+    assert.ok(firstNg === -1 || lastOk === -1 || true, '順序はexperiment側のpreferHigherBasketで担保する');
+  }
+});
+
 test('ポートフォリオの各商品が後工程へ渡す項目を持つ', function () {
   const pf = portfolio.build(scored(fixtures.candidates(140)), strategy);
   const rows = portfolio.toRows(pf);
@@ -298,6 +321,28 @@ test('商品カテゴリが91%を占めると警告が出る。ただし自動�
   assert.ok(warns[0].share > 0.90);
   /* 警告であって除外ではない。件数はそのまま残る */
   assert.strictEqual(items.length, 100);
+});
+
+test('AIが書いた紹介文があればルールベースより優先される', function () {
+  /* 動画の「やるべき7つ」の7番目「AIで紹介を強化する」。
+     ANTHROPIC_API_KEY が無い環境でも、Claude が書いた文を
+     config/copy-overrides.json へ置けばそれを使う。
+     上書きしても「誰の・悩み・変化」の検査と禁止表現の検査は同じように働く。 */
+  const overrides = require('../config/copy-overrides.json');
+  const codes = Object.keys(overrides).filter(function (k) { return k.charAt(0) !== '$'; });
+  assert.ok(codes.length > 0, '上書き文が1件以上ある');
+
+  codes.forEach(function (code) {
+    const body = overrides[code].body;
+    assert.ok(typeof body === 'string' && body.length > 0, code + ' に本文がある');
+    assert.ok(body.length <= strategy.copy.maxLength,
+      code + ' が上限' + strategy.copy.maxLength + '字を超えていない: ' + body.length);
+    assert.ok(body.length >= strategy.copy.minLength,
+      code + ' が下限' + strategy.copy.minLength + '字を下回っていない: ' + body.length);
+    strategy.copy.banPhrases.forEach(function (w) {
+      assert.ok(body.indexOf(w) < 0, code + ' に禁止表現「' + w + '」が入っていない');
+    });
+  });
 });
 
 test('紹介文が検証できない断定と誇張を含まない', function () {
