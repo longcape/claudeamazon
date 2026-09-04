@@ -32,9 +32,10 @@ function hasAny(text, words) {
 }
 
 /* ---------- 1. ソーシャルギフト対応（推測） ---------- */
-/* ブランドの中核が「住所を知らない相手に贈れる」なので、
-   住所不要を明示している商品を最も高く評価する。
-   楽天APIはソーシャルギフト対応フラグを返さないため、ここは必ず推測になる。 */
+/* 棚の中核は「そのまま渡せる状態で届く」ことなので、のし・メッセージカード・
+   化粧箱などギフト仕立てを明示している商品を最も高く評価する（2026-09-04に階層変更）。
+   ソーシャルギフト（住所なし）は棚の1コレクションへ降ろしたため medium。
+   楽天APIはギフト対応フラグを返さないため、ここは必ず推測になる。 */
 function giftReady(item, lex) {
   const f = fields(item);
   const g = lex.giftReady;
@@ -159,7 +160,9 @@ function collectionsFor(item, lex, giftReadyScore, occasions, bands) {
   const text = f.head;
   const out = [];
 
-  if (giftReadyScore >= 0.9) out.push('住所を知らなくても贈れる');
+  /* 住所なしの棚札は giftReady の点数ではなく、住所不要を明示する語で判定する。
+     点数で判定すると、のし・化粧箱で満点になった商品に誤って付く。 */
+  if (hasAny(text, (lex.giftReady || {}).addressFree)) out.push('住所を知らなくても贈れる');
   const band = priceBand(Number(item.price) || 0, bands);
   if (band) out.push(band.label);
   if (hasAny(text, lex.food.words)) out.push('食べもの・スイーツ');

@@ -39,6 +39,7 @@ const feedback = require('../src/feedback/record');
 const owned = require('../src/feedback/owned');
 const queue = require('../src/post/queue');
 const experiment = require('../src/plan/experiment');
+const copyLib = require('../src/copy/generate');
 const scoreLib = require('../src/pipeline/score');
 const render = require('../src/post/render');
 const adapters = require('../src/post/adapters');
@@ -345,6 +346,15 @@ async function cmdExperiment(args) {
     startDate: args.flags.date || time.dateKey(),
     reverse: !!args.flags.reverse
   });
+  /* 紹介文は plan 側でしか作っていなかったため、実験の投稿が「（未生成）」で
+     出力されていた。実験も人がそのまま貼るものなので、ここで同じ工程を通す。 */
+  log.step('紹介文の生成');
+  e.posts = copyLib.generateAll(e.posts, s, analysis.lexicon, analysis.trend)
+    .map(function (p) { return Object.assign({}, p, { copyCheck: copyLib.validateCopy(p.copy, s) }); });
+  const ngPosts = e.posts.filter(function (p) { return p.copyCheck && p.copyCheck.ok === false; });
+  if (ngPosts.length) log.warn('検査に引っかかった紹介文 ' + ngPosts.length + ' 件');
+  else log.detail(e.posts.length + ' 件すべて生成・検査済み');
+
   const check = experiment.audit(e, s);
 
   log.step('実験 ' + e.experimentId);

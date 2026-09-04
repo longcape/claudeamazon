@@ -166,7 +166,8 @@ function renderPortfolio(portfolio, date) {
   const lines = [];
   lines.push('# 商品ポートフォリオ ' + date);
   lines.push('');
-  lines.push('棚: ソーシャルギフト「贈りもの迷子｜住所なしギフト」');
+  const brand = ((require('../config/strategy.json').room) || {}).brand || '贈りもの迷子';
+  lines.push('棚: ' + brand);
   lines.push('');
   lines.push('| 層 | 目標 | 確定 | 役割 |');
   lines.push('| --- | --- | --- | --- |');

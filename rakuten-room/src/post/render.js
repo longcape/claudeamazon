@@ -108,7 +108,15 @@ function renderExperimentKit(experiment, strategy) {
     L.push('');
     L.push('**商品**: ' + p.cleanName);
     L.push('');
-    L.push('**リンク（これを貼る）**:');
+    /* 楽天市場の「ROOMに投稿」ボタンの実体。商品を入れた状態でROOMの投稿画面が開くので、
+       商品を探す手間が消える。itemCode は shopCode:itemId の形。 */
+    if (p.itemCode) {
+      L.push('**ROOMの投稿画面を開く（商品入りで開きます）**:');
+      L.push('');
+      L.push('https://room.rakuten.co.jp/mix?itemcode=' + encodeURIComponent(p.itemCode));
+      L.push('');
+    }
+    L.push('**商品ページのリンク（参考）**:');
     L.push('');
     L.push('```');
     L.push(p.affiliateUrl || p.url);

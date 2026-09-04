@@ -36,17 +36,30 @@ test('ギフト用途の商品はギフト適性を満たす', function () {
     'ギフト表記のある商品は全件が閾値 ' + threshold + ' を超える');
 });
 
-test('住所不要を明示する商品が最も高く評価される', function () {
-  const strong = gift.giftReady({ cleanName: 'ソーシャルギフト スイーツ', catchcopy: '', caption: '' }, lexicon);
-  const medium = gift.giftReady({ cleanName: 'スイーツ のし対応', catchcopy: '', caption: '' }, lexicon);
+test('そのまま渡せるギフト仕立てが最も高く評価される', function () {
+  /* 2026-09-04に階層を入れ替えた。棚の中核は「予算で選べて、そのまま渡せる」なので、
+     のし・化粧箱などギフト仕立てを最上位に置く。住所なし（ソーシャルギフト）は
+     棚の中の1コレクションへ降ろしたので次点。 */
+  const strong = gift.giftReady({ cleanName: 'スイーツ のし対応 化粧箱', catchcopy: '', caption: '' }, lexicon);
+  const medium = gift.giftReady({ cleanName: 'ソーシャルギフト スイーツ', catchcopy: '', caption: '' }, lexicon);
   const weak = gift.giftReady({ cleanName: 'スイーツ プレゼント', catchcopy: '', caption: '' }, lexicon);
   const none = gift.giftReady({ cleanName: '業務用 洗剤 5L', catchcopy: '', caption: '' }, lexicon);
 
-  assert.ok(strong.score > medium.score, '住所不要 > 包装対応');
-  assert.ok(medium.score > weak.score, '包装対応 > ギフト語のみ');
+  assert.ok(strong.score > medium.score, 'ギフト仕立て > 住所なしのみ');
+  assert.ok(medium.score > weak.score, '住所なしのみ > ギフト語のみ');
   assert.ok(weak.score > none.score, 'ギフト語のみ > 該当なし');
   assert.strictEqual(none.score, 0);
   assert.strictEqual(strong.source, 'inferred', '推測値であることを明示する');
+});
+
+test('のし付き商品に住所なしの棚札を付けない', function () {
+  /* 階層を入れ替えたとき、giftReady が満点になっただけの商品へ
+     「住所を知らなくても贈れる」が付く誤りが実データで起きた（100件中65件）。 */
+  const noshi = gift.collectionsFor({ cleanName: 'スイーツ 詰め合わせ のし対応 化粧箱', catchcopy: '', caption: '', price: 3000 }, lexicon, 1.0, [], (strategy.gift || {}).priceBands);
+  assert.ok(noshi.indexOf('住所を知らなくても贈れる') < 0, 'のしだけでは住所なしにしない');
+
+  const social = gift.collectionsFor({ cleanName: 'ソーシャルギフト スイーツ 詰め合わせ', catchcopy: '', caption: '', price: 3000 }, lexicon, 0.6, [], (strategy.gift || {}).priceBands);
+  assert.ok(social.indexOf('住所を知らなくても贈れる') >= 0, '住所不要の明示があれば付ける');
 });
 
 test('ギフト用途から逸脱した商品はNG検査で止まる', function () {
