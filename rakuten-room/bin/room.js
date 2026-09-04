@@ -234,6 +234,7 @@ function cmdRecord(args) {
     log.fail('使い方: node bin/room.js record 1,2 --outbound-clicks=30 --unique-users=18 --cv-pending=1');
     log.detail('確定した成果を入れるとき: --cv-confirmed=1 --revenue-confirmed=2480');
     log.detail('観測時点を指定するとき  : --as-of=2026-10-05');
+    log.detail('投稿3時間後の初速      : --h3-likes=4 --h3-clicks=9');
     log.detail('旧来の --clicks --cv --revenue も引き続き使えます');
     return;
   }
@@ -253,7 +254,15 @@ function cmdRecord(args) {
     revenuePending: num('revenue-pending', 'revenue'),
     revenueConfirmed: num('revenue-confirmed'),
     asOf: args.flags['as-of'] ? new Date(args.flags['as-of'] + 'T12:00:00+09:00').toISOString() : undefined,
-    dataSource: args.flags.source || 'manual'
+    dataSource: args.flags.source || 'manual',
+    /* 動画は「投稿から3時間の初速が全て」「この時間帯にクリックが起きると
+       おすすめ・人気投稿に乗って放置で売れるループに入る」としている。
+       24時間後の数字と混ぜると初速が見えなくなるので別の枠で受ける。 */
+    initialLikes: num('h3-likes'),
+    initialOutboundClicks: num('h3-clicks'),
+    initialWindowHours: (args.flags['h3-likes'] !== undefined || args.flags['h3-clicks'] !== undefined)
+      ? ((s.maturity || {}).initialHours || 3)
+      : undefined
   };
   const added = feedback.record(plan, orders, metrics, s);
   log.step(added.length + ' 件の実績を記録しました');
@@ -376,6 +385,11 @@ async function cmdExperiment(args) {
   });
 
   const file = store.writeJson('experiment-' + e.experimentId + '.json', e);
+
+  /* 実験も「いつ・何を・どの文で出すか」が確定したキューなので、通常の計画と同じ場所へ
+     登録する。これをやらないと record / done / next / now が実験の投稿を見つけられず、
+     24時間後に数字を入れる工程がそのまま詰まる。 */
+  queue.savePlan(Object.assign({}, e, { kind: 'experiment', startDate: e.posts[0] ? e.posts[0].date : (args.flags.date || time.dateKey()) }));
   log.step('保存');
   log.detail('data/' + path.basename(file));
   log.detail('勝者判定には各枠 ' + e.winnerReadyAt + ' 投稿が要ります。今回は片枠6投稿です');

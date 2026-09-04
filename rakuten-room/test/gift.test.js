@@ -133,6 +133,41 @@ test('主力・準主力・ロングテールに分類される', function () {
   assert.strictEqual(codes.size, pf.all.length, '同じ商品が2つの層に入らない');
 });
 
+test('1ジャンルと関連商品以外はポートフォリオへ入れない', function () {
+  /* 動画の指示。「楽天ROOMのAIは何を売ってる人かを最初に判断する。
+     コスメ・家電・日用品・服・雑貨を全部混ぜた瞬間、専門性なしと判断され
+     レコメンドから除外される」「1ジャンル＋関連商品以外は出さない」。
+     中心カテゴリは件数の最頻値で自動的に決める（人が指定しない）。 */
+  const pf = portfolio.build(scored(fixtures.candidates(140)), strategy);
+  const sg = pf.summary.singleGenre;
+
+  assert.strictEqual(sg.anchor, 'sweets', '棚の中心は件数の最頻値で決まる');
+  assert.ok(sg.allowed.indexOf('beverage') >= 0, '補完カテゴリは残す');
+  assert.ok(sg.allowed.indexOf('cosmetic') < 0, '無関係なカテゴリは残さない');
+  assert.ok(sg.excluded > 0, '圏外の商品が実際に落ちている');
+
+  const cats = new Set(pf.all.map(function (i) {
+    return (i.facets || {}).productCategory;
+  }));
+  cats.forEach(function (c) {
+    assert.ok(sg.allowed.indexOf(c) >= 0, '採用された商品はすべて許可カテゴリ内: ' + c);
+  });
+});
+
+test('ゴールデン価格帯の外の商品は候補に入らない', function () {
+  /* 動画の指定は1,500〜2,980円。「即決されやすい・購入率が高い・強化が最速で溜まる」
+     「初心者はまずこの価格帯一択」。以前は1,000〜5,500円だった。 */
+  assert.strictEqual(strategy.goldenPrice.min, 1500);
+  assert.strictEqual(strategy.goldenPrice.max, 2980);
+  assert.strictEqual(strategy.filters.priceHardMin, 1500);
+  assert.strictEqual(strategy.filters.priceHardMax, 2980);
+
+  const pf = portfolio.build(scored(fixtures.candidates(140)), strategy);
+  pf.all.forEach(function (i) {
+    assert.ok(i.price >= 1500 && i.price <= 2980, 'ゴールデン価格帯の外: ' + i.price);
+  });
+});
+
 test('ポートフォリオの各商品が後工程へ渡す項目を持つ', function () {
   const pf = portfolio.build(scored(fixtures.candidates(140)), strategy);
   const rows = portfolio.toRows(pf);
@@ -244,12 +279,15 @@ test('利用場面が78%を占めても商品カテゴリの偏り警告は出�
   assert.strictEqual(cov.occasion.counts.birthday, 78);
 });
 
-test('商品カテゴリが71%を占めると警告が出る。ただし自動除外はしない', function () {
+test('商品カテゴリが91%を占めると警告が出る。ただし自動除外はしない', function () {
+  /* 2026-09-04にしきい値を0.7から0.9へ上げた。動画が「1ジャンル＋関連商品以外は出さない」
+     「ジャンルがバラバラだとレコメンドから除外される」と述べており、カテゴリ集中は
+     欠点ではなく要件だとしているため。警告はカテゴリが割れたときの気づき用に残す。 */
   const items = [];
   for (let i = 0; i < 100; i += 1) {
     items.push({
       facets: {
-        productCategory: i < 71 ? 'sweets' : 'towel',
+        productCategory: i < 91 ? 'sweets' : 'towel',
         occasion: ['birthday'], recipient: [], priceBand: '3000', deliveryMode: 'unknown'
       }
     });
@@ -257,7 +295,7 @@ test('商品カテゴリが71%を占めると警告が出る。ただし自動�
   const warns = facets.categoryDominance(items, strategy);
   assert.strictEqual(warns.length, 1);
   assert.strictEqual(warns[0].productCategory, 'sweets');
-  assert.ok(warns[0].share > 0.70);
+  assert.ok(warns[0].share > 0.90);
   /* 警告であって除外ではない。件数はそのまま残る */
   assert.strictEqual(items.length, 100);
 });

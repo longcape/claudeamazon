@@ -114,6 +114,38 @@ function quantileFloor(sortedTotals, ratio, absoluteFloor) {
 }
 
 /* scored は score.scoreAll の出力（total 降順）を想定する */
+/* ---------- 単一ジャンル制約 ---------- */
+/* 動画の指示「1ジャンル＋関連商品以外は出さない」を実装する。
+   中心カテゴリは件数の最頻値で決める（人が指定しない。棚の実態に従う）。
+   残すのは 中心 ∪ 補完カテゴリ ∪ 同一ジャンル扱い の3つ。 */
+function narrowToSingleGenre(items, strategy) {
+  const cfg = (strategy.portfolio || {}).singleGenre || {};
+  if (!cfg.enabled) return { kept: items, anchor: null, allowed: null };
+
+  const counts = {};
+  items.forEach(function (i) {
+    const c = ((i.facets || {}).productCategory) || 'other';
+    counts[c] = (counts[c] || 0) + 1;
+  });
+  const ranked = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; });
+  /* other は「分類できなかった」であって棚のテーマではないので中心にしない */
+  const anchor = ranked.find(function (c) { return c !== 'other'; });
+  if (!anchor) return { kept: items, anchor: null, allowed: null };
+
+  const allowed = {};
+  allowed[anchor] = true;
+  ((strategy.cluster || {}).complementary || []).forEach(function (pair) {
+    if (pair[0] === anchor) allowed[pair[1]] = true;
+    if (pair[1] === anchor) allowed[pair[0]] = true;
+  });
+  ((cfg.sameFamily || {})[anchor] || []).forEach(function (c) { allowed[c] = true; });
+
+  const kept = items.filter(function (i) {
+    return allowed[((i.facets || {}).productCategory) || 'other'];
+  });
+  return { kept: kept, anchor: anchor, allowed: Object.keys(allowed) };
+}
+
 function build(scored, strategy) {
   const cfg = strategy.portfolio;
   /* 同じ商品の色違い・サイズ違いを畳む。投稿計画は select 側で畳んでいるが
@@ -128,8 +160,15 @@ function build(scored, strategy) {
     return (i.giftScores ? i.giftScores.giftReady : 0) >= cfg.minGiftReady;
   });
   /* 絶対下限を割った候補は使わない。件数不足でもここは緩めない */
-  const eligible = giftOk.filter(function (i) { return i.total >= floor; });
-  const belowFloor = giftOk.length - eligible.length;
+  const aboveFloor = giftOk.filter(function (i) { return i.total >= floor; });
+
+  /* 単一ジャンル制約。動画は「1ジャンル＋関連商品以外は出さない」「混ぜた瞬間に
+     専門性なしと判断されてレコメンドから外れる」としている。棚の中心カテゴリを
+     件数で決め、補完カテゴリと同一ジャンル扱いのカテゴリだけを残す。 */
+  const genre = narrowToSingleGenre(aboveFloor, strategy);
+  const eligible = genre.kept;
+  const offGenre = aboveFloor.length - eligible.length;
+  const belowFloor = giftOk.length - aboveFloor.length;
   const rejected = deduped.length - giftOk.length;
   const collapsed = scored.length - deduped.length;
 
@@ -206,6 +245,7 @@ function build(scored, strategy) {
       collapsedDuplicates: collapsed,
       eligible: eligible.length,
       rejectedByGiftReady: rejected,
+      singleGenre: { anchor: genre.anchor, allowed: genre.allowed, excluded: offGenre },
       collections: tally(all, 'giftCollections'),
       selection: {
         absoluteFloor: floor,

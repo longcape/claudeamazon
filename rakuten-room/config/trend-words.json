@@ -2477,30 +2477,42 @@
             "score": 0.514
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
-            "speed": 9.41,
-            "score": 0.514
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 3,
+            "score": 0.532
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
-            "speed": 9.41,
-            "score": 0.514
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 3,
+            "score": 0.532
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
-            "speed": 9.41,
-            "score": 0.514
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 3,
+            "score": 0.532
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 3,
+            "score": 0.532
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 3,
+            "score": 0.532
           }
         ],
         "latest": {
           "word": "メッシュ",
-          "count": 4,
-          "avgScore": 0.514,
-          "avgReviewsPerDay": 9.41,
-          "measured": 4
+          "count": 3,
+          "avgScore": 0.532,
+          "avgReviewsPerDay": 3,
+          "measured": 2
         }
       },
       "シルク": {
@@ -2595,30 +2607,42 @@
             "score": 0.552
           },
           {
-            "date": "2026-09-04",
-            "count": 7,
-            "speed": 5.33,
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 1.67,
             "score": 0.552
           },
           {
-            "date": "2026-09-04",
-            "count": 7,
-            "speed": 5.33,
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 1.67,
             "score": 0.552
           },
           {
-            "date": "2026-09-04",
-            "count": 7,
-            "speed": 5.33,
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 1.67,
+            "score": 0.552
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 1.67,
+            "score": 0.552
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 1.67,
             "score": 0.552
           }
         ],
         "latest": {
           "word": "出産準備",
-          "count": 7,
+          "count": 6,
           "avgScore": 0.552,
-          "avgReviewsPerDay": 5.33,
-          "measured": 7
+          "avgReviewsPerDay": 1.67,
+          "measured": 3
         }
       },
       "2歳": {
@@ -3008,29 +3032,41 @@
             "score": 0.529
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.89,
-            "score": 0.529
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3,
+            "score": 0.549
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.89,
-            "score": 0.529
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3,
+            "score": 0.549
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.89,
-            "score": 0.529
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3,
+            "score": 0.549
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3,
+            "score": 0.549
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3,
+            "score": 0.549
           }
         ],
         "latest": {
           "word": "手が出せる",
-          "count": 3,
-          "avgScore": 0.529,
-          "avgReviewsPerDay": 3.89,
+          "count": 5,
+          "avgScore": 0.549,
+          "avgReviewsPerDay": 3,
           "measured": 3
         }
       },
@@ -3067,29 +3103,41 @@
             "score": 0.529
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.89,
-            "score": 0.529
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.526
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.89,
-            "score": 0.529
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.526
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.89,
-            "score": 0.529
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.526
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.526
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.526
           }
         ],
         "latest": {
           "word": "モロー反射",
-          "count": 3,
-          "avgScore": 0.529,
-          "avgReviewsPerDay": 3.89,
+          "count": 6,
+          "avgScore": 0.526,
+          "avgReviewsPerDay": 3,
           "measured": 3
         }
       },
@@ -3303,30 +3351,42 @@
             "score": 0.53
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.33,
-            "score": 0.53
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3.63,
+            "score": 0.546
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.33,
-            "score": 0.53
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3.63,
+            "score": 0.546
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 3.33,
-            "score": 0.53
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3.63,
+            "score": 0.546
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3.63,
+            "score": 0.546
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 3.63,
+            "score": 0.546
           }
         ],
         "latest": {
           "word": "寝かしつけ",
-          "count": 3,
-          "avgScore": 0.53,
-          "avgReviewsPerDay": 3.33,
-          "measured": 3
+          "count": 5,
+          "avgScore": 0.546,
+          "avgReviewsPerDay": 3.63,
+          "measured": 2
         }
       },
       "洗える": {
@@ -3421,30 +3481,42 @@
             "score": 0.563
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
+            "date": "2026-09-05",
+            "count": 7,
             "speed": 3,
-            "score": 0.563
+            "score": 0.53
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
+            "date": "2026-09-05",
+            "count": 7,
             "speed": 3,
-            "score": 0.563
+            "score": 0.53
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
+            "date": "2026-09-05",
+            "count": 7,
             "speed": 3,
-            "score": 0.563
+            "score": 0.53
+          },
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 3,
+            "score": 0.53
+          },
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 3,
+            "score": 0.53
           }
         ],
         "latest": {
           "word": "スワドル",
-          "count": 4,
-          "avgScore": 0.563,
+          "count": 7,
+          "avgScore": 0.53,
           "avgReviewsPerDay": 3,
-          "measured": 4
+          "measured": 3
         }
       },
       "大型": {
@@ -3539,30 +3611,42 @@
             "score": 0.549
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
-            "speed": 2.92,
-            "score": 0.549
+            "date": "2026-09-05",
+            "count": 8,
+            "speed": 3,
+            "score": 0.532
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
-            "speed": 2.92,
-            "score": 0.549
+            "date": "2026-09-05",
+            "count": 8,
+            "speed": 3,
+            "score": 0.532
           },
           {
-            "date": "2026-09-04",
-            "count": 4,
-            "speed": 2.92,
-            "score": 0.549
+            "date": "2026-09-05",
+            "count": 8,
+            "speed": 3,
+            "score": 0.532
+          },
+          {
+            "date": "2026-09-05",
+            "count": 8,
+            "speed": 3,
+            "score": 0.532
+          },
+          {
+            "date": "2026-09-05",
+            "count": 8,
+            "speed": 3,
+            "score": 0.532
           }
         ],
         "latest": {
           "word": "スリーパー",
-          "count": 4,
-          "avgScore": 0.549,
-          "avgReviewsPerDay": 2.92,
-          "measured": 4
+          "count": 8,
+          "avgScore": 0.532,
+          "avgReviewsPerDay": 3,
+          "measured": 3
         }
       },
       "上下セット": {
@@ -3657,29 +3741,41 @@
             "score": 0.627
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 2.78,
-            "score": 0.627
+            "speed": 2.08,
+            "score": 0.628
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 2.78,
-            "score": 0.627
+            "speed": 2.08,
+            "score": 0.628
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 2.78,
-            "score": 0.627
+            "speed": 2.08,
+            "score": 0.628
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.08,
+            "score": 0.628
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.08,
+            "score": 0.628
           }
         ],
         "latest": {
           "word": "《楽天",
           "count": 3,
-          "avgScore": 0.627,
-          "avgReviewsPerDay": 2.78,
+          "avgScore": 0.628,
+          "avgReviewsPerDay": 2.08,
           "measured": 3
         }
       },
@@ -3716,30 +3812,42 @@
             "score": 0.623
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 2.67,
-            "score": 0.623
+            "speed": 1.33,
+            "score": 0.617
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 2.67,
-            "score": 0.623
+            "speed": 1.33,
+            "score": 0.617
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 2.67,
-            "score": 0.623
+            "speed": 1.33,
+            "score": 0.617
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.33,
+            "score": 0.617
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.33,
+            "score": 0.617
           }
         ],
         "latest": {
           "word": "缶入り",
           "count": 3,
-          "avgScore": 0.623,
-          "avgReviewsPerDay": 2.67,
-          "measured": 2
+          "avgScore": 0.617,
+          "avgReviewsPerDay": 1.33,
+          "measured": 3
         }
       },
       "ロンパース": {
@@ -3834,30 +3942,42 @@
             "score": 0.564
           },
           {
-            "date": "2026-09-04",
-            "count": 21,
-            "speed": 2.48,
-            "score": 0.564
+            "date": "2026-09-05",
+            "count": 15,
+            "speed": 3,
+            "score": 0.529
           },
           {
-            "date": "2026-09-04",
-            "count": 21,
-            "speed": 2.48,
-            "score": 0.564
+            "date": "2026-09-05",
+            "count": 15,
+            "speed": 3,
+            "score": 0.529
           },
           {
-            "date": "2026-09-04",
-            "count": 21,
-            "speed": 2.48,
-            "score": 0.564
+            "date": "2026-09-05",
+            "count": 15,
+            "speed": 3,
+            "score": 0.529
+          },
+          {
+            "date": "2026-09-05",
+            "count": 15,
+            "speed": 3,
+            "score": 0.529
+          },
+          {
+            "date": "2026-09-05",
+            "count": 15,
+            "speed": 3,
+            "score": 0.529
           }
         ],
         "latest": {
           "word": "新生児",
-          "count": 21,
-          "avgScore": 0.564,
-          "avgReviewsPerDay": 2.48,
-          "measured": 18
+          "count": 15,
+          "avgScore": 0.529,
+          "avgReviewsPerDay": 3,
+          "measured": 3
         }
       },
       "タオルケット": {
@@ -4011,30 +4131,42 @@
             "score": 0.448
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 2.17,
-            "score": 0.448
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 1.75,
+            "score": 0.516
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 2.17,
-            "score": 0.448
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 1.75,
+            "score": 0.516
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 2.17,
-            "score": 0.448
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 1.75,
+            "score": 0.516
+          },
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 1.75,
+            "score": 0.516
+          },
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 1.75,
+            "score": 0.516
           }
         ],
         "latest": {
           "word": "大きいサイズ",
-          "count": 3,
-          "avgScore": 0.448,
-          "avgReviewsPerDay": 2.17,
-          "measured": 2
+          "count": 7,
+          "avgScore": 0.516,
+          "avgReviewsPerDay": 1.75,
+          "measured": 1
         }
       },
       "飾り": {
@@ -4247,30 +4379,42 @@
             "score": 0.663
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 1.89,
-            "score": 0.663
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.62
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 1.89,
-            "score": 0.663
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.62
           },
           {
-            "date": "2026-09-04",
-            "count": 3,
-            "speed": 1.89,
-            "score": 0.663
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.62
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.62
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.62
           }
         ],
         "latest": {
           "word": "10個入",
-          "count": 3,
-          "avgScore": 0.663,
-          "avgReviewsPerDay": 1.89,
-          "measured": 3
+          "count": 5,
+          "avgScore": 0.62,
+          "avgReviewsPerDay": 2.25,
+          "measured": 2
         }
       },
       "1歳": {
@@ -4365,30 +4509,42 @@
             "score": 0.525
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 1.78,
-            "score": 0.525
+            "speed": 2.13,
+            "score": 0.565
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 1.78,
-            "score": 0.525
+            "speed": 2.13,
+            "score": 0.565
           },
           {
-            "date": "2026-09-04",
+            "date": "2026-09-05",
             "count": 3,
-            "speed": 1.78,
-            "score": 0.525
+            "speed": 2.13,
+            "score": 0.565
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.13,
+            "score": 0.565
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.13,
+            "score": 0.565
           }
         ],
         "latest": {
           "word": "クマ",
           "count": 3,
-          "avgScore": 0.525,
-          "avgReviewsPerDay": 1.78,
-          "measured": 3
+          "avgScore": 0.565,
+          "avgReviewsPerDay": 2.13,
+          "measured": 2
         }
       },
       "快適": {
@@ -4542,30 +4698,42 @@
             "score": 0.606
           },
           {
-            "date": "2026-09-04",
-            "count": 7,
-            "speed": 1.57,
-            "score": 0.606
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.13,
+            "score": 0.613
           },
           {
-            "date": "2026-09-04",
-            "count": 7,
-            "speed": 1.57,
-            "score": 0.606
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.13,
+            "score": 0.613
           },
           {
-            "date": "2026-09-04",
-            "count": 7,
-            "speed": 1.57,
-            "score": 0.606
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.13,
+            "score": 0.613
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.13,
+            "score": 0.613
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.13,
+            "score": 0.613
           }
         ],
         "latest": {
           "word": "サブレ",
-          "count": 7,
-          "avgScore": 0.606,
-          "avgReviewsPerDay": 1.57,
-          "measured": 7
+          "count": 5,
+          "avgScore": 0.613,
+          "avgReviewsPerDay": 2.13,
+          "measured": 4
         }
       },
       "Tシャツ": {
@@ -4685,8 +4853,1074 @@
           "avgReviewsPerDay": 1.48,
           "measured": 11
         }
+      },
+      "1kg": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 14.5,
+            "score": 0.524
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 14.5,
+            "score": 0.524
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 14.5,
+            "score": 0.524
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 14.5,
+            "score": 0.524
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 14.5,
+            "score": 0.524
+          }
+        ],
+        "latest": {
+          "word": "1kg",
+          "count": 4,
+          "avgScore": 0.524,
+          "avgReviewsPerDay": 14.5,
+          "measured": 1
+        }
+      },
+      "夜泣き": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 3.63,
+            "score": 0.544
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 3.63,
+            "score": 0.544
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 3.63,
+            "score": 0.544
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 3.63,
+            "score": 0.544
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 3.63,
+            "score": 0.544
+          }
+        ],
+        "latest": {
+          "word": "夜泣き",
+          "count": 4,
+          "avgScore": 0.544,
+          "avgReviewsPerDay": 3.63,
+          "measured": 2
+        }
+      },
+      "くま": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 3,
+            "score": 0.621
+          },
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 3,
+            "score": 0.621
+          },
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 3,
+            "score": 0.621
+          },
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 3,
+            "score": 0.621
+          },
+          {
+            "date": "2026-09-05",
+            "count": 7,
+            "speed": 3,
+            "score": 0.621
+          }
+        ],
+        "latest": {
+          "word": "くま",
+          "count": 7,
+          "avgScore": 0.621,
+          "avgReviewsPerDay": 3,
+          "measured": 1
+        }
+      },
+      "通年": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.52
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.52
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.52
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.52
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 3,
+            "score": 0.52
+          }
+        ],
+        "latest": {
+          "word": "通年",
+          "count": 6,
+          "avgScore": 0.52,
+          "avgReviewsPerDay": 3,
+          "measured": 2
+        }
+      },
+      "退院": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 2.42,
+            "score": 0.541
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 2.42,
+            "score": 0.541
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 2.42,
+            "score": 0.541
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 2.42,
+            "score": 0.541
+          },
+          {
+            "date": "2026-09-05",
+            "count": 6,
+            "speed": 2.42,
+            "score": 0.541
+          }
+        ],
+        "latest": {
+          "word": "退院",
+          "count": 6,
+          "avgScore": 0.541,
+          "avgReviewsPerDay": 2.42,
+          "measured": 3
+        }
+      },
+      "5個入": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.607
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.607
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.607
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.607
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 2.25,
+            "score": 0.607
+          }
+        ],
+        "latest": {
+          "word": "5個入",
+          "count": 5,
+          "avgScore": 0.607,
+          "avgReviewsPerDay": 2.25,
+          "measured": 2
+        }
+      },
+      "バンブー": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.25,
+            "score": 0.578
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.25,
+            "score": 0.578
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.25,
+            "score": 0.578
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.25,
+            "score": 0.578
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 2.25,
+            "score": 0.578
+          }
+        ],
+        "latest": {
+          "word": "バンブー",
+          "count": 3,
+          "avgScore": 0.578,
+          "avgReviewsPerDay": 2.25,
+          "measured": 2
+        }
+      },
+      "夏用": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 2.25,
+            "score": 0.51
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 2.25,
+            "score": 0.51
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 2.25,
+            "score": 0.51
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 2.25,
+            "score": 0.51
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 2.25,
+            "score": 0.51
+          }
+        ],
+        "latest": {
+          "word": "夏用",
+          "count": 9,
+          "avgScore": 0.51,
+          "avgReviewsPerDay": 2.25,
+          "measured": 2
+        }
+      },
+      "クッキー缶": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 2,
+            "score": 0.607
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 2,
+            "score": 0.607
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 2,
+            "score": 0.607
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 2,
+            "score": 0.607
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 2,
+            "score": 0.607
+          }
+        ],
+        "latest": {
+          "word": "クッキー缶",
+          "count": 4,
+          "avgScore": 0.607,
+          "avgReviewsPerDay": 2,
+          "measured": 2
+        }
+      },
+      "おくるみ": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.8,
+            "score": 0.538
+          },
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.8,
+            "score": 0.538
+          },
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.8,
+            "score": 0.538
+          },
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.8,
+            "score": 0.538
+          },
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.8,
+            "score": 0.538
+          }
+        ],
+        "latest": {
+          "word": "おくるみ",
+          "count": 13,
+          "avgScore": 0.538,
+          "avgReviewsPerDay": 1.8,
+          "measured": 5
+        }
+      },
+      "高校生": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.576
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.576
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.576
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.576
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.576
+          }
+        ],
+        "latest": {
+          "word": "高校生",
+          "count": 5,
+          "avgScore": 0.576,
+          "avgReviewsPerDay": 1.75,
+          "measured": 1
+        }
+      },
+      "Lサイズ": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.527
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.527
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.527
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.527
+          },
+          {
+            "date": "2026-09-05",
+            "count": 5,
+            "speed": 1.75,
+            "score": 0.527
+          }
+        ],
+        "latest": {
+          "word": "Lサイズ",
+          "count": 5,
+          "avgScore": 0.527,
+          "avgReviewsPerDay": 1.75,
+          "measured": 1
+        }
+      },
+      "引っ越し祝い": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1.5,
+            "score": 0.597
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1.5,
+            "score": 0.597
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1.5,
+            "score": 0.597
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1.5,
+            "score": 0.597
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1.5,
+            "score": 0.597
+          }
+        ],
+        "latest": {
+          "word": "引っ越し祝い",
+          "count": 4,
+          "avgScore": 0.597,
+          "avgReviewsPerDay": 1.5,
+          "measured": 1
+        }
+      },
+      "綿100%": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 10,
+            "speed": 1.5,
+            "score": 0.59
+          },
+          {
+            "date": "2026-09-05",
+            "count": 10,
+            "speed": 1.5,
+            "score": 0.59
+          },
+          {
+            "date": "2026-09-05",
+            "count": 10,
+            "speed": 1.5,
+            "score": 0.59
+          },
+          {
+            "date": "2026-09-05",
+            "count": 10,
+            "speed": 1.5,
+            "score": 0.59
+          },
+          {
+            "date": "2026-09-05",
+            "count": 10,
+            "speed": 1.5,
+            "score": 0.59
+          }
+        ],
+        "latest": {
+          "word": "綿100%",
+          "count": 10,
+          "avgScore": 0.59,
+          "avgReviewsPerDay": 1.5,
+          "measured": 3
+        }
+      },
+      "シャチハタ": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          }
+        ],
+        "latest": {
+          "word": "シャチハタ",
+          "count": 3,
+          "avgScore": 0.561,
+          "avgReviewsPerDay": 1.5,
+          "measured": 1
+        }
+      },
+      "別注品": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          }
+        ],
+        "latest": {
+          "word": "別注品",
+          "count": 3,
+          "avgScore": 0.561,
+          "avgReviewsPerDay": 1.5,
+          "measured": 1
+        }
+      },
+      "シヤチハタ": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.5,
+            "score": 0.561
+          }
+        ],
+        "latest": {
+          "word": "シヤチハタ",
+          "count": 3,
+          "avgScore": 0.561,
+          "avgReviewsPerDay": 1.5,
+          "measured": 1
+        }
+      },
+      "ネーム9": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 1.5,
+            "score": 0.555
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 1.5,
+            "score": 0.555
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 1.5,
+            "score": 0.555
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 1.5,
+            "score": 0.555
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 1.5,
+            "score": 0.555
+          }
+        ],
+        "latest": {
+          "word": "ネーム9",
+          "count": 9,
+          "avgScore": 0.555,
+          "avgReviewsPerDay": 1.5,
+          "measured": 1
+        }
+      },
+      "赤ちゃん": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 42,
+            "speed": 1.28,
+            "score": 0.559
+          },
+          {
+            "date": "2026-09-05",
+            "count": 42,
+            "speed": 1.28,
+            "score": 0.559
+          },
+          {
+            "date": "2026-09-05",
+            "count": 42,
+            "speed": 1.28,
+            "score": 0.559
+          },
+          {
+            "date": "2026-09-05",
+            "count": 42,
+            "speed": 1.28,
+            "score": 0.559
+          },
+          {
+            "date": "2026-09-05",
+            "count": 42,
+            "speed": 1.28,
+            "score": 0.559
+          }
+        ],
+        "latest": {
+          "word": "赤ちゃん",
+          "count": 42,
+          "avgScore": 0.559,
+          "avgReviewsPerDay": 1.28,
+          "measured": 8
+        }
+      },
+      "キッズ": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.13,
+            "score": 0.518
+          },
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.13,
+            "score": 0.518
+          },
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.13,
+            "score": 0.518
+          },
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.13,
+            "score": 0.518
+          },
+          {
+            "date": "2026-09-05",
+            "count": 13,
+            "speed": 1.13,
+            "score": 0.518
+          }
+        ],
+        "latest": {
+          "word": "キッズ",
+          "count": 13,
+          "avgScore": 0.518,
+          "avgReviewsPerDay": 1.13,
+          "measured": 4
+        }
+      },
+      "オールシーズン": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.13,
+            "score": 0.489
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.13,
+            "score": 0.489
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.13,
+            "score": 0.489
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.13,
+            "score": 0.489
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1.13,
+            "score": 0.489
+          }
+        ],
+        "latest": {
+          "word": "オールシーズン",
+          "count": 3,
+          "avgScore": 0.489,
+          "avgReviewsPerDay": 1.13,
+          "measured": 2
+        }
+      },
+      "ひまわり": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1,
+            "score": 0.639
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1,
+            "score": 0.639
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1,
+            "score": 0.639
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1,
+            "score": 0.639
+          },
+          {
+            "date": "2026-09-05",
+            "count": 4,
+            "speed": 1,
+            "score": 0.639
+          }
+        ],
+        "latest": {
+          "word": "ひまわり",
+          "count": 4,
+          "avgScore": 0.639,
+          "avgReviewsPerDay": 1,
+          "measured": 2
+        }
+      },
+      "肌に優しい": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1,
+            "score": 0.502
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1,
+            "score": 0.502
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1,
+            "score": 0.502
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1,
+            "score": 0.502
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 1,
+            "score": 0.502
+          }
+        ],
+        "latest": {
+          "word": "肌に優しい",
+          "count": 3,
+          "avgScore": 0.502,
+          "avgReviewsPerDay": 1,
+          "measured": 1
+        }
+      },
+      "ナッツ": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 0.95,
+            "score": 0.691
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 0.95,
+            "score": 0.691
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 0.95,
+            "score": 0.691
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 0.95,
+            "score": 0.691
+          },
+          {
+            "date": "2026-09-05",
+            "count": 9,
+            "speed": 0.95,
+            "score": 0.691
+          }
+        ],
+        "latest": {
+          "word": "ナッツ",
+          "count": 9,
+          "avgScore": 0.691,
+          "avgReviewsPerDay": 0.95,
+          "measured": 5
+        }
+      },
+      "ベビー": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 44,
+            "speed": 0.93,
+            "score": 0.541
+          },
+          {
+            "date": "2026-09-05",
+            "count": 44,
+            "speed": 0.93,
+            "score": 0.541
+          },
+          {
+            "date": "2026-09-05",
+            "count": 44,
+            "speed": 0.93,
+            "score": 0.541
+          },
+          {
+            "date": "2026-09-05",
+            "count": 44,
+            "speed": 0.93,
+            "score": 0.541
+          },
+          {
+            "date": "2026-09-05",
+            "count": 44,
+            "speed": 0.93,
+            "score": 0.541
+          }
+        ],
+        "latest": {
+          "word": "ベビー",
+          "count": 44,
+          "avgScore": 0.541,
+          "avgReviewsPerDay": 0.93,
+          "measured": 11
+        }
+      },
+      "冬用": {
+        "history": [
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 0.88,
+            "score": 0.502
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 0.88,
+            "score": 0.502
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 0.88,
+            "score": 0.502
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 0.88,
+            "score": 0.502
+          },
+          {
+            "date": "2026-09-05",
+            "count": 3,
+            "speed": 0.88,
+            "score": 0.502
+          }
+        ],
+        "latest": {
+          "word": "冬用",
+          "count": 3,
+          "avgScore": 0.502,
+          "avgReviewsPerDay": 0.88,
+          "measured": 2
+        }
       }
     },
-    "updatedAt": "2026-09-04T13:57:26.316Z"
+    "updatedAt": "2026-09-04T15:30:04.425Z"
   }
 }
