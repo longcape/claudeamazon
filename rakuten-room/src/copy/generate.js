@@ -25,14 +25,22 @@ function pick(list, seed, offset) {
    説明文は宣伝文句が多く、関係ない語も並ぶ。保存容器の説明に
    「伸縮」と書いてあるだけで伸縮商品として売ってしまうと文が
    商品と噛み合わなくなるので、商品名での一致を必ず優先する。 */
-function extractFeature(item, lexicon) {
+function extractFeature(item, lexicon, seed) {
   /* 説明文は使わない。シーリングライトの説明文にある「折りたたみ」を拾って
      「たたんで隙間に収まる」と書く誤検出が実データで起きた。
      説明文には設置手順や別商品の宣伝まで混ざるため、名前とキャッチコピーだけを見る */
   const haystack = item.cleanName + ' ' + item.catchcopy;
   for (const rule of lexicon.featureRules) {
     const hit = rule.match.find(function (m) { return haystack.indexOf(m) >= 0; });
-    if (hit) return { problem: rule.problem, change: rule.change, matched: hit };
+    if (!hit) continue;
+    /* 使用頻度の高いルールは言い回しを複数持つ。同じ根拠の投稿が並んだとき
+       まったく同じ文が繰り返されると、機械が書いた列に見えるため。
+       seed を渡さない呼び出しでは従来どおり既定の1組を返す。 */
+    if (seed !== undefined && rule.variants && rule.variants.length) {
+      const v = pick(rule.variants, seed, 9);
+      return { problem: v.problem, change: v.change, matched: hit };
+    }
+    return { problem: rule.problem, change: rule.change, matched: hit };
   }
   return null;
 }
@@ -118,7 +126,7 @@ function linkLine(item, lexicon, seed) {
 
 function compose(item, strategy, lexicon, trend) {
   const seed = item.itemCode || item.name;
-  const feature = extractFeature(item, lexicon);
+  const feature = extractFeature(item, lexicon, seed);
   const who = personaFor(item, lexicon, seed);
   const problem = problemFor(item, lexicon, feature, seed);
   const change = changeFor(item, lexicon, feature, seed);
@@ -132,14 +140,14 @@ function compose(item, strategy, lexicon, trend) {
     const hook = pick(lexicon.baitHooks, seed, 5).replace('{price}', item.price.toLocaleString('ja-JP'));
     lines = [
       hook,
-      who + 'へ。' + problem + 'が、' + change + '。',
+      who + 'へ。' + problem + '。' + change + '。',
       link
     ];
   } else if (item.role === 'cv') {
     /* 直前の評価取りで温まった状態を、そのまま成約に流す */
     const hook = pick(lexicon.cvHooks, seed, 6);
     lines = [
-      who + 'へ。' + problem + 'が、' + change + '。',
+      who + 'へ。' + problem + '。' + change + '。',
       hook + ' ' + proofFor(item),
       link
     ];
@@ -147,7 +155,7 @@ function compose(item, strategy, lexicon, trend) {
     const hook = pick(lexicon.trafficHooks, seed, 7);
     const cta = pick(lexicon.trafficCta, seed, 8);
     lines = [
-      who + 'へ。' + problem + 'が、' + change + '。',
+      who + 'へ。' + problem + '。' + change + '。',
       hook,
       cta
     ];
@@ -194,10 +202,34 @@ function fit(copy, strategy) {
   return Object.assign({}, copy, { body: body, text: body + '\n' + copy.hashtags.join(' ') });
 }
 
+/* 同じ回の投稿で書き出しと「誰の」が重複すると、並べて見たときに
+   機械が書いた列に見える。衝突したら seed をずらして引き直す。
+   引き直しても再現性は保つ（同じ入力なら同じ出力）。 */
 function generateAll(seq, strategy, lexicon, trend) {
+  /* 同じ回の投稿で1行でも丸ごと同じ文が出ると、並べて見たときに
+     機械が書いた列に見える。行単位で既出を持ち、衝突したら seed をずらして
+     引き直す。引き直しても入力が同じなら出力は同じ（再現性は保つ）。 */
+  const usedLine = Object.create(null);
+
+  function collides(copy) {
+    return copy.body.split(String.fromCharCode(10)).some(function (line) {
+      return usedLine[line];
+    });
+  }
+
   return seq.map(function (raw) {
     const item = Object.assign({}, raw, { shelfId: shelfIdFor(raw, strategy) });
-    const copy = fit(compose(item, strategy, lexicon, trend), strategy);
+
+    let copy = null;
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const seeded = attempt === 0
+        ? item
+        : Object.assign({}, item, { itemCode: (item.itemCode || item.name) + String.fromCharCode(35) + attempt });
+      copy = fit(compose(seeded, strategy, lexicon, trend), strategy);
+      if (!collides(copy)) break;
+    }
+    copy.body.split(String.fromCharCode(10)).forEach(function (line) { usedLine[line] = true; });
+
     const check = validateCopy(copy, strategy);
     return Object.assign({}, item, { copy: copy, copyCheck: check });
   });
