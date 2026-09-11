@@ -970,7 +970,18 @@
       : 36;
     const avail = Math.floor(maxH - used - pad - 18);   /* 18 は端に触れないための余裕 */
     if (!(avail > 0)) return desired;
-    return Math.max(360, Math.min(desired, avail));
+
+    /* 横幅でも抑える。高さだけを見ていたせいで、スマホ（幅 375px）では
+       盤面が 468px になって画面の右にはみ出し、右半分に置けなくなっていた。
+       カードの幅は min(760px, 100%) で決まっているので、中身に引き伸ばされない。 */
+    const padX = body
+      ? parseFloat(getComputedStyle(body).paddingLeft) + parseFloat(getComputedStyle(body).paddingRight)
+      : 40;
+    const availW = Math.floor(card.clientWidth - padX - 8);
+    const cap = availW > 0 ? Math.min(avail, availW) : avail;
+
+    /* 360 の下限は PC で小さくなりすぎないためのもの。画面の方が狭ければそちらに合わせる */
+    return Math.max(Math.min(360, cap), Math.min(desired, cap));
   }
 
   function renderBoardCanvas(uiState) {
@@ -1000,7 +1011,13 @@
       el.textContent = t('board.hintSelected', { name: markLabel(selected) });
       return;
     }
-    el.textContent = t('board.hintPlace') + ' ' + t('board.orderNote');
+    /* スマホには右クリックが無い。そこで「右クリックで消す」と案内しても
+       消し方が分からないので、タッチ操作の端末では案内を差し替える
+       （マークをタップして選ぶと「削除」ボタンが出る） */
+    const touch = !!(global.matchMedia && global.matchMedia('(pointer: coarse)').matches);
+    el.textContent = touch
+      ? t('board.hintPlaceTouch')
+      : t('board.hintPlace') + ' ' + t('board.orderNote');
   }
 
   function armedLabel(armed) {

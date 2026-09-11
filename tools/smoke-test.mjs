@@ -1135,10 +1135,106 @@ for (const key of ['community.report', 'community.reported', 'community.reportCo
                    'community.reasons', 'community.breakdownTitle', 'community.breakdownEmpty',
                    'community.modNotePh', 'community.modLog', 'community.modLogTitle',
                    'community.modLogEmpty', 'community.action.restore',
-                   'community.action.force_hide', 'community.action.set_threshold']) {
+                   'community.action.force_hide', 'community.action.set_threshold',
+                   'intro.title', 'intro.steps', 'intro.save', 'intro.cloud', 'intro.close',
+                   'board.hintPlaceTouch', 'community.postDisclosure']) {
   check(`${key} が 3 言語にある`,
     localeKeys.ja.has(key) && localeKeys.en.has(key) && localeKeys.ko.has(key));
 }
+
+/* ---------------- はじめて開いた人 / スマホ ----------------
+   まっさらな状態のスマホで開いたときに、案内が出て、主要な操作が画面に収まること。
+   別のコンテキストを作るので localStorage もまっさら。 */
+console.log('\nはじめて開いた人 / スマホ');
+const phone = await browser.newContext({
+  viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, locale: 'ja-JP'
+});
+const mp = await phone.newPage();
+mp.on('pageerror', (e) => pageErrors.push('[スマホ] ' + String(e.message)));
+await mp.goto('file://' + DIST);
+await mp.waitForTimeout(700);
+
+check('初めて開くと案内が出る', await mp.locator('#intro-strip').isVisible());
+const introText = await mp.locator('#intro-strip').innerText();
+check('案内に使い方の順番が書いてある', /マッチ開始/.test(introText) && /①/.test(introText), introText.slice(0, 60));
+check('案内に保存先が書いてある', /このブラウザに自動で保存/.test(introText), introText.slice(0, 80));
+check('接続情報の無い版ではクラウド保存の一文を出さない', await mp.locator('#intro-cloud').isHidden());
+
+check('スマホで横にはみ出さない',
+  await mp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2));
+
+await mp.click('#btn-intro-close');
+await mp.waitForTimeout(200);
+check('「わかった」で案内が閉じる', await mp.locator('#intro-strip').isHidden());
+await mp.reload();
+await mp.waitForTimeout(700);
+check('一度閉じた案内は次から出ない', await mp.locator('#intro-strip').isHidden());
+
+/* 配置盤の編集画面。以前は高さしか見ておらず、幅 375px で 468px の盤面になって
+   右にはみ出していた */
+await mp.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+await mp.waitForTimeout(900);
+const phoneBoard = await mp.evaluate(() => {
+  const svg = document.querySelector('#board-canvas svg');
+  const card = document.querySelector('#modal-board .modal-card');
+  const r = svg ? svg.getBoundingClientRect() : null;
+  const c = card.getBoundingClientRect();
+  return {
+    w: r ? Math.round(r.width) : 0,
+    left: r ? Math.round(r.left) : -1,
+    right: r ? Math.round(r.right) : 9999,
+    cardRight: Math.round(c.right),
+    vw: window.innerWidth,
+    hint: document.getElementById('board-hint').textContent
+  };
+});
+check('スマホでも配置盤が画面の中に収まる',
+  phoneBoard.left >= 0 && phoneBoard.right <= phoneBoard.vw,
+  `盤面 ${phoneBoard.w}px / 右端 ${phoneBoard.right} / 画面 ${phoneBoard.vw}`);
+check('スマホでも配置盤のカードがはみ出さない', phoneBoard.cardRight <= phoneBoard.vw + 1,
+  `${phoneBoard.cardRight} / ${phoneBoard.vw}`);
+check('スマホでは右クリックではなくタップでの消し方を案内する',
+  !/右クリック/.test(phoneBoard.hint) && /タップ/.test(phoneBoard.hint), phoneBoard.hint);
+await phone.close();
+
+/* PC のブラウザを細くしたときの条件（タッチではないので、長い方の案内文が出る）。
+   本番で配置盤がはみ出していたのはこちら。長い 1 行の案内文がカードごと押し広げていた。
+   スマホ向けの短い案内文だけを見ていると、この崩れは検出できない */
+const narrow = await browser.newContext({ viewport: { width: 375, height: 812 }, locale: 'ja-JP' });
+const np = await narrow.newPage();
+np.on('pageerror', (e) => pageErrors.push('[細い画面] ' + String(e.message)));
+await np.goto('file://' + DIST);
+await np.waitForTimeout(700);
+await np.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+await np.waitForTimeout(900);
+const narrowBoard = await np.evaluate(() => {
+  const svg = document.querySelector('#board-canvas svg').getBoundingClientRect();
+  const card = document.querySelector('#modal-board .modal-card').getBoundingClientRect();
+  return { right: Math.round(svg.right), left: Math.round(svg.left), w: Math.round(svg.width),
+           cardRight: Math.round(card.right), vw: window.innerWidth,
+           hint: document.getElementById('board-hint').textContent };
+});
+check('細い PC 画面でも配置盤が画面の中に収まる',
+  narrowBoard.left >= 0 && narrowBoard.right <= narrowBoard.vw,
+  `盤面 ${narrowBoard.w}px / 右端 ${narrowBoard.right} / 画面 ${narrowBoard.vw}`);
+check('細い PC 画面でも配置盤のカードがはみ出さない', narrowBoard.cardRight <= narrowBoard.vw + 1,
+  `${narrowBoard.cardRight} / ${narrowBoard.vw}`);
+check('細い PC 画面では右クリックの案内が出ている（長い方の文言で確かめている）',
+  /右クリック/.test(narrowBoard.hint), narrowBoard.hint);
+await narrow.close();
+
+/* PC では従来どおり右クリックの案内のまま */
+const pcHint = await page.evaluate(() => window.VCT_I18N.t('board.hintPlace'));
+check('PC 向けの案内は右クリックのまま', /右クリック/.test(pcHint), pcHint);
+
+/* 投稿で何が公開されるか。プレビューには出ない構成まで公開されるので、投稿前に書いておく */
+const disclosure = await page.evaluate(() => {
+  const el = document.getElementById('post-disclosure');
+  return el ? el.textContent : '';
+});
+check('投稿画面に公開される内容が書いてある',
+  /構成/.test(disclosure) && /投稿者名/.test(disclosure) && /公開されません/.test(disclosure),
+  disclosure.slice(0, 60));
 
 /* ---------------- まとめ ---------------- */
 check('ページ内で例外が出ていない', pageErrors.length === 0, pageErrors.join(' / '));

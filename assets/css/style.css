@@ -1046,6 +1046,9 @@ select { appearance: none; cursor: pointer; }
 .modal-card {
   position: relative;
   width: min(760px, 100%);
+  /* グリッドの子は既定で「中身より縮まない」。これが無いと
+     幅 min(760px, 100%) を指定していても中身に押し広げられて画面からはみ出す */
+  min-width: 0;
   max-height: 86vh;
   display: flex;
   flex-direction: column;
@@ -1554,6 +1557,30 @@ select { appearance: none; cursor: pointer; }
 .mod-note   { color: var(--text-dim); font-style: italic; }
 .mod-log-row { flex-wrap: wrap; }
 
+/* --- はじめて開いた人向けの案内 --- */
+.intro-strip {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red);
+  background: rgba(255, 70, 85, .06);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.intro-strip b { display: block; font-size: 13px; margin-bottom: 4px; color: var(--text); }
+.intro-strip p { margin: 0; color: var(--text-dim); }
+.intro-strip .btn { flex-shrink: 0; }
+@media (max-width: 560px) {
+  .intro-strip { flex-direction: column; }
+}
+
+/* 投稿で何が公開されるか */
+.post-disclosure { margin: 10px 0 0; font-size: 11.5px; color: var(--text-mute); line-height: 1.6; }
+
 /* --- ログイン --- */
 .modal-narrow { width: min(430px, 100%); }
 .login-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.7; margin: 0 0 18px; }
@@ -1953,7 +1980,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .pal-ability:hover i { color: var(--text-dim); }
 .pal-icon { width: 76%; height: 76%; object-fit: contain; }
 
-.board-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.board-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; max-width: 100%; }
 .board-tools { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .board-tool-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .board-tool-selected {
@@ -1975,6 +2002,9 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
      盤面の大きさを決める計算がそのぶん狂うため */
   height: 1.6em;
   margin: 0;
+  /* 折り返さない 1 行なので、幅を決めておかないと長い文言がそのまま横幅になる。
+     実際に PC 向けの長い案内文が、狭い画面で配置盤の枠ごと横に押し広げていた */
+  max-width: 100%;
   overflow: hidden;
   font-size: 11.5px;
   color: var(--text-mute);
@@ -1995,7 +2025,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .match-banner .banner-text { font-family: var(--font-display); letter-spacing: .2em; }
 
 @media (max-width: 1180px) {
-  .board-layout { grid-template-columns: 1fr; }
+  /* 1fr のままだと列の最小幅が中身の幅になり、長い 1 行がカードごと押し広げる */
+  .board-layout { grid-template-columns: minmax(0, 1fr); }
   .board-palette { max-height: none; }
   .pal-abilities { grid-template-columns: repeat(4, 1fr); }
 }

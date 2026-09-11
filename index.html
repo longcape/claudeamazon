@@ -61,6 +61,17 @@
 
   <!-- ==================== SETUP VIEW ==================== -->
   <section class="view" id="view-setup">
+    <!-- はじめて開いた人向けの案内。何をするアプリか・何から押すか・どこに保存されるかが
+         画面のどこにも書かれていなかった。「わかった」を押したら次からは出さない -->
+    <aside class="intro-strip" id="intro-strip" hidden>
+      <div class="intro-text">
+        <b data-i18n="intro.title"></b>
+        <p data-i18n="intro.steps"></p>
+        <p data-i18n="intro.save"></p>
+        <p id="intro-cloud" data-i18n="intro.cloud" hidden></p>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-intro-close" data-i18n="intro.close"></button>
+    </aside>
     <div class="setup-grid">
 
       <article class="panel panel-clip" id="panel-match">
@@ -468,6 +479,8 @@
         <input type="text" id="post-author" maxlength="24" data-i18n-ph="community.author.ph" />
       </div>
       <div id="post-preview" class="post-preview"></div>
+      <!-- プレビューに出ていない構成まで公開される。投稿前に分かるようにしておく -->
+      <p class="post-disclosure" id="post-disclosure" data-i18n="community.postDisclosure"></p>
       <footer class="modal-foot">
         <span class="spacer"></span>
         <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>

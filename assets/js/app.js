@@ -1703,6 +1703,19 @@
   }
 
   /* ================= 起動 ================= */
+  /* はじめて開いた人向けの案内。「わかった」を押したら次からは出さない。
+     クラウド保存の一文は、接続情報が無い版（ボタン自体が無い）では出さない */
+  function bindIntro() {
+    let dismissed = false;
+    try { dismissed = localStorage.getItem('vct.introDismissed') === '1'; } catch (e) { /* 出しておけば困らない */ }
+    $('intro-strip').hidden = dismissed;
+    $('intro-cloud').hidden = !C.enabled();
+    $('btn-intro-close').addEventListener('click', function () {
+      $('intro-strip').hidden = true;
+      try { localStorage.setItem('vct.introDismissed', '1'); } catch (e) { /* noop */ }
+    });
+  }
+
   function init() {
     I.set(I.detect());
     I.applyDom();
@@ -1715,6 +1728,7 @@
     ui.view = S.state.phase === 'live' ? 'live' : 'setup';
 
     bindSetup();
+    bindIntro();
     bindLive();
     bindCommunity();
     bindCloud();

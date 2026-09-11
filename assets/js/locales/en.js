@@ -346,6 +346,15 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'err.network': 'The request did not go through. Check your connection and retry.',
   'err.unknown': 'That did not work. Try again in a moment.',
 
+  /* --- First-visit guide --- */
+  'intro.title': 'Track the call you make each round, and pick the next one from your wins and losses.',
+  'intro.steps': 'How to use: ① Pick a map → ② Pick 5 agents for each team → ③ Prepare your tactics (samples included) → ④ Start the match with the button at the bottom',
+  'intro.save': 'Everything is saved in this browser automatically. No sign-in needed.',
+  'intro.cloud': 'Only if you want it on another device, save it from “☁” on the tactic deck (sign-in required).',
+  'intro.close': 'Got it',
+  'board.hintPlaceTouch': 'Drag to place. Tap to select, then delete.',
+  'community.postDisclosure': 'What gets published: tactic name, call details, map, side, site, tactic type, both teams’ agent picks, matchup score, and your author name. Team names and match notes are not published. Anyone can see posts.',
+
   /* --- Moderation --- */
   'community.showHidden': 'Show hidden',
   'community.hiddenBadge': 'HIDDEN',

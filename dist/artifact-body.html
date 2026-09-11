@@ -1050,6 +1050,9 @@ select { appearance: none; cursor: pointer; }
 .modal-card {
   position: relative;
   width: min(760px, 100%);
+  /* グリッドの子は既定で「中身より縮まない」。これが無いと
+     幅 min(760px, 100%) を指定していても中身に押し広げられて画面からはみ出す */
+  min-width: 0;
   max-height: 86vh;
   display: flex;
   flex-direction: column;
@@ -1558,6 +1561,30 @@ select { appearance: none; cursor: pointer; }
 .mod-note   { color: var(--text-dim); font-style: italic; }
 .mod-log-row { flex-wrap: wrap; }
 
+/* --- はじめて開いた人向けの案内 --- */
+.intro-strip {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red);
+  background: rgba(255, 70, 85, .06);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.intro-strip b { display: block; font-size: 13px; margin-bottom: 4px; color: var(--text); }
+.intro-strip p { margin: 0; color: var(--text-dim); }
+.intro-strip .btn { flex-shrink: 0; }
+@media (max-width: 560px) {
+  .intro-strip { flex-direction: column; }
+}
+
+/* 投稿で何が公開されるか */
+.post-disclosure { margin: 10px 0 0; font-size: 11.5px; color: var(--text-mute); line-height: 1.6; }
+
 /* --- ログイン --- */
 .modal-narrow { width: min(430px, 100%); }
 .login-note { font-size: 12.5px; color: var(--text-dim); line-height: 1.7; margin: 0 0 18px; }
@@ -1957,7 +1984,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .pal-ability:hover i { color: var(--text-dim); }
 .pal-icon { width: 76%; height: 76%; object-fit: contain; }
 
-.board-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.board-stage { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; max-width: 100%; }
 .board-tools { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .board-tool-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .board-tool-selected {
@@ -1979,6 +2006,9 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
      盤面の大きさを決める計算がそのぶん狂うため */
   height: 1.6em;
   margin: 0;
+  /* 折り返さない 1 行なので、幅を決めておかないと長い文言がそのまま横幅になる。
+     実際に PC 向けの長い案内文が、狭い画面で配置盤の枠ごと横に押し広げていた */
+  max-width: 100%;
   overflow: hidden;
   font-size: 11.5px;
   color: var(--text-mute);
@@ -1999,7 +2029,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 .match-banner .banner-text { font-family: var(--font-display); letter-spacing: .2em; }
 
 @media (max-width: 1180px) {
-  .board-layout { grid-template-columns: 1fr; }
+  /* 1fr のままだと列の最小幅が中身の幅になり、長い 1 行がカードごと押し広げる */
+  .board-layout { grid-template-columns: minmax(0, 1fr); }
   .board-palette { max-height: none; }
   .pal-abilities { grid-template-columns: repeat(4, 1fr); }
 }
@@ -2624,6 +2655,17 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
   <!-- ==================== SETUP VIEW ==================== -->
   <section class="view" id="view-setup">
+    <!-- はじめて開いた人向けの案内。何をするアプリか・何から押すか・どこに保存されるかが
+         画面のどこにも書かれていなかった。「わかった」を押したら次からは出さない -->
+    <aside class="intro-strip" id="intro-strip" hidden>
+      <div class="intro-text">
+        <b data-i18n="intro.title"></b>
+        <p data-i18n="intro.steps"></p>
+        <p data-i18n="intro.save"></p>
+        <p id="intro-cloud" data-i18n="intro.cloud" hidden></p>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-intro-close" data-i18n="intro.close"></button>
+    </aside>
     <div class="setup-grid">
 
       <article class="panel panel-clip" id="panel-match">
@@ -3031,6 +3073,8 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
         <input type="text" id="post-author" maxlength="24" data-i18n-ph="community.author.ph" />
       </div>
       <div id="post-preview" class="post-preview"></div>
+      <!-- プレビューに出ていない構成まで公開される。投稿前に分かるようにしておく -->
+      <p class="post-disclosure" id="post-disclosure" data-i18n="community.postDisclosure"></p>
       <footer class="modal-foot">
         <span class="spacer"></span>
         <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
@@ -3666,6 +3710,15 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'err.network': '通信に失敗しました。接続を確かめてから試してください。',
   'err.unknown': 'うまくいきませんでした。時間をおいて試してください。',
 
+  /* --- はじめて開いた人向けの案内 --- */
+  'intro.title': 'ラウンドごとの作戦（コール）を記録して、勝ち負けから次の作戦を選ぶためのツールです。',
+  'intro.steps': '使い方：① マップを選ぶ → ② 味方と相手のエージェントを 5 人ずつ選ぶ → ③ 戦術を用意する（最初はサンプル入り）→ ④ いちばん下の「マッチ開始」',
+  'intro.save': '入力した内容はこのブラウザに自動で保存されます。ログインは要りません。',
+  'intro.cloud': '別の端末でも使いたいときだけ、戦術デッキの「☁ クラウド」から保存してください（ログインが要ります）。',
+  'intro.close': 'わかった',
+  'board.hintPlaceTouch': 'ドラッグで配置。タップで選んで削除',
+  'community.postDisclosure': '公開されるもの：戦術名・コール詳細・マップ・サイド・サイト・戦術の種類・味方と相手のエージェント構成・相性スコア・投稿者名。チーム名とマッチメモは公開されません。投稿は誰でも見られます。',
+
   /* --- 運営操作 --- */
   'community.showHidden': '非表示も表示',
   'community.hiddenBadge': '非表示中',
@@ -4136,6 +4189,15 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'err.network': 'The request did not go through. Check your connection and retry.',
   'err.unknown': 'That did not work. Try again in a moment.',
 
+  /* --- First-visit guide --- */
+  'intro.title': 'Track the call you make each round, and pick the next one from your wins and losses.',
+  'intro.steps': 'How to use: ① Pick a map → ② Pick 5 agents for each team → ③ Prepare your tactics (samples included) → ④ Start the match with the button at the bottom',
+  'intro.save': 'Everything is saved in this browser automatically. No sign-in needed.',
+  'intro.cloud': 'Only if you want it on another device, save it from “☁” on the tactic deck (sign-in required).',
+  'intro.close': 'Got it',
+  'board.hintPlaceTouch': 'Drag to place. Tap to select, then delete.',
+  'community.postDisclosure': 'What gets published: tactic name, call details, map, side, site, tactic type, both teams’ agent picks, matchup score, and your author name. Team names and match notes are not published. Anyone can see posts.',
+
   /* --- Moderation --- */
   'community.showHidden': 'Show hidden',
   'community.hiddenBadge': 'HIDDEN',
@@ -4603,6 +4665,15 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'err.rateLimit': '짧은 시간에 너무 많이 올렸습니다. 잠시 후 다시 시도하세요.',
   'err.network': '통신에 실패했습니다. 연결을 확인한 뒤 다시 시도하세요.',
   'err.unknown': '처리하지 못했습니다. 잠시 후 다시 시도하세요.',
+
+  /* --- 처음 방문한 사람을 위한 안내 --- */
+  'intro.title': '라운드마다 전술(콜)을 기록하고, 승패를 보고 다음 전술을 고르는 도구입니다.',
+  'intro.steps': '사용법: ① 맵 선택 → ② 아군과 상대 에이전트를 5명씩 선택 → ③ 전술 준비(샘플 포함) → ④ 맨 아래 버튼으로 매치 시작',
+  'intro.save': '입력한 내용은 이 브라우저에 자동으로 저장됩니다. 로그인은 필요 없습니다.',
+  'intro.cloud': '다른 기기에서도 쓰고 싶을 때만 전술 덱의 「☁」에서 저장하세요(로그인 필요).',
+  'intro.close': '알겠어요',
+  'board.hintPlaceTouch': '드래그로 배치. 탭해서 선택 후 삭제',
+  'community.postDisclosure': '공개되는 내용: 전술 이름, 콜 상세, 맵, 사이드, 사이트, 전술 종류, 아군과 상대의 에이전트 구성, 상성 점수, 작성자 이름. 팀 이름과 매치 메모는 공개되지 않습니다. 게시물은 누구나 볼 수 있습니다.',
 
   /* --- 운영 --- */
   'community.showHidden': '숨김도 표시',
@@ -8984,7 +9055,18 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       : 36;
     const avail = Math.floor(maxH - used - pad - 18);   /* 18 は端に触れないための余裕 */
     if (!(avail > 0)) return desired;
-    return Math.max(360, Math.min(desired, avail));
+
+    /* 横幅でも抑える。高さだけを見ていたせいで、スマホ（幅 375px）では
+       盤面が 468px になって画面の右にはみ出し、右半分に置けなくなっていた。
+       カードの幅は min(760px, 100%) で決まっているので、中身に引き伸ばされない。 */
+    const padX = body
+      ? parseFloat(getComputedStyle(body).paddingLeft) + parseFloat(getComputedStyle(body).paddingRight)
+      : 40;
+    const availW = Math.floor(card.clientWidth - padX - 8);
+    const cap = availW > 0 ? Math.min(avail, availW) : avail;
+
+    /* 360 の下限は PC で小さくなりすぎないためのもの。画面の方が狭ければそちらに合わせる */
+    return Math.max(Math.min(360, cap), Math.min(desired, cap));
   }
 
   function renderBoardCanvas(uiState) {
@@ -9014,7 +9096,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       el.textContent = t('board.hintSelected', { name: markLabel(selected) });
       return;
     }
-    el.textContent = t('board.hintPlace') + ' ' + t('board.orderNote');
+    /* スマホには右クリックが無い。そこで「右クリックで消す」と案内しても
+       消し方が分からないので、タッチ操作の端末では案内を差し替える
+       （マークをタップして選ぶと「削除」ボタンが出る） */
+    const touch = !!(global.matchMedia && global.matchMedia('(pointer: coarse)').matches);
+    el.textContent = touch
+      ? t('board.hintPlaceTouch')
+      : t('board.hintPlace') + ' ' + t('board.orderNote');
   }
 
   function armedLabel(armed) {
@@ -11265,6 +11353,19 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   }
 
   /* ================= 起動 ================= */
+  /* はじめて開いた人向けの案内。「わかった」を押したら次からは出さない。
+     クラウド保存の一文は、接続情報が無い版（ボタン自体が無い）では出さない */
+  function bindIntro() {
+    let dismissed = false;
+    try { dismissed = localStorage.getItem('vct.introDismissed') === '1'; } catch (e) { /* 出しておけば困らない */ }
+    $('intro-strip').hidden = dismissed;
+    $('intro-cloud').hidden = !C.enabled();
+    $('btn-intro-close').addEventListener('click', function () {
+      $('intro-strip').hidden = true;
+      try { localStorage.setItem('vct.introDismissed', '1'); } catch (e) { /* noop */ }
+    });
+  }
+
   function init() {
     I.set(I.detect());
     I.applyDom();
@@ -11277,6 +11378,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     ui.view = S.state.phase === 'live' ? 'live' : 'setup';
 
     bindSetup();
+    bindIntro();
     bindLive();
     bindCommunity();
     bindCloud();

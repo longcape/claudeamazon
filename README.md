@@ -33,7 +33,7 @@ VALORANT 競技シーン向けの **ラウンド戦術セットアップカー�
 試合設定、エージェント構成、戦術デッキ、ライブ画面のラウンドループ、推奨スコア、相性判定、
 配置盤（局面・プラント位置・ルート）、分岐ツリー、戦術の検索とグループ分け、構成プリセット、
 書き出し / 読み込み、X への投稿、多言語、公式画像。
-`node tools/smoke-test.mjs` の 257 項目がこの範囲を見張っています。
+`node tools/smoke-test.mjs` の 279 項目がこの範囲を見張っています。
 
 ### 設定すると使えるもの（任意）
 
@@ -328,10 +328,11 @@ CLAUDE.md                       開発メモ（設計の前提と過去の失敗
 docs/STATUS.md                  進捗と引き継ぎ（完了 / 作業中 / 未着手 / 次にやること）
 docs/SETUP.md                   コミュニティ / AI 寸評のセットアップと課金の考え方
 docs/LEGAL.md                   公開・収益化と Riot の規約
+docs/USER-TEST.md               はじめてのユーザーテストの手順と、見るところ・聞くこと
 docs/FETCH-ASSETS.md            公式画像の取得手順
 docs/HANDOFF.md                 ローカル環境で開発を続けるための手順
 tools/fetch-assets.mjs          Riot 公式アセットの取得ツール
-tools/smoke-test.mjs            動作確認 257 項目（要 playwright）
+tools/smoke-test.mjs            動作確認 279 項目（要 playwright）
 .github/workflows/fetch-assets.yml  公式画像の取得（GitHub Actions・毎月 1 日）
 画像を取得.bat                  Windows 用の取得ランチャ（CP932 / CRLF）
 画像を取得.command              Mac 用の取得ランチャ
