@@ -5,6 +5,11 @@
 
 **テスターへ渡す URL: https://longcape.github.io/claudeamazon/**
 
+回答フォーム（2026-09-12 公開）: https://docs.google.com/forms/d/e/1FAIpQLSe8O_yRX6g6icSr0Q9Q15ySe3v6fbVPwUV9Rv9IfkaiUM4Z0w/viewform
+
+日本語7問、全問任意。メールアドレス収集なし、Googleログイン不要、回答回数制限なし。
+第3段階で回答してもらう。アプリではフッターに表示し、初回案内からは誘導しない。
+
 **目的は「使えるかどうか」を知ることで、感想を集めることではない。**
 説明を足したくなっても、テスト中は口を出さない。**詰まった場所そのものがテストの結果**になる。
 

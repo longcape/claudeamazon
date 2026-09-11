@@ -1306,13 +1306,18 @@ async function feedbackState() {
   });
 }
 
-/* URL が空の版（リポジトリの既定）ではリンクごと出さない */
-await openVariant('feedback-empty', []);
+/* 設定済みの配布版と、空・不正な URL の変種をそれぞれ確認する */
+const feedbackConfig = distHtml.match(/FEEDBACK_URL: '[^']*'/)?.[0];
+if (!feedbackConfig) throw new Error('FEEDBACK_URL の設定が見つかりません');
+await openVariant('feedback-live', []);
+let liveFeedback = await feedbackState();
+check('配布版に公開フォームのリンクが設定されている', liveFeedback.shown && liveFeedback.href === 'https://docs.google.com/forms/d/e/1FAIpQLSe8O_yRX6g6icSr0Q9Q15ySe3v6fbVPwUV9Rv9IfkaiUM4Z0w/viewform');
+await openVariant('feedback-empty', [[feedbackConfig, "FEEDBACK_URL: ''"]]);
 let fb = await feedbackState();
 check('リンク先が空ならご意見のリンクを出さない', fb.shown === false);
 
 const FORM = 'https://forms.gle/exampleForSmokeTest';
-await openVariant('feedback-set', [["FEEDBACK_URL: ''", `FEEDBACK_URL: '${FORM}'`]]);
+await openVariant('feedback-set', [[feedbackConfig, `FEEDBACK_URL: '${FORM}'`]]);
 fb = await feedbackState();
 check('リンク先があればフッターにご意見のリンクが出る', fb.shown === true && fb.inFooter === true);
 check('ご意見のリンクは設定したフォームを指す', fb.href === FORM, String(fb.href));
@@ -1323,7 +1328,7 @@ check('ご意見のリンクの文言が出ている', /ご意見/.test(fb.text)
 check('最初の案内にはフォームへの誘導を書かない', fb.introMentions === false);
 
 /* https:// 以外（打ち間違いや javascript:）は踏ませない */
-await openVariant('feedback-bad', [["FEEDBACK_URL: ''", "FEEDBACK_URL: 'javascript:alert(1)'"]]);
+await openVariant('feedback-bad', [[feedbackConfig, "FEEDBACK_URL: 'javascript:alert(1)'"]]);
 fb = await feedbackState();
 check('https:// で始まらないリンク先は出さない', fb.shown === false);
 
