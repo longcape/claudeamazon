@@ -2037,7 +2037,12 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 @media (max-width: 1180px) {
   /* 1fr のままだと列の最小幅が中身の幅になり、長い 1 行がカードごと押し広げる */
   .board-layout { grid-template-columns: minmax(0, 1fr); }
-  .board-palette { max-height: none; }
+  /* 縦 1 列のときは一覧を自前でスクロールさせない。スクロールする箱は
+     「中身より縮んでよい」扱いになるので、カードの高さが足りないと
+     一覧の行が 0px まで潰され、中身だけがはみ出して下の盤面と重なっていた
+     （タブレット・スマホで、盤面に置くエージェントやスキルのボタンが隠れて押せない）。
+     縦に並べたぶんは、外側の .modal-body がまとめてスクロールする */
+  .board-palette { max-height: none; overflow: visible; }
   .pal-abilities { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 820px) {

@@ -1223,6 +1223,53 @@ check('細い PC 画面では右クリックの案内が出ている（長い方
   /右クリック/.test(narrowBoard.hint), narrowBoard.hint);
 await narrow.close();
 
+/* 縦 1 列になる幅（1180px 以下）で、エージェントとスキルの一覧が盤面に重ならないこと。
+   一覧が自前でスクロールする箱だったため、高さが足りないと行が 0px に潰され、
+   中身だけがはみ出して盤面の上に重なっていた。エージェントを選んだ後でないと
+   一覧にボタンが並ばないので、構成を入れてから確かめる */
+for (const [label, opts] of Object.entries({
+  'タブレット幅 1024': { viewport: { width: 1024, height: 768 } },
+  'スマホ幅 375': { viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true }
+})) {
+  const ctx2 = await browser.newContext({ ...opts, locale: 'ja-JP' });
+  const tp = await ctx2.newPage();
+  tp.on('pageerror', (e) => pageErrors.push(`[${label}] ` + String(e.message)));
+  await tp.goto('file://' + DIST);
+  await tp.waitForTimeout(600);
+  await tp.evaluate(([a, e]) => {
+    const S = window.VCT_STORE;
+    a.forEach((x, i) => { S.state.allies[i].agent = x; });
+    e.forEach((x, i) => { S.state.enemies[i].agent = x; });
+    S.save();
+  }, [ALLY, ENEMY]);
+  await tp.reload();
+  await tp.waitForTimeout(600);
+  await tp.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+  await tp.waitForTimeout(900);
+  const lay = await tp.evaluate(async () => {
+    const R = (el) => el.getBoundingClientRect();
+    const pal = R(document.getElementById('board-palette-ally'));
+    const stage = R(document.querySelector('#modal-board .board-stage'));
+    /* 一覧の中のボタンを画面の中に持ってきて、一番上にいる（押せる）かを見る。
+       ボタンの中の絵やアイコンに当たった場合は、そのボタンに当たったものとして数える */
+    const btns = [...document.querySelectorAll('#board-palette-ally .pal-agent, #board-palette-ally .pal-ability')];
+    let covered = 0;
+    for (const b of btns) {
+      b.scrollIntoView({ block: 'center' });
+      await new Promise((r) => setTimeout(r, 20));
+      const r = b.getBoundingClientRect();
+      const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const hit = el && (el === b || b.contains(el) || (el.closest && el.closest('.pal-agent, .pal-ability') === b));
+      if (!hit) covered++;
+    }
+    return { overlap: pal.bottom > stage.top + 1, buttons: btns.length, covered };
+  });
+  check(`${label}: エージェントとスキルの一覧が盤面に重ならない`, lay.overlap === false);
+  check(`${label}: 一覧のボタンがすべて押せる位置にある`,
+    lay.buttons > 0 && lay.covered === 0, `${lay.covered} / ${lay.buttons} 個が隠れている`);
+  await ctx2.close();
+}
+
 /* PC では従来どおり右クリックの案内のまま */
 const pcHint = await page.evaluate(() => window.VCT_I18N.t('board.hintPlace'));
 check('PC 向けの案内は右クリックのまま', /右クリック/.test(pcHint), pcHint);
