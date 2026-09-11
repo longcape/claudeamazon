@@ -1,6 +1,6 @@
 # 進捗と引き継ぎ（ChatGPT / Claude Code / Codex 共通）
 
-**最終更新日: 2026-09-01**
+**最終更新日: 2026-09-12**
 
 このファイルは「次に入った担当が、続きから作業できる」ことだけを目的にしている。
 設計の理由と過去の失敗は `CLAUDE.md`、環境構築は `docs/HANDOFF.md`。
@@ -13,15 +13,18 @@
 VALORANT 競技シーン向けの、ラウンド単位の戦術コール管理ツール。
 **動く状態で公開済み。** 中断中の作業や、壊れたまま放置している箇所は無い。
 
+**2026-09-12 から実ユーザーテスト中。5〜10 人の結果が集まるまで新機能は止めている。**
+手順・記録表・見本の投稿・テスト後の片付けは `docs/USER-TEST.md` が正本。
+
 | 項目 | 値 |
 | --- | --- |
 | リポジトリ | `longcape/claudeamazon` |
 | **ブランチ** | `claude/valorant-tactical-setup-card-iiiog3`（**これが既定ブランチ**。`main` というブランチは存在しない） |
 | **公開ページ** | https://longcape.github.io/claudeamazon/ （push すると自動で更新される） |
-| 最新コミット | `3003b8b` 進捗と引き継ぎの資料を docs/STATUS.md にまとめる |
+| 基準点 | `9252e7b`（ユーザーテスト開始時点）。フォームの反映は `44230e1`、見本投稿の記録は `d9aef3a`。最新は `git log -1` で見る |
 | **未コミット変更** | **なし**（リモートと一致） |
-| テスト | `node tools/smoke-test.mjs` → **50 件 ok / 0 件 NG** |
-| 公開 URL | https://claude.ai/code/artifact/c9ecf3b7-a7c1-4ce8-b3ca-1fe31de768ef |
+| テスト | `node tools/smoke-test.mjs` → **293 件 ok / 0 件 NG**（2026-09-12） |
+| フィードバック | https://docs.google.com/forms/d/e/1FAIpQLSe8O_yRX6g6icSr0Q9Q15ySe3v6fbVPwUV9Rv9IfkaiUM4Z0w/viewform （ページ下部の「ご意見・不具合の報告」から新しいタブで開く） |
 
 **2026-09-02 から GitHub Pages で常設公開している: https://longcape.github.io/claudeamazon/**
 作業ブランチへ push すると `.github/workflows/pages.yml` が自動で更新する。
@@ -335,10 +338,17 @@ EXECUTE も落としてある（Supabase は public スキーマの関数を既�
 
 上から順に。
 
-1. BUY マネー計算 — ユーザーが再開を決めたら着手
-2. 公開先の常設化を検討する（GitHub Pages 等。現在の URL はクラウドセッション発行で、ローカルから更新できない）
-3. Discord ログインを使うなら、Supabase の Authentication → Providers で有効にしてから
-   `config.js` の `AUTH_PROVIDERS` を `['discord']` に戻す。**コードの変更は要らない。**
+1. **実ユーザーテストを進める。** 手順は `docs/USER-TEST.md`（自由操作 → 指定タスク 7 つ → フォーム回答、の 3 段階）。
+   テスターに頼む直前に、Supabase が止まっていないか確かめる（無料プランは使われないと自動で止まる。
+   止まっていたらダッシュボードかこちらで再開する）
+2. **テスト期間中に即直すのは重大な不具合だけ。** 操作不能・データ消失・ログイン不能・保存不能・
+   スマホで主要機能が使えない・セキュリティ問題。それ以外（分かりにくい・欲しい機能・デザイン・軽い不便）は
+   `docs/USER-TEST.md` の表に記録するだけで、複数人の結果がそろうまで変えない
+3. 5〜10 人分の結果を見て、次の開発の優先順位を決める。BUY マネー計算・AI 寸評・Discord ログインなどはそこで判断する
+4. テストが終わったら、見本の投稿 2 件を片付ける（`docs/USER-TEST.md` の SQL。テスターの投稿は消さない）
+
+> Discord ログインを使う場合は、Supabase の Authentication → Providers で有効にしてから
+> `config.js` の `AUTH_PROVIDERS` を `['discord']` に戻す。コードの変更は要らない。
 
 > Supabase の advisor は 2026-09-01 に対応済み。残っているのは意図どおりのものだけ
 > （`like_post` / `report_post` を anon に公開、`ai_usage` にポリシーを作らない）。
