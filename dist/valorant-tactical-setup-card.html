@@ -2422,6 +2422,10 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 /* 規約が指定している文言。訳文より目立たせておく */
 .app-foot .legal-required { color: var(--muted); }
+/* 目立たせすぎない。一通り触った人が見つけられる程度にしておく */
+.app-foot .app-feedback { margin-bottom: 10px; }
+.app-foot .app-feedback a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; }
+.app-foot .app-feedback a:hover { color: var(--text); }
 
 /* =========================================================
    分岐ツリー
@@ -2900,6 +2904,12 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 <!-- Riot の Legal Jibber Jabber が明記を求めている文言。消さないこと。
      1 行目は規約が指定している 英文そのままなので、言語を切り替えても英語のまま出す。 -->
 <footer class="app-foot">
+  <!-- ご意見・不具合の報告。ユーザーテスト中の受け皿。
+       初見の行動を歪めないよう、案内には出さずフッターにだけ置く。
+       リンク先は config.js の FEEDBACK_URL。空ならこの行ごと隠れる -->
+  <p class="app-feedback" id="app-feedback" hidden>
+    <a id="feedback-link" href="#" target="_blank" rel="noopener noreferrer" data-i18n="feedback.link"></a>
+  </p>
   <p class="legal-required">VALORANT TACTICAL SETUP CARD was created under Riot Games&rsquo;
     &ldquo;Legal Jibber Jabber&rdquo; policy using assets owned by Riot Games.
     Riot Games does not endorse or sponsor this project.</p>
@@ -3253,7 +3263,12 @@ window.VCT_CONFIG = {
   TACTIC_LIMIT_FREE: 0,
 
   /* ログイン済みユーザーの上限。0 で無制限 */
-  TACTIC_LIMIT_SIGNED_IN: 0
+  TACTIC_LIMIT_SIGNED_IN: 0,
+
+  /* 「ご意見・不具合の報告」のリンク先（Google フォームなど）。
+     空ならリンクごと隠れる。https:// で始まるものだけを使う。
+     接続情報と違って秘密ではないので、ここへ直接書いてコミットしてよい */
+  FEEDBACK_URL: ''
 };
 
 window.VCT_CONFIG.isCommunityEnabled = function () {
@@ -3722,6 +3737,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'err.rateLimit': '短い時間に投稿しすぎです。しばらく待ってから試してください。',
   'err.network': '通信に失敗しました。接続を確かめてから試してください。',
   'err.unknown': 'うまくいきませんでした。時間をおいて試してください。',
+  'feedback.link': 'ご意見・不具合の報告（Google フォームが新しいタブで開きます）',
 
   /* --- はじめて開いた人向けの案内 --- */
   'intro.title': 'ラウンドごとの作戦（コール）を記録して、勝ち負けから次の作戦を選ぶためのツールです。',
@@ -4201,6 +4217,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'err.rateLimit': 'Too many posts in a short time. Wait a moment and try again.',
   'err.network': 'The request did not go through. Check your connection and retry.',
   'err.unknown': 'That did not work. Try again in a moment.',
+  'feedback.link': 'Feedback / report a bug (opens a Google Form in a new tab)',
 
   /* --- First-visit guide --- */
   'intro.title': 'Track the call you make each round, and pick the next one from your wins and losses.',
@@ -4678,6 +4695,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'err.rateLimit': '짧은 시간에 너무 많이 올렸습니다. 잠시 후 다시 시도하세요.',
   'err.network': '통신에 실패했습니다. 연결을 확인한 뒤 다시 시도하세요.',
   'err.unknown': '처리하지 못했습니다. 잠시 후 다시 시도하세요.',
+  'feedback.link': '의견 · 버그 제보 (Google 폼이 새 탭에서 열립니다)',
 
   /* --- 처음 방문한 사람을 위한 안내 --- */
   'intro.title': '라운드마다 전술(콜)을 기록하고, 승패를 보고 다음 전술을 고르는 도구입니다.',
@@ -11379,6 +11397,15 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
   }
 
+  /* フッターの「ご意見・不具合の報告」。リンク先が無い版では出さない。
+     打ち間違いや javascript: のような値を踏ませないよう、https:// のものだけを使う */
+  function bindFeedback() {
+    const url = String(CFG.FEEDBACK_URL || '').trim();
+    const ok = /^https:\/\/[^\s"'<>]+$/.test(url);
+    $('app-feedback').hidden = !ok;
+    if (ok) $('feedback-link').href = url;
+  }
+
   function init() {
     I.set(I.detect());
     I.applyDom();
@@ -11392,6 +11419,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     bindSetup();
     bindIntro();
+    bindFeedback();
     bindLive();
     bindCommunity();
     bindCloud();

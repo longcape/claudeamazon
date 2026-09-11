@@ -345,6 +345,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'err.rateLimit': 'Too many posts in a short time. Wait a moment and try again.',
   'err.network': 'The request did not go through. Check your connection and retry.',
   'err.unknown': 'That did not work. Try again in a moment.',
+  'feedback.link': 'Feedback / report a bug (opens a Google Form in a new tab)',
 
   /* --- First-visit guide --- */
   'intro.title': 'Track the call you make each round, and pick the next one from your wins and losses.',

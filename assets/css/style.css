@@ -2412,6 +2412,10 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 }
 /* 規約が指定している文言。訳文より目立たせておく */
 .app-foot .legal-required { color: var(--muted); }
+/* 目立たせすぎない。一通り触った人が見つけられる程度にしておく */
+.app-foot .app-feedback { margin-bottom: 10px; }
+.app-foot .app-feedback a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; }
+.app-foot .app-feedback a:hover { color: var(--text); }
 
 /* =========================================================
    分岐ツリー

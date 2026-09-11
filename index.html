@@ -293,6 +293,12 @@
 <!-- Riot の Legal Jibber Jabber が明記を求めている文言。消さないこと。
      1 行目は規約が指定している 英文そのままなので、言語を切り替えても英語のまま出す。 -->
 <footer class="app-foot">
+  <!-- ご意見・不具合の報告。ユーザーテスト中の受け皿。
+       初見の行動を歪めないよう、案内には出さずフッターにだけ置く。
+       リンク先は config.js の FEEDBACK_URL。空ならこの行ごと隠れる -->
+  <p class="app-feedback" id="app-feedback" hidden>
+    <a id="feedback-link" href="#" target="_blank" rel="noopener noreferrer" data-i18n="feedback.link"></a>
+  </p>
   <p class="legal-required">VALORANT TACTICAL SETUP CARD was created under Riot Games&rsquo;
     &ldquo;Legal Jibber Jabber&rdquo; policy using assets owned by Riot Games.
     Riot Games does not endorse or sponsor this project.</p>

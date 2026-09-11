@@ -1137,7 +1137,7 @@ for (const key of ['community.report', 'community.reported', 'community.reportCo
                    'community.modLogEmpty', 'community.action.restore',
                    'community.action.force_hide', 'community.action.set_threshold',
                    'intro.title', 'intro.steps', 'intro.save', 'intro.cloud', 'intro.close',
-                   'board.hintPlaceTouch', 'community.postDisclosure']) {
+                   'board.hintPlaceTouch', 'community.postDisclosure', 'feedback.link']) {
   check(`${key} が 3 言語にある`,
     localeKeys.ja.has(key) && localeKeys.en.has(key) && localeKeys.ko.has(key));
 }
@@ -1282,6 +1282,50 @@ const disclosure = await page.evaluate(() => {
 check('投稿画面に公開される内容が書いてある',
   /構成/.test(disclosure) && /投稿者名/.test(disclosure) && /公開されません/.test(disclosure),
   disclosure.slice(0, 60));
+
+/* ---------------- ご意見・不具合の報告 ----------------
+   ユーザーテストの受け皿。リンク先は config.js の FEEDBACK_URL。
+   初見の行動を歪めないよう、案内には出さずフッターにだけ置く */
+console.log('\nご意見・不具合の報告');
+
+async function feedbackState() {
+  return page.evaluate(() => {
+    const box = document.getElementById('app-feedback');
+    const a = document.getElementById('feedback-link');
+    const inFooter = !!(box && box.closest('footer.app-foot'));
+    return {
+      shown: !!(box && !box.hidden),
+      inFooter,
+      href: a ? a.getAttribute('href') : null,
+      target: a ? a.getAttribute('target') : null,
+      rel: a ? a.getAttribute('rel') || '' : '',
+      text: a ? a.textContent : '',
+      introMentions: /フォーム|ご意見|不具合|Feedback|feedback|의견/.test(
+        (document.getElementById('intro-strip') || { innerText: '' }).innerText)
+    };
+  });
+}
+
+/* URL が空の版（リポジトリの既定）ではリンクごと出さない */
+await openVariant('feedback-empty', []);
+let fb = await feedbackState();
+check('リンク先が空ならご意見のリンクを出さない', fb.shown === false);
+
+const FORM = 'https://forms.gle/exampleForSmokeTest';
+await openVariant('feedback-set', [["FEEDBACK_URL: ''", `FEEDBACK_URL: '${FORM}'`]]);
+fb = await feedbackState();
+check('リンク先があればフッターにご意見のリンクが出る', fb.shown === true && fb.inFooter === true);
+check('ご意見のリンクは設定したフォームを指す', fb.href === FORM, String(fb.href));
+check('ご意見のリンクは新しいタブで開く', fb.target === '_blank');
+check('新しいタブから元のページを操作させない', /noopener/.test(fb.rel), fb.rel);
+check('ご意見のリンクの文言が出ている', /ご意見/.test(fb.text), fb.text);
+/* 初見の行動を歪めないため、最初の案内からは誘導しない */
+check('最初の案内にはフォームへの誘導を書かない', fb.introMentions === false);
+
+/* https:// 以外（打ち間違いや javascript:）は踏ませない */
+await openVariant('feedback-bad', [["FEEDBACK_URL: ''", "FEEDBACK_URL: 'javascript:alert(1)'"]]);
+fb = await feedbackState();
+check('https:// で始まらないリンク先は出さない', fb.shown === false);
 
 /* ---------------- まとめ ---------------- */
 check('ページ内で例外が出ていない', pageErrors.length === 0, pageErrors.join(' / '));

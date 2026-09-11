@@ -35,7 +35,12 @@ window.VCT_CONFIG = {
   TACTIC_LIMIT_FREE: 0,
 
   /* ログイン済みユーザーの上限。0 で無制限 */
-  TACTIC_LIMIT_SIGNED_IN: 0
+  TACTIC_LIMIT_SIGNED_IN: 0,
+
+  /* 「ご意見・不具合の報告」のリンク先（Google フォームなど）。
+     空ならリンクごと隠れる。https:// で始まるものだけを使う。
+     接続情報と違って秘密ではないので、ここへ直接書いてコミットしてよい */
+  FEEDBACK_URL: ''
 };
 
 window.VCT_CONFIG.isCommunityEnabled = function () {

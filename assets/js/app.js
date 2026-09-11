@@ -1716,6 +1716,15 @@
     });
   }
 
+  /* フッターの「ご意見・不具合の報告」。リンク先が無い版では出さない。
+     打ち間違いや javascript: のような値を踏ませないよう、https:// のものだけを使う */
+  function bindFeedback() {
+    const url = String(CFG.FEEDBACK_URL || '').trim();
+    const ok = /^https:\/\/[^\s"'<>]+$/.test(url);
+    $('app-feedback').hidden = !ok;
+    if (ok) $('feedback-link').href = url;
+  }
+
   function init() {
     I.set(I.detect());
     I.applyDom();
@@ -1729,6 +1738,7 @@
 
     bindSetup();
     bindIntro();
+    bindFeedback();
     bindLive();
     bindCommunity();
     bindCloud();
