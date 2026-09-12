@@ -147,7 +147,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'res.loss.sub': 'Round lost',
   'meta.firstUse': 'First use',
   'meta.streak': '{n} in a row',
-  'pick.score': 'SCORE',
+  'pick.score': 'FIT',
   'pick.noTactics': 'No tactics available for this side. Turn on "Show off-side tactics" or add one.',
 
   'headline.first.title': 'FIRST ROUND',
@@ -471,5 +471,60 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'banner.nextMatch': 'Start a new match',
   'tactic.limitReached': 'You have reached the limit of {n} saved tactics.',
   'board.disarm': 'Cancel selection',
-  'board.size': 'Size'
+  'board.size': 'Size',
+
+  /* --- board zoom --- */
+  'board.zoom': 'Zoom',
+  'board.zoomIn': 'Zoom in',
+  'board.zoomOut': 'Zoom out',
+  'board.zoomReset': 'Fit',
+  'board.hintPan': 'Zoomed in: drag empty space to move. Wheel or two fingers to zoom.',
+
+  /* --- post to X (inside the ⋯ menu) --- */
+  'share.xMatch': 'Post match result to X',
+  'share.needRounds': 'No rounds recorded yet.',
+
+  /* --- what the fit score means --- */
+  'pick.legend': 'The fit score rates, by fixed rules, how well a tactic suits the situation right now. It is not a win rate or a success probability. Green = fits now, yellow = neutral, red = low priority now. The number on each note is the actual adjustment.',
+  'pick.scoreTitle': 'How this fit score was built (rule-based adjustments)',
+  'pick.scoreBase': 'Base {n}',
+  'pick.scoreTotal': 'Total {n}',
+  'reason.winrateThin': 'Used {used}x this match / {n}% won',
+  'reason.recentUse': 'Used only {n} rounds ago',
+  'reason.rhythmChange': 'Changes the tempo',
+  'reason.openingKind': 'Solid opening type',
+
+  /* --- round review --- */
+  'eval.title': 'Round review',
+  'eval.sub': 'Round {n} — {result} / {name}',
+  'eval.bar': 'Round {n} {result} — "{name}" — did it go to plan?',
+  'eval.exec': 'Did it go to plan?',
+  'eval.exec.clean': 'As planned',
+  'eval.exec.partial': 'Partly broke down',
+  'eval.exec.failed': 'Never happened',
+  'eval.exec.unrated': 'Not rated',
+  'eval.broken': 'Broke down',
+  'eval.reasons': 'Why (pick any number)',
+  'eval.reasonsHint': 'Only what applies. You can add more later.',
+  'eval.note': 'Note (other)',
+  'eval.notePh': 'Short note (optional)',
+  'eval.detail': 'Add reasons',
+  'eval.clear': 'Clear review',
+  'eval.saved': 'Review saved.',
+  'eval.cleared': 'Review cleared.',
+  'eval.reason.read': 'Read by the enemy / answered early',
+  'eval.reason.utility': 'Utility missed or not enough',
+  'eval.reason.entry': 'Entry failed',
+  'eval.reason.trade': 'Trade failed',
+  'eval.reason.numbers': 'Down a player',
+  'eval.reason.preplant': 'Pre-plant decision',
+  'eval.reason.postplant': 'Post-plant setup / retake handling',
+  'eval.reason.counter': 'Enemy repositioned or countered',
+  'eval.reason.rotation': 'Rotation call',
+  'eval.reason.timing': 'Timing did not line up',
+  'eval.reason.comms': 'Comms breakdown',
+  'eval.reason.duel': 'Lost the duel',
+  'eval.reason.outplay': 'Won on individual play',
+  'eval.reason.planWorked': 'The plan itself worked',
+  'eval.reason.other': 'Other'
 });

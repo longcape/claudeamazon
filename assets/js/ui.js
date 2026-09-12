@@ -345,11 +345,13 @@
       banner.className = 'match-banner is-final ' + (result === 'WIN' ? 'win' : 'loss');
       /* 決着したら「次のマッチへ」をここに大きく出す。
          下段の小さな「スコアリセット」は見つけにくい。 */
+      /* X へのポストはここには置かない。競技用のツールとして使う画面に
+         SNS への投稿ボタンが並ぶと、道具の性格が変わって見える。
+         機能は消さず、上部の ⋯ メニューへ移してある */
       banner.innerHTML =
         '<span class="banner-text">' +
           esc(t(result === 'WIN' ? 'banner.won' : 'banner.lost', { a: sc.ally, b: sc.enemy })) +
         '</span>' +
-        '<button class="btn btn-ghost btn-sm btn-x" data-act="share-x">' + t('share.x') + '</button>' +
         '<button class="btn btn-primary btn-sm" id="btn-next-match">' + t('banner.nextMatch') + '</button>';
     } else if (sc.ally >= 12 || sc.enemy >= 12) {
       banner.hidden = false;
@@ -477,6 +479,7 @@
              '<header class="panel-head">' +
                '<h2><span class="idx">▣</span>' + t('board.title') + '</h2>' +
                '<div class="panel-head-actions">' +
+                 boardZoomControlHTML('act', phase) +
                  boardSizeControlHTML('act') +
                  '<button class="btn btn-primary btn-sm" data-act="edit-board">' + t('board.edit') + '</button>' +
                '</div>' +
@@ -871,6 +874,9 @@
                   esc(armedLabel(uiState.armed)) + '</button>';
       }
     }
+    html += '</div>';
+    html += '<div class="board-tool-row">';
+    html += boardZoomControlHTML('board-act', B.phaseAt(uiState.boardTactic, uiState.phaseIndex));
     html += boardSizeControlHTML('board-act');
     html += '</div>';
 
@@ -914,6 +920,28 @@
       if (Number.isFinite(saved)) return Math.max(0, Math.min(SIZE_STEPS.length - 1, saved));
     } catch (e) { /* noop */ }
     return 2;
+  }
+
+  /**
+   * 盤面の拡大・縮小。A ラッシュなら A 側だけを見たい、という用途のためのもの。
+   * ブラウザの拡大と違い、盤面だけが拡大して置いたものも一緒に動く。
+   * 表示サイズ（＝盤面そのものの大きさ）とは別物なので、並べて置いている。
+   */
+  function boardZoomControlHTML(attr, phase) {
+    const v = B.view(phase);
+    const a = attr === 'act' ? 'data-act' : 'data-board-act';
+    const atMin = v.zoom <= B.MIN_ZOOM + 0.001;
+    const atMax = v.zoom >= B.MAX_ZOOM - 0.001;
+    return '<span class="board-zoom">' +
+             '<span class="lc-label">' + t('board.zoom') + '</span>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="zoom-out"' +
+               (atMin ? ' disabled' : '') + ' title="' + esc(t('board.zoomOut')) + '">−</button>' +
+             '<b>' + Math.round(v.zoom * 100) + '%</b>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="zoom-in"' +
+               (atMax ? ' disabled' : '') + ' title="' + esc(t('board.zoomIn')) + '">＋</button>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="zoom-reset"' +
+               (atMin ? ' disabled' : '') + '>' + t('board.zoomReset') + '</button>' +
+           '</span>';
   }
 
   /**
@@ -1001,6 +1029,12 @@
   function renderBoardHint(uiState) {
     const el = $('board-hint');
     if (uiState.routeTeam) { el.textContent = t('board.hintRoute'); return; }
+    /* 拡大中は、余白のドラッグが「動かす」に変わる。知らないと迷うので先に言う */
+    if (B.isZoomed(B.phaseAt(uiState.boardTactic, uiState.phaseIndex)) &&
+        !uiState.armed && !uiState.selectedMarkId) {
+      el.textContent = t('board.hintPan');
+      return;
+    }
     if (uiState.armed) {
       el.textContent = t('board.armed', { name: armedLabel(uiState.armed) });
       return;
@@ -1159,7 +1193,8 @@
       ? treeHTML + listLabel + '<div class="pick-list">' + ranked.map(function (r, i) {
           const st = r.stats;
           return '' +
-            '<button type="button" class="pick' + (i === 0 && !suggested ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '">' +
+            '<button type="button" class="pick' + (i === 0 && !suggested ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '"' +
+              ' title="' + esc(scoreTitle(r)) + '">' +
               '<span class="pick-score ' + r.tone + '"><b>' + r.score + '</b><small>' + t('pick.score') + '</small></span>' +
               '<span class="pick-main">' +
                 '<span class="pick-name">' + esc(r.tactic.name) + sideBadge(r.tactic.side) +
@@ -1167,7 +1202,10 @@
                 '</span>' +
                 (r.reasons.length
                   ? '<span class="pick-reasons">' + r.reasons.map(function (rs) {
-                      return '<span class="reason ' + rs.tone + '">' + esc(reasonText(rs)) + '</span>';
+                      /* 「なぜこの数値なのか」を、実際に足し引きした値そのままで出す */
+                      return '<span class="reason ' + rs.tone + '">' + esc(reasonText(rs)) +
+                               (rs.delta ? '<b class="reason-delta">' + deltaText(rs.delta) + '</b>' : '') +
+                             '</span>';
                     }).join('') + '</span>'
                   : '') +
               '</span>' +
@@ -1180,6 +1218,7 @@
       : '<p class="deck-empty">' + t('pick.noTactics') + '</p>';
 
     return '' +
+      roundEvalBarHTML() +
       '<div class="stage-head">' +
         '<h3>' + t('live.selecting', { n: n }) + ' ' + pill + '</h3>' +
         '<div class="stage-actions">' +
@@ -1193,7 +1232,53 @@
         '<span class="lc-label">' + t('eco.label') + '</span>' +
         '<span class="eco-seg">' + ecoSeg + '</span>' +
       '</div>' +
+      /* 数字の意味をここで言い切る。成功率と読まれると判断を誤らせる */
+      '<p class="pick-legend">' + esc(t('pick.legend')) + '</p>' +
       body;
+  }
+
+  function deltaText(d) {
+    return (d > 0 ? '+' : '−') + Math.abs(d);
+  }
+
+  /* ホバーで出る内訳。基準点からの足し引きと合計をそのまま並べる */
+  function scoreTitle(r) {
+    const lines = [t('pick.scoreTitle'), t('pick.scoreBase', { n: r.base })];
+    r.reasons.forEach(function (rs) {
+      lines.push((rs.delta ? deltaText(rs.delta) + '  ' : '±0  ') + reasonText(rs));
+    });
+    lines.push(t('pick.scoreTotal', { n: r.score }));
+    return lines.join('\n');
+  }
+
+  /**
+   * 直前ラウンドの評価バー。
+   * 勝敗を押した直後にここへ出す。1 タップで遂行度だけ記録でき、
+   * 押さずに次のラウンドへ進んでもよい（未評価のまま残るだけ）。
+   * 試合を止める確認ダイアログにはしない。
+   */
+  function roundEvalBarHTML() {
+    const last = S.lastRound();
+    if (!last) return '';
+    const tac = S.tacticById(last.tacticId);
+    const chips = ['clean', 'partial', 'failed'].map(function (lv) {
+      return '<button type="button" class="eval-chip' + (last.exec === lv ? ' is-active' : '') + '" ' +
+               'data-act="eval-exec" data-exec="' + lv + '">' + esc(t('eval.exec.' + lv)) + '</button>';
+    }).join('');
+    const n = (last.reasons || []).length;
+    return '<div class="eval-bar' + (last.exec === 'unrated' ? ' is-todo' : '') + '">' +
+             '<span class="eval-bar-label">' +
+               esc(t('eval.bar', {
+                 n: last.n,
+                 result: t('res.' + last.result.toLowerCase()),
+                 name: tac ? tac.name : t('timeline.deleted')
+               })) +
+             '</span>' +
+             '<span class="eval-chips">' + chips + '</span>' +
+             '<button type="button" class="btn btn-ghost btn-sm" data-act="eval-open" data-round="' + last.n + '">' +
+               esc(t('eval.detail')) + (n ? ' (' + n + ')' : '') +
+             '</button>' +
+           '</div>';
   }
 
   /* --- タイムライン / 成績 --- */
@@ -1202,12 +1287,19 @@
     $('timeline-empty').hidden = rounds.length > 0;
     $('timeline').innerHTML = rounds.slice().reverse().map(function (r) {
       const tac = S.tacticById(r.tacticId);
+      const rated = r.exec && r.exec !== 'unrated';
+      const n = (r.reasons || []).length;
       return '' +
         '<li class="tl-row ' + r.result.toLowerCase() + '">' +
           '<span class="tl-round">R' + r.n + '</span>' +
           '<span class="tl-side" data-side="' + r.side + '">' + r.side + '</span>' +
           '<span class="tl-name">' + esc(tac ? tac.name : t('timeline.deleted')) + '</span>' +
           '<span class="tl-res">' + t('res.' + r.result.toLowerCase()) + '</span>' +
+          /* 評価はあとから足せる。押すと同じ入力欄が開く */
+          '<button type="button" class="tl-eval' + (rated ? ' is-rated' : '') + '" ' +
+            'data-eval-round="' + r.n + '" title="' + esc(t('eval.title')) + '">' +
+            esc(t('eval.exec.' + (rated ? r.exec : 'unrated'))) + (n ? ' ·' + n : '') +
+          '</button>' +
         '</li>';
     }).join('');
   }
@@ -1232,8 +1324,60 @@
             '<span class="perf-count">' + row.st.win + 'W ' + row.st.loss + 'L</span>' +
           '</span>' +
           '<span class="perf-bar ' + cls + '"><span style="width:' + (rate === null ? 0 : rate) + '%"></span></span>' +
+          execSplitHTML(row.st) +
         '</li>';
     }).join('');
+  }
+
+  /**
+   * 作戦品質と遂行品質を分けて見るための行。
+   * 「作戦通りに動けたラウンドの勝率」と「崩れたラウンドの勝率」を並べる。
+   * 評価が 1 件も付いていない戦術には出さない（0% と誤読させないため）。
+   */
+  function execSplitHTML(st) {
+    if (!st.ratedUsed) return '';
+    const parts = [];
+    if (st.cleanUsed) {
+      parts.push('<span class="perf-split good">' + esc(t('eval.exec.clean')) + ' ' +
+                 st.cleanWinRate + '%<small>' + st.cleanUsed + '</small></span>');
+    }
+    if (st.brokenUsed) {
+      parts.push('<span class="perf-split bad">' + esc(t('eval.broken')) + ' ' +
+                 st.brokenWinRate + '%<small>' + st.brokenUsed + '</small></span>');
+    }
+    return parts.length ? '<span class="perf-splits">' + parts.join('') + '</span>' : '';
+  }
+
+  /* --- ラウンド評価の入力欄 --- */
+
+  /** 評価モーダルの中身を、そのラウンドの今の内容で埋める */
+  function renderRoundEval(n) {
+    const rec = S.state.rounds.filter(function (r) { return r.n === n; })[0];
+    if (!rec) return null;
+    const tac = S.tacticById(rec.tacticId);
+
+    $('round-eval-sub').textContent = t('eval.sub', {
+      n: rec.n,
+      result: t('res.' + rec.result.toLowerCase()),
+      name: tac ? tac.name : t('timeline.deleted')
+    });
+
+    $('eval-exec').innerHTML = S.EXEC_LEVELS.map(function (lv) {
+      return '<button type="button" data-val="' + lv + '"' +
+             (rec.exec === lv ? ' class="is-active"' : '') + '>' + esc(t('eval.exec.' + lv)) + '</button>';
+    }).join('');
+
+    $('eval-reasons').innerHTML = S.REASON_KEYS.map(function (k) {
+      return '<label class="eval-reason' + (k === 'planWorked' || k === 'outplay' ? ' is-good' : '') + '">' +
+               '<input type="checkbox" value="' + k + '"' +
+                 (rec.reasons.indexOf(k) >= 0 ? ' checked' : '') + ' />' +
+               '<span>' + esc(t('eval.reason.' + k)) + '</span>' +
+             '</label>';
+    }).join('');
+
+    $('eval-note').value = rec.reasonNote || '';
+    $('eval-note-field').hidden = rec.reasons.indexOf('other') < 0;
+    return rec;
   }
 
   /* ================= COMMUNITY ================= */
@@ -1541,6 +1685,7 @@
     renderBoardPhases: renderBoardPhases,
     renderTimeline: renderTimeline,
     renderPerf: renderPerf,
+    renderRoundEval: renderRoundEval,
     renderAccount: renderAccount,
     renderCommunityMapFilter: renderCommunityMapFilter,
     renderPosts: renderPosts,

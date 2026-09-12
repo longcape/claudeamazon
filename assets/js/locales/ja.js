@@ -481,5 +481,60 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'banner.nextMatch': '新しいマッチを始める',
   'tactic.limitReached': '登録できる戦術の上限（{n} 件）に達しました。',
   'board.disarm': '選択を解除',
-  'board.size': '表示サイズ'
+  'board.size': '表示サイズ',
+
+  /* --- 盤面の拡大・縮小 --- */
+  'board.zoom': '拡大',
+  'board.zoomIn': '拡大する',
+  'board.zoomOut': '縮小する',
+  'board.zoomReset': '全体表示',
+  'board.hintPan': '拡大中：何も無い所をドラッグで移動。ホイールか 2 本指で拡大・縮小。',
+
+  /* --- X へのポスト（⋯ メニュー内） --- */
+  'share.xMatch': 'X にポスト（試合結果）',
+  'share.needRounds': 'まだラウンドの記録がありません。',
+
+  /* --- 推奨度の意味 --- */
+  'pick.legend': '推奨度は、いまの状況への合い方をルールで採点した目安です（勝率や成功確率ではありません）。緑＝いま合っている／黄＝ふつう／赤＝いまは優先度が低い。各項目の数字が実際の加点・減点です。',
+  'pick.scoreTitle': '推奨度の内訳（ルールによる加点・減点）',
+  'pick.scoreBase': '基準点 {n}',
+  'pick.scoreTotal': '合計 {n}',
+  'reason.winrateThin': 'この試合で {used} 回 / 勝率 {n}%',
+  'reason.recentUse': '{n}R 前に使ったばかり',
+  'reason.rhythmChange': 'テンポを変える型',
+  'reason.openingKind': '初動に置きやすい型',
+
+  /* --- ラウンドの評価 --- */
+  'eval.title': 'ラウンドの評価',
+  'eval.sub': 'ラウンド {n} — {result} / {name}',
+  'eval.bar': 'ラウンド {n} {result}「{name}」— 作戦どおりでしたか？',
+  'eval.exec': '作戦どおりに実行できたか',
+  'eval.exec.clean': '実行できた',
+  'eval.exec.partial': '一部崩れた',
+  'eval.exec.failed': '実行できなかった',
+  'eval.exec.unrated': '未評価',
+  'eval.broken': '崩れた',
+  'eval.reasons': '成否の理由（複数選べます）',
+  'eval.reasonsHint': '当てはまるものだけで構いません。あとから足せます。',
+  'eval.note': 'その他の補足',
+  'eval.notePh': '短くメモ（任意）',
+  'eval.detail': '理由を選ぶ',
+  'eval.clear': '評価を消す',
+  'eval.saved': '評価を記録しました。',
+  'eval.cleared': '評価を消しました。',
+  'eval.reason.read': '相手に読まれた / 初動対応された',
+  'eval.reason.utility': 'ユーティリティの失敗・不足',
+  'eval.reason.entry': 'エントリー失敗',
+  'eval.reason.trade': 'トレード失敗',
+  'eval.reason.numbers': '人数不利',
+  'eval.reason.preplant': '設置前の判断ミス',
+  'eval.reason.postplant': '設置後の配置・リテイク対応ミス',
+  'eval.reason.counter': '相手の配置変更・カウンター',
+  'eval.reason.rotation': 'ローテーション判断ミス',
+  'eval.reason.timing': 'タイミング不一致',
+  'eval.reason.comms': 'コミュニケーションミス',
+  'eval.reason.duel': '個人の撃ち合い負け',
+  'eval.reason.outplay': '個人技で勝った',
+  'eval.reason.planWorked': '作戦そのものが有効だった',
+  'eval.reason.other': 'その他'
 });

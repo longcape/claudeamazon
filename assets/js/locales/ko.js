@@ -471,5 +471,60 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'banner.nextMatch': '새 매치 시작',
   'tactic.limitReached': '등록 가능한 전술 상한({n}개)에 도달했습니다.',
   'board.disarm': '선택 해제',
-  'board.size': '표시 크기'
+  'board.size': '표시 크기',
+
+  /* --- 보드 확대·축소 --- */
+  'board.zoom': '확대',
+  'board.zoomIn': '확대',
+  'board.zoomOut': '축소',
+  'board.zoomReset': '전체 보기',
+  'board.hintPan': '확대 중: 빈 곳을 드래그해 이동. 휠 또는 두 손가락으로 확대·축소.',
+
+  /* --- X 포스트(⋯ 메뉴 안) --- */
+  'share.xMatch': 'X에 포스트(매치 결과)',
+  'share.needRounds': '아직 라운드 기록이 없습니다.',
+
+  /* --- 추천도의 의미 --- */
+  'pick.legend': '추천도는 현재 상황에 얼마나 맞는지를 규칙으로 매긴 값입니다(승률이나 성공 확률이 아닙니다). 초록＝지금 잘 맞음 / 노랑＝보통 / 빨강＝지금은 우선도가 낮음. 각 항목 옆 숫자가 실제 가감점입니다.',
+  'pick.scoreTitle': '추천도 내역(규칙 기반 가감점)',
+  'pick.scoreBase': '기준점 {n}',
+  'pick.scoreTotal': '합계 {n}',
+  'reason.winrateThin': '이번 매치 {used}회 / 승률 {n}%',
+  'reason.recentUse': '{n}라운드 전에 사용함',
+  'reason.rhythmChange': '템포를 바꾸는 유형',
+  'reason.openingKind': '초반에 두기 좋은 유형',
+
+  /* --- 라운드 평가 --- */
+  'eval.title': '라운드 평가',
+  'eval.sub': '라운드 {n} — {result} / {name}',
+  'eval.bar': '라운드 {n} {result} — "{name}" — 작전대로였나요?',
+  'eval.exec': '작전대로 실행했는가',
+  'eval.exec.clean': '실행함',
+  'eval.exec.partial': '일부 무너짐',
+  'eval.exec.failed': '실행 못 함',
+  'eval.exec.unrated': '미평가',
+  'eval.broken': '무너짐',
+  'eval.reasons': '성패 이유(복수 선택 가능)',
+  'eval.reasonsHint': '해당하는 것만 고르면 됩니다. 나중에 추가할 수 있습니다.',
+  'eval.note': '기타 보충',
+  'eval.notePh': '짧은 메모(선택)',
+  'eval.detail': '이유 선택',
+  'eval.clear': '평가 지우기',
+  'eval.saved': '평가를 기록했습니다.',
+  'eval.cleared': '평가를 지웠습니다.',
+  'eval.reason.read': '상대에게 읽힘 / 초반 대응당함',
+  'eval.reason.utility': '스킬 실패·부족',
+  'eval.reason.entry': '엔트리 실패',
+  'eval.reason.trade': '트레이드 실패',
+  'eval.reason.numbers': '인원 열세',
+  'eval.reason.preplant': '설치 전 판단 실수',
+  'eval.reason.postplant': '설치 후 배치·리테이크 대응 실수',
+  'eval.reason.counter': '상대 배치 변경·카운터',
+  'eval.reason.rotation': '로테이션 판단 실수',
+  'eval.reason.timing': '타이밍 불일치',
+  'eval.reason.comms': '커뮤니케이션 실수',
+  'eval.reason.duel': '개인 교전 패배',
+  'eval.reason.outplay': '개인기로 이김',
+  'eval.reason.planWorked': '작전 자체가 유효했음',
+  'eval.reason.other': '기타'
 });

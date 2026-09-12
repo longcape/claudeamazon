@@ -134,7 +134,7 @@
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-report', 'modal-breakdown', 'modal-modlog', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-report', 'modal-breakdown', 'modal-modlog', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree', 'modal-round-eval'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -258,8 +258,23 @@
 
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
+      /* X へのポストは試合の記録があってはじめて意味を持つ。
+         開くたびに見直す（押しても何も起きないボタンを作らない） */
+      $('btn-share-x').disabled = S.state.rounds.length === 0;
       pop.hidden = !pop.hidden;
       btn.setAttribute('aria-expanded', String(!pop.hidden));
+    });
+
+    /* 競技用の画面から SNS の導線を外し、機能はここへ移した。
+       出すのは試合全体の要約で、ラウンド単位のカードは出さない */
+    $('btn-share-x').addEventListener('click', function () {
+      if (!S.state.rounds.length) { U.toast(t('share.needRounds'), 'err'); return; }
+      SHARE.postMatchToX({
+        map: S.state.match.map,
+        score: S.score(),
+        rounds: S.state.rounds,
+        tactics: S.state.tactics
+      });
     });
 
     /* 中の項目を押したら閉じる。外を押しても閉じる */
@@ -548,6 +563,12 @@
       } else if (act === 'size-up' || act === 'size-down') {
         U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
         if (ui.view === 'live') renderLive();
+      } else if (act === 'zoom-in' || act === 'zoom-out') {
+        BOARD.zoomBy(curPhase(), act === 'zoom-in' ? ZOOM_STEP : 1 / ZOOM_STEP);
+        commitBoard();
+      } else if (act === 'zoom-reset') {
+        BOARD.resetView(curPhase());
+        commitBoard();
       } else if (act === 'order-up' || act === 'order-down') {
         BOARD.bumpOrder(curPhase(), ui.selectedMarkId, act === 'order-up' ? -1 : 1);
         commitBoard();
@@ -708,7 +729,40 @@
     const THRESHOLD = 4;   // これ以上動いたらドラッグとみなす（px）
     let press = null;
 
+    /* ピンチ（2 本指）の状態。指が 2 本になった時点で通常の操作は打ち切る。
+       置く・動かすと取り合いにならないよう、本数で完全に分けている */
+    const points = new Map();
+    let pinchDist = 0;
+
     function svgEl() { return canvas.querySelector('svg[data-board]'); }
+
+    /* Map.values() はイテレータなので slice では配列にならない。
+       ここを取り違えると 2 本目の指に触れた瞬間に落ちる */
+    function pinchPoints() {
+      return Array.from(points.values());
+    }
+
+    function midpoint() {
+      const list = pinchPoints();
+      return { clientX: (list[0].x + list[1].x) / 2, clientY: (list[0].y + list[1].y) / 2 };
+    }
+
+    function pinchSpan() {
+      const list = pinchPoints();
+      return Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y);
+    }
+
+    /* ホイールで拡大・縮小。カーソルの下の地点を動かさないので、
+       見たい場所へ寄っていける */
+    canvas.addEventListener('wheel', function (e) {
+      const svg = svgEl();
+      if (!svg) return;
+      e.preventDefault();
+      BOARD.zoomBy(curPhase(), e.deltaY < 0 ? WHEEL_STEP : 1 / WHEEL_STEP,
+        BOARD.toBoardPoint(svg, e));
+      commitBoard();
+      refreshBoard();
+    }, { passive: false });
 
     /* 右クリックで消す。
        マークの上なら そのマーク、ルートの上なら そのルート、
@@ -752,13 +806,26 @@
     canvas.addEventListener('pointerdown', function (e) {
       if (!svgEl()) return;
       if (e.button) return;            // 左ボタン（とタッチ）だけ掴める
+
+      points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (points.size >= 2) {
+        /* 2 本目が触れた時点でピンチ。掴みかけのものは離す */
+        if (press && press.el) press.el.classList.remove('is-dragging');
+        press = null;
+        pinchDist = pinchSpan();
+        return;
+      }
+
       const markEl = e.target.closest('.board-mark');
       press = {
         el: markEl || null,
         markId: markEl ? markEl.dataset.mark : null,
         startX: e.clientX,
         startY: e.clientY,
+        lastX: e.clientX,
+        lastY: e.clientY,
         moved: false,
+        panned: false,
         pointerId: e.pointerId
       };
       if (markEl && !ui.routeTeam) {
@@ -767,6 +834,20 @@
     });
 
     canvas.addEventListener('pointermove', function (e) {
+      /* ピンチ中は指の間隔の比で倍率を変える。中点は動かさない */
+      if (points.size >= 2) {
+        if (!points.has(e.pointerId)) return;
+        points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const svg = svgEl();
+        const span = pinchSpan();
+        if (!svg || !span || !pinchDist) return;
+        BOARD.zoomBy(curPhase(), span / pinchDist, BOARD.toBoardPoint(svg, midpoint()));
+        pinchDist = span;
+        U.renderBoardCanvas(ui);
+        e.preventDefault();
+        return;
+      }
+
       if (!press) return;
 
       if (!press.moved) {
@@ -775,6 +856,22 @@
         if (Math.sqrt(dx * dx + dy * dy) < THRESHOLD) return;
         press.moved = true;
         if (press.el) press.el.classList.add('is-dragging');
+      }
+
+      /* 拡大中に、マークの無いところを掴んだら表示位置の移動（パン）。
+         全体表示のときは動かす先が無いので、従来どおり何も起きない。
+         ＝ 既存の「置く・選ぶ・消す」は拡大していない限り一切変わらない */
+      if (!press.markId && !ui.routeTeam && BOARD.isZoomed(curPhase())) {
+        const svg = svgEl();
+        if (!svg) return;
+        const d = BOARD.toBoardDelta(svg, press.lastX - e.clientX, press.lastY - e.clientY);
+        BOARD.panBy(curPhase(), d.x, d.y);
+        press.panned = true;
+        press.lastX = e.clientX;
+        press.lastY = e.clientY;
+        U.renderBoardCanvas(ui);
+        e.preventDefault();
+        return;
       }
 
       /* マークを掴んでいるときだけ動かす */
@@ -790,10 +887,28 @@
     });
 
     canvas.addEventListener('pointerup', function (e) {
+      const wasPinching = points.size >= 2;
+      points.delete(e.pointerId);
+      if (wasPinching) {
+        /* 指が減ってもすぐ掴み直させない。残りの指はパンにも使わせない */
+        pinchDist = points.size >= 2 ? pinchSpan() : 0;
+        press = null;
+        commitBoard();
+        refreshBoard();
+        return;
+      }
+
       const svg = svgEl();
       const current = press;
       press = null;
       if (!svg || !current) return;
+
+      /* 表示位置を動かしただけ。置く・選ぶには進めない */
+      if (current.panned) {
+        commitBoard();
+        refreshBoard();
+        return;
+      }
 
       if (current.el) {
         current.el.classList.remove('is-dragging');
@@ -845,15 +960,21 @@
     });
 
     /* 指が画面外に出るなどして中断された場合も、位置は確定させる */
-    canvas.addEventListener('pointercancel', function () {
+    canvas.addEventListener('pointercancel', function (e) {
+      points.delete(e.pointerId);
+      pinchDist = points.size >= 2 ? pinchSpan() : 0;
       const current = press;
       press = null;
       if (!current) return;
       if (current.el) current.el.classList.remove('is-dragging');
-      if (current.moved && current.markId) commitBoard();
+      if ((current.moved && current.markId) || current.panned) commitBoard();
       refreshBoard();
     });
   }
+
+  /* ズームの刻み。ボタンは大きめ、ホイールは細かく */
+  const ZOOM_STEP = 1.5;
+  const WHEEL_STEP = 1.15;
 
   /* ================= 共有 ================= */
   function shareOpts() {
@@ -1062,6 +1183,27 @@
       } else if (act === 'size-up' || act === 'size-down') {
         U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
         renderLive();
+      } else if (act === 'zoom-in' || act === 'zoom-out' || act === 'zoom-reset') {
+        /* ライブ画面からも同じ表示範囲を動かす。編集画面で寄せた範囲がそのまま出るので、
+           ここで戻せないと「切れて見える」状態から抜けられなくなる */
+        const tac = currentTactic();
+        const phase = tac ? BOARD.phaseAt(tac, ui.livePhase) : null;
+        if (phase) {
+          if (act === 'zoom-reset') BOARD.resetView(phase);
+          else BOARD.zoomBy(phase, act === 'zoom-in' ? ZOOM_STEP : 1 / ZOOM_STEP);
+          S.save();
+          renderLive();
+        }
+      } else if (act === 'eval-exec') {
+        /* 直前ラウンドの遂行度を 1 タップで記録する。確認は挟まない */
+        const last = S.lastRound();
+        if (last) {
+          S.setRoundEval(last.n, { exec: el.dataset.exec });
+          renderLive();
+          U.toast(t('eval.saved'), 'ok');
+        }
+      } else if (act === 'eval-open') {
+        openRoundEval(Number(el.dataset.round));
       } else if (act === 'live-phase') {
         ui.livePhase = Number(el.dataset.phaseIndex) || 0;
         renderLive();
@@ -1081,21 +1223,70 @@
       renderLive();
     });
 
-    /* 決着バナー内のボタンは再描画で作り直されるため、委譲で拾う */
+    /* 決着バナー内のボタンは再描画で作り直されるため、委譲で拾う。
+       X へのポストはここには置かない（⋯ メニューへ移した） */
     $('match-banner').addEventListener('click', function (e) {
-      if (e.target.closest('[data-act="share-x"]')) {
-        SHARE.postMatchToX({
-          map: S.state.match.map,
-          score: S.score(),
-          rounds: S.state.rounds,
-          tactics: S.state.tactics
-        });
-        return;
-      }
       if (e.target.closest('#btn-next-match')) askResetMatch();
     });
 
     $('btn-reset-match').addEventListener('click', askResetMatch);
+
+    /* ラウンド履歴からあとで評価を足す・直す */
+    $('timeline').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-eval-round]');
+      if (btn) openRoundEval(Number(btn.dataset.evalRound));
+    });
+  }
+
+  /* ================= ラウンドの評価 =================
+     勝敗だけでは「作戦が悪かった」のか「実行が崩れた」のか分けられない。
+     試合を止めないよう、入力はすべて任意・あとから編集可能にしてある。 */
+
+  let evalRoundN = null;
+
+  function openRoundEval(n) {
+    if (!U.renderRoundEval(n)) return;
+    evalRoundN = n;
+    openModal('modal-round-eval');
+  }
+
+  function bindRoundEval() {
+    $('eval-exec').addEventListener('click', function (e) {
+      const btn = e.target.closest('button');
+      if (btn) U.setSegActive($('eval-exec'), btn.dataset.val);
+    });
+
+    /* 「その他」を選んだときだけ補足欄を出す（通報の入力と同じ作法） */
+    $('eval-reasons').addEventListener('change', function () {
+      const other = $('eval-reasons').querySelector('input[value="other"]');
+      $('eval-note-field').hidden = !(other && other.checked);
+    });
+
+    $('btn-eval-clear').addEventListener('click', function () {
+      if (evalRoundN === null) return;
+      S.setRoundEval(evalRoundN, { exec: 'unrated', reasons: [], reasonNote: '' });
+      closeModal('modal-round-eval');
+      renderLive();
+      U.toast(t('eval.cleared'));
+    });
+
+    $('round-eval-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (evalRoundN === null) return;
+      const reasons = Array.prototype.map.call(
+        $('eval-reasons').querySelectorAll('input:checked'),
+        function (i) { return i.value; }
+      );
+      S.setRoundEval(evalRoundN, {
+        exec: U.segValue($('eval-exec')) || 'unrated',
+        reasons: reasons,
+        /* 補足は「その他」のためのもの。外したら残さない */
+        reasonNote: reasons.indexOf('other') >= 0 ? ($('eval-note').value || '').trim() : ''
+      });
+      closeModal('modal-round-eval');
+      renderLive();
+      U.toast(t('eval.saved'), 'ok');
+    });
   }
 
   /** スコアだけ消して同じ構成・戦術で次の試合へ */
@@ -1640,7 +1831,7 @@
         return;
       }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree', 'modal-round-eval']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;
@@ -1747,6 +1938,7 @@
     bindBoardEditor();
     bindAgentModal();
     bindTacticModal();
+    bindRoundEval();
     bindGlobal();
     renderAll();
 

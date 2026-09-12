@@ -46,9 +46,13 @@
     <div class="topmenu">
       <button class="btn btn-ghost" id="btn-topmenu" aria-haspopup="true" aria-expanded="false"
         data-i18n-title="menu.title">⋯</button>
+      <!-- X へのポストは「SNS へ投稿するツール」に見えないよう、
+           試合運用の導線から外してここに置いている。試合が終わるまでは押せない -->
       <div class="topmenu-pop" id="topmenu-pop" hidden>
         <button type="button" id="btn-export" data-i18n="btn.export"></button>
         <button type="button" id="btn-import" data-i18n="btn.import"></button>
+        <hr />
+        <button type="button" id="btn-share-x" data-i18n="share.xMatch"></button>
         <hr />
         <button type="button" class="is-danger" id="btn-reset-all" data-i18n="btn.reset"></button>
       </div>
@@ -579,6 +583,42 @@
       <button class="modal-close" data-close aria-label="close">×</button>
     </header>
     <div class="modal-body" id="modlog-body"></div>
+  </div>
+</div>
+
+<!-- ============ ROUND EVAL MODAL ============ -->
+<!-- 勝敗だけでは「作戦が悪かった」のか「実行が崩れた」のか分からない。
+     遂行度と理由をここで足す。試合を止めないよう、入力はすべて任意で、
+     ライブ画面のバーから 1 タップでも記録できるようにしてある。 -->
+<div class="modal" id="modal-round-eval" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="round-eval-title">
+    <header class="modal-head">
+      <h2 id="round-eval-title" data-i18n="eval.title"></h2>
+      <span class="board-tactic-name" id="round-eval-sub"></span>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <form class="modal-body" id="round-eval-form">
+      <div class="field">
+        <label data-i18n="eval.exec"></label>
+        <div class="seg eval-exec-seg" id="eval-exec"></div>
+      </div>
+      <div class="field">
+        <label data-i18n="eval.reasons"></label>
+        <p class="eval-hint" data-i18n="eval.reasonsHint"></p>
+        <div class="eval-reasons" id="eval-reasons"></div>
+      </div>
+      <div class="field" id="eval-note-field" hidden>
+        <label for="eval-note" data-i18n="eval.note"></label>
+        <input type="text" id="eval-note" maxlength="120" data-i18n-ph="eval.notePh" />
+      </div>
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost btn-danger" id="btn-eval-clear" data-i18n="eval.clear"></button>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary" data-i18n="btn.save"></button>
+      </footer>
+    </form>
   </div>
 </div>
 

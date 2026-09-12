@@ -11,6 +11,8 @@
      marks:  [{ id, kind:'agent'|'ability'|'plant', ref, team, x, y, order }]
      plant はスパイクの設置位置。1 つの盤面に 1 つだけ置ける。
      routes: [{ id, team, points:[{x,y}] }]
+     view:   { zoom, cx, cy }  局面ごとの表示範囲（A 側だけ見る、など）。
+             全体表示が既定なので、ズームしていない局面はこのキーを持たない。
    座標はマップ簡易図と同じ 0-100 の正規化空間。
    ========================================================= */
 (function (global) {
@@ -96,6 +98,87 @@
 
   function isEmpty(phase) {
     return !phase || ((phase.marks || []).length === 0 && (phase.routes || []).length === 0);
+  }
+
+  /* ---------------- 表示範囲（ズームとパン） ----------------
+     A ラッシュなら A 側だけ、B セットなら B 側だけを大きく見たい、という
+     競技上の要求に対する答え。盤面は 0-100 の正規化空間なので、
+     SVG の viewBox を切り取るだけで済む。マークもルートも同じ空間に載っているため、
+     下地の画像と一緒に拡大・移動する（座標そのものは一切書き換えない）。
+
+     倍率と位置は局面ごとに持つ。A フェイク → B 本命 のように見たい場所が
+     局面ごとに違うので、戦術単位ではなく局面単位にしている。 */
+
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 4;
+  const FULL_VIEW = { zoom: 1, cx: 50, cy: 50 };
+
+  function num(v, fallback) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  /** 倍率と中心を、盤面の外を映さない範囲へ収める */
+  function clampView(v) {
+    const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, num(v && v.zoom, 1)));
+    const half = 50 / zoom;                    /* 見えている範囲の半分 */
+    return {
+      zoom: zoom,
+      cx: Math.max(half, Math.min(100 - half, num(v && v.cx, 50))),
+      cy: Math.max(half, Math.min(100 - half, num(v && v.cy, 50)))
+    };
+  }
+
+  /** 局面の表示範囲。持っていない（＝古いデータ）なら全体表示 */
+  function view(phase) {
+    const b = ensure(phase);
+    return b.view ? clampView(b.view) : { zoom: 1, cx: 50, cy: 50 };
+  }
+
+  /* 全体表示は既定なので保存しない。こうしておくと、
+     ズームを触っていない戦術の保存内容が以前とまったく同じ形のままになる */
+  function setView(phase, v) {
+    const b = ensure(phase);
+    const next = clampView(v);
+    if (next.zoom <= MIN_ZOOM) delete b.view;
+    else b.view = next;
+    return view(phase);
+  }
+
+  /**
+   * 拡大・縮小。anchor（0-100 空間の点）を渡すと、その点を画面に留めたまま寄る。
+   * ホイールやピンチで「指の下が動かない」ようにするためのもの。
+   */
+  function zoomBy(phase, factor, anchor) {
+    const cur = view(phase);
+    const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cur.zoom * (num(factor, 1) || 1)));
+    if (!anchor) return setView(phase, { zoom: zoom, cx: cur.cx, cy: cur.cy });
+    const k = cur.zoom / zoom;
+    return setView(phase, {
+      zoom: zoom,
+      cx: num(anchor.x, cur.cx) + (cur.cx - num(anchor.x, cur.cx)) * k,
+      cy: num(anchor.y, cur.cy) + (cur.cy - num(anchor.y, cur.cy)) * k
+    });
+  }
+
+  function panBy(phase, dx, dy) {
+    const cur = view(phase);
+    return setView(phase, { zoom: cur.zoom, cx: cur.cx + num(dx, 0), cy: cur.cy + num(dy, 0) });
+  }
+
+  function resetView(phase) {
+    return setView(phase, FULL_VIEW);
+  }
+
+  function isZoomed(phase) {
+    return view(phase).zoom > MIN_ZOOM + 0.001;
+  }
+
+  /** SVG に与える viewBox。全体表示なら 0 0 100 100 */
+  function viewBox(phase) {
+    const v = view(phase);
+    const size = 100 / v.zoom;
+    return { x: v.cx - size / 2, y: v.cy - size / 2, w: size, h: size, zoom: v.zoom };
   }
 
   /** 戦術に配置がひとつも無いか（デッキの印やライブ画面の判定に使う） */
@@ -256,8 +339,14 @@
       return markHTML(m, m.id === opts.selectedId);
     }).join('');
 
+    /* 拡大は viewBox を切り取るだけ。マークもルートも同じ 0-100 空間なので、
+       下地と一緒に拡大・移動し、保存されている座標は変わらない */
+    const vb = viewBox(opts.phase);
+
     return '' +
-      '<svg class="board-svg' + (interactive ? ' is-interactive' : '') + '" viewBox="0 0 100 100" ' +
+      '<svg class="board-svg' + (interactive ? ' is-interactive' : '') + '" ' +
+           'viewBox="' + r3(vb.x) + ' ' + r3(vb.y) + ' ' + r3(vb.w) + ' ' + r3(vb.h) + '" ' +
+           'data-zoom="' + r3(vb.zoom) + '" ' +
            'width="' + size + '" height="' + size + '" ' +
            (interactive ? 'data-board="1" ' : '') +
            'role="img" aria-label="tactical board">' +
@@ -407,14 +496,35 @@
 
   /* ---------------- 座標変換 ---------------- */
 
-  /** ポインタ座標を盤面の 0-100 空間に変換する */
+  function r3(v) {
+    return Math.round(Number(v) * 1000) / 1000;
+  }
+
+  /** その SVG が今映している範囲。拡大していなければ 0 0 100 100 */
+  function boxOf(svg) {
+    const vb = svg && svg.viewBox && svg.viewBox.baseVal;
+    if (vb && vb.width) return { x: vb.x, y: vb.y, w: vb.width, h: vb.height };
+    return { x: 0, y: 0, w: 100, h: 100 };
+  }
+
+  /** ポインタ座標を盤面の 0-100 空間に変換する。
+      拡大中は画面の比率だけで計算すると必ずズレるので、viewBox を通す */
   function toBoardPoint(svg, evt) {
     const r = svg.getBoundingClientRect();
     if (!r.width || !r.height) return { x: 50, y: 50 };
+    const vb = boxOf(svg);
     return {
-      x: clamp(((evt.clientX - r.left) / r.width) * 100),
-      y: clamp(((evt.clientY - r.top) / r.height) * 100)
+      x: clamp(vb.x + ((evt.clientX - r.left) / r.width) * vb.w),
+      y: clamp(vb.y + ((evt.clientY - r.top) / r.height) * vb.h)
     };
+  }
+
+  /** 画面上の移動量（px）を盤面の移動量に直す。パンで使う */
+  function toBoardDelta(svg, dxPx, dyPx) {
+    const r = svg.getBoundingClientRect();
+    if (!r.width || !r.height) return { x: 0, y: 0 };
+    const vb = boxOf(svg);
+    return { x: (dxPx / r.width) * vb.w, y: (dyPx / r.height) * vb.h };
   }
 
   /** 設置位置のマーク。無ければ null */
@@ -446,6 +556,17 @@
     clearBoard: clearBoard,
     render: render,
     toBoardPoint: toBoardPoint,
+    toBoardDelta: toBoardDelta,
+    view: view,
+    setView: setView,
+    clampView: clampView,
+    zoomBy: zoomBy,
+    panBy: panBy,
+    resetView: resetView,
+    isZoomed: isZoomed,
+    viewBox: viewBox,
+    MIN_ZOOM: MIN_ZOOM,
+    MAX_ZOOM: MAX_ZOOM,
     renumber: renumber,
     agentOf: agentOf
   };

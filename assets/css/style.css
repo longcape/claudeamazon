@@ -1001,7 +1001,8 @@ select { appearance: none; cursor: pointer; }
 .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
 .tl-row {
   display: grid;
-  grid-template-columns: 46px 34px minmax(0, 1fr) auto;
+  /* 末尾の列はラウンド評価のボタン */
+  grid-template-columns: 46px 34px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
@@ -1210,7 +1211,7 @@ select { appearance: none; cursor: pointer; }
   .team-side { font-size: 8.5px; letter-spacing: .14em; padding: 0 6px; }
   .score-mid b { font-size: 11px; letter-spacing: .12em; }
   .score-mid small { font-size: 9px; letter-spacing: .16em; }
-  .tl-row { grid-template-columns: 34px 30px minmax(0, 1fr) auto; gap: 8px; padding: 7px 9px; }
+  .tl-row { grid-template-columns: 34px 30px minmax(0, 1fr) auto auto; gap: 8px; padding: 7px 9px; }
 }
 
 /* =========================================================
@@ -2577,6 +2578,123 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
    書き出し・読み込み・初期化はめったに使わないうえ、
    試合中に押し間違えると痛い。一段隠しておく。
    ========================================================= */
+/* =========================================================
+   盤面の拡大・縮小 / ラウンド評価 / 推奨度の内訳
+   ========================================================= */
+.board-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.board-zoom b {
+  min-width: 44px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--text);
+}
+.board-zoom .btn { padding: 4px 9px; }
+
+/* 拡大中は「掴んで動かせる」ことを形でも示す */
+.board-svg.is-interactive[data-zoom]:not([data-zoom="1"]) { cursor: grab; }
+
+/* --- 直前ラウンドの評価バー（ライブ画面の先頭） --- */
+.eval-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: rgba(13, 21, 27, .9);
+  clip-path: var(--clip-sm);
+}
+.eval-bar.is-todo { border-color: rgba(245, 166, 35, .45); }
+.eval-bar-label { font-size: 12px; color: var(--text-dim); }
+.eval-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.eval-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.eval-chip:hover { color: #fff; border-color: var(--cyan); }
+.eval-chip.is-active { color: #fff; border-color: var(--cyan); background: rgba(53, 198, 232, .16); }
+
+/* --- 評価の入力欄 --- */
+.eval-hint { margin: 0 0 8px; font-size: 11.5px; color: var(--text-mute); }
+.eval-exec-seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.eval-exec-seg button {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.eval-exec-seg button.is-active { color: #fff; border-color: var(--cyan); background: rgba(53, 198, 232, .16); }
+.eval-reasons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+}
+.eval-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.eval-reason:hover { border-color: var(--line-hot); color: #fff; }
+.eval-reason.is-good { border-left: 2px solid rgba(34, 211, 166, .5); }
+.eval-reason input { accent-color: var(--cyan); }
+
+/* --- ラウンド履歴に出す評価 --- */
+.tl-eval {
+  padding: 2px 8px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 10.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tl-eval:hover { color: #fff; border-color: var(--cyan); }
+.tl-eval.is-rated { border-style: solid; color: var(--text); }
+
+/* --- 戦術別成績の遂行度内訳 --- */
+.perf-splits { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.perf-split {
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+}
+.perf-split small { margin-left: 4px; opacity: .7; }
+.perf-split.good { color: var(--teal); border-color: rgba(34, 211, 166, .3); }
+.perf-split.bad  { color: var(--gold); border-color: rgba(245, 166, 35, .3); }
+
+/* --- 推奨度の説明と内訳 --- */
+.pick-legend {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--text-mute);
+}
+.reason-delta {
+  margin-left: 6px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  opacity: .85;
+}
+
 .topmenu { position: relative; }
 #btn-topmenu { padding: 8px 12px; letter-spacing: .12em; }
 

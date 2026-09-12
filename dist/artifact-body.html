@@ -1005,7 +1005,8 @@ select { appearance: none; cursor: pointer; }
 .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
 .tl-row {
   display: grid;
-  grid-template-columns: 46px 34px minmax(0, 1fr) auto;
+  /* 末尾の列はラウンド評価のボタン */
+  grid-template-columns: 46px 34px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
@@ -1214,7 +1215,7 @@ select { appearance: none; cursor: pointer; }
   .team-side { font-size: 8.5px; letter-spacing: .14em; padding: 0 6px; }
   .score-mid b { font-size: 11px; letter-spacing: .12em; }
   .score-mid small { font-size: 9px; letter-spacing: .16em; }
-  .tl-row { grid-template-columns: 34px 30px minmax(0, 1fr) auto; gap: 8px; padding: 7px 9px; }
+  .tl-row { grid-template-columns: 34px 30px minmax(0, 1fr) auto auto; gap: 8px; padding: 7px 9px; }
 }
 
 /* =========================================================
@@ -2581,6 +2582,123 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
    書き出し・読み込み・初期化はめったに使わないうえ、
    試合中に押し間違えると痛い。一段隠しておく。
    ========================================================= */
+/* =========================================================
+   盤面の拡大・縮小 / ラウンド評価 / 推奨度の内訳
+   ========================================================= */
+.board-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.board-zoom b {
+  min-width: 44px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--text);
+}
+.board-zoom .btn { padding: 4px 9px; }
+
+/* 拡大中は「掴んで動かせる」ことを形でも示す */
+.board-svg.is-interactive[data-zoom]:not([data-zoom="1"]) { cursor: grab; }
+
+/* --- 直前ラウンドの評価バー（ライブ画面の先頭） --- */
+.eval-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  background: rgba(13, 21, 27, .9);
+  clip-path: var(--clip-sm);
+}
+.eval-bar.is-todo { border-color: rgba(245, 166, 35, .45); }
+.eval-bar-label { font-size: 12px; color: var(--text-dim); }
+.eval-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.eval-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.eval-chip:hover { color: #fff; border-color: var(--cyan); }
+.eval-chip.is-active { color: #fff; border-color: var(--cyan); background: rgba(53, 198, 232, .16); }
+
+/* --- 評価の入力欄 --- */
+.eval-hint { margin: 0 0 8px; font-size: 11.5px; color: var(--text-mute); }
+.eval-exec-seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.eval-exec-seg button {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.eval-exec-seg button.is-active { color: #fff; border-color: var(--cyan); background: rgba(53, 198, 232, .16); }
+.eval-reasons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+}
+.eval-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.eval-reason:hover { border-color: var(--line-hot); color: #fff; }
+.eval-reason.is-good { border-left: 2px solid rgba(34, 211, 166, .5); }
+.eval-reason input { accent-color: var(--cyan); }
+
+/* --- ラウンド履歴に出す評価 --- */
+.tl-eval {
+  padding: 2px 8px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-size: 10.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tl-eval:hover { color: #fff; border-color: var(--cyan); }
+.tl-eval.is-rated { border-style: solid; color: var(--text); }
+
+/* --- 戦術別成績の遂行度内訳 --- */
+.perf-splits { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.perf-split {
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+}
+.perf-split small { margin-left: 4px; opacity: .7; }
+.perf-split.good { color: var(--teal); border-color: rgba(34, 211, 166, .3); }
+.perf-split.bad  { color: var(--gold); border-color: rgba(245, 166, 35, .3); }
+
+/* --- 推奨度の説明と内訳 --- */
+.pick-legend {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--text-mute);
+}
+.reason-delta {
+  margin-left: 6px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  opacity: .85;
+}
+
 .topmenu { position: relative; }
 #btn-topmenu { padding: 8px 12px; letter-spacing: .12em; }
 
@@ -2649,9 +2767,13 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
     <div class="topmenu">
       <button class="btn btn-ghost" id="btn-topmenu" aria-haspopup="true" aria-expanded="false"
         data-i18n-title="menu.title">⋯</button>
+      <!-- X へのポストは「SNS へ投稿するツール」に見えないよう、
+           試合運用の導線から外してここに置いている。試合が終わるまでは押せない -->
       <div class="topmenu-pop" id="topmenu-pop" hidden>
         <button type="button" id="btn-export" data-i18n="btn.export"></button>
         <button type="button" id="btn-import" data-i18n="btn.import"></button>
+        <hr />
+        <button type="button" id="btn-share-x" data-i18n="share.xMatch"></button>
         <hr />
         <button type="button" class="is-danger" id="btn-reset-all" data-i18n="btn.reset"></button>
       </div>
@@ -3182,6 +3304,42 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
       <button class="modal-close" data-close aria-label="close">×</button>
     </header>
     <div class="modal-body" id="modlog-body"></div>
+  </div>
+</div>
+
+<!-- ============ ROUND EVAL MODAL ============ -->
+<!-- 勝敗だけでは「作戦が悪かった」のか「実行が崩れた」のか分からない。
+     遂行度と理由をここで足す。試合を止めないよう、入力はすべて任意で、
+     ライブ画面のバーから 1 タップでも記録できるようにしてある。 -->
+<div class="modal" id="modal-round-eval" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card panel-clip" role="dialog" aria-modal="true" aria-labelledby="round-eval-title">
+    <header class="modal-head">
+      <h2 id="round-eval-title" data-i18n="eval.title"></h2>
+      <span class="board-tactic-name" id="round-eval-sub"></span>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <form class="modal-body" id="round-eval-form">
+      <div class="field">
+        <label data-i18n="eval.exec"></label>
+        <div class="seg eval-exec-seg" id="eval-exec"></div>
+      </div>
+      <div class="field">
+        <label data-i18n="eval.reasons"></label>
+        <p class="eval-hint" data-i18n="eval.reasonsHint"></p>
+        <div class="eval-reasons" id="eval-reasons"></div>
+      </div>
+      <div class="field" id="eval-note-field" hidden>
+        <label for="eval-note" data-i18n="eval.note"></label>
+        <input type="text" id="eval-note" maxlength="120" data-i18n-ph="eval.notePh" />
+      </div>
+      <footer class="modal-foot">
+        <button type="button" class="btn btn-ghost btn-danger" id="btn-eval-clear" data-i18n="eval.clear"></button>
+        <span class="spacer"></span>
+        <button type="button" class="btn btn-ghost" data-close data-i18n="btn.cancel"></button>
+        <button type="submit" class="btn btn-primary" data-i18n="btn.save"></button>
+      </footer>
+    </form>
   </div>
 </div>
 
@@ -3857,7 +4015,62 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'banner.nextMatch': '新しいマッチを始める',
   'tactic.limitReached': '登録できる戦術の上限（{n} 件）に達しました。',
   'board.disarm': '選択を解除',
-  'board.size': '表示サイズ'
+  'board.size': '表示サイズ',
+
+  /* --- 盤面の拡大・縮小 --- */
+  'board.zoom': '拡大',
+  'board.zoomIn': '拡大する',
+  'board.zoomOut': '縮小する',
+  'board.zoomReset': '全体表示',
+  'board.hintPan': '拡大中：何も無い所をドラッグで移動。ホイールか 2 本指で拡大・縮小。',
+
+  /* --- X へのポスト（⋯ メニュー内） --- */
+  'share.xMatch': 'X にポスト（試合結果）',
+  'share.needRounds': 'まだラウンドの記録がありません。',
+
+  /* --- 推奨度の意味 --- */
+  'pick.legend': '推奨度は、いまの状況への合い方をルールで採点した目安です（勝率や成功確率ではありません）。緑＝いま合っている／黄＝ふつう／赤＝いまは優先度が低い。各項目の数字が実際の加点・減点です。',
+  'pick.scoreTitle': '推奨度の内訳（ルールによる加点・減点）',
+  'pick.scoreBase': '基準点 {n}',
+  'pick.scoreTotal': '合計 {n}',
+  'reason.winrateThin': 'この試合で {used} 回 / 勝率 {n}%',
+  'reason.recentUse': '{n}R 前に使ったばかり',
+  'reason.rhythmChange': 'テンポを変える型',
+  'reason.openingKind': '初動に置きやすい型',
+
+  /* --- ラウンドの評価 --- */
+  'eval.title': 'ラウンドの評価',
+  'eval.sub': 'ラウンド {n} — {result} / {name}',
+  'eval.bar': 'ラウンド {n} {result}「{name}」— 作戦どおりでしたか？',
+  'eval.exec': '作戦どおりに実行できたか',
+  'eval.exec.clean': '実行できた',
+  'eval.exec.partial': '一部崩れた',
+  'eval.exec.failed': '実行できなかった',
+  'eval.exec.unrated': '未評価',
+  'eval.broken': '崩れた',
+  'eval.reasons': '成否の理由（複数選べます）',
+  'eval.reasonsHint': '当てはまるものだけで構いません。あとから足せます。',
+  'eval.note': 'その他の補足',
+  'eval.notePh': '短くメモ（任意）',
+  'eval.detail': '理由を選ぶ',
+  'eval.clear': '評価を消す',
+  'eval.saved': '評価を記録しました。',
+  'eval.cleared': '評価を消しました。',
+  'eval.reason.read': '相手に読まれた / 初動対応された',
+  'eval.reason.utility': 'ユーティリティの失敗・不足',
+  'eval.reason.entry': 'エントリー失敗',
+  'eval.reason.trade': 'トレード失敗',
+  'eval.reason.numbers': '人数不利',
+  'eval.reason.preplant': '設置前の判断ミス',
+  'eval.reason.postplant': '設置後の配置・リテイク対応ミス',
+  'eval.reason.counter': '相手の配置変更・カウンター',
+  'eval.reason.rotation': 'ローテーション判断ミス',
+  'eval.reason.timing': 'タイミング不一致',
+  'eval.reason.comms': 'コミュニケーションミス',
+  'eval.reason.duel': '個人の撃ち合い負け',
+  'eval.reason.outplay': '個人技で勝った',
+  'eval.reason.planWorked': '作戦そのものが有効だった',
+  'eval.reason.other': 'その他'
 });
 </script>
 <script>
@@ -4011,7 +4224,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'res.loss.sub': 'Round lost',
   'meta.firstUse': 'First use',
   'meta.streak': '{n} in a row',
-  'pick.score': 'SCORE',
+  'pick.score': 'FIT',
   'pick.noTactics': 'No tactics available for this side. Turn on "Show off-side tactics" or add one.',
 
   'headline.first.title': 'FIRST ROUND',
@@ -4335,7 +4548,62 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'banner.nextMatch': 'Start a new match',
   'tactic.limitReached': 'You have reached the limit of {n} saved tactics.',
   'board.disarm': 'Cancel selection',
-  'board.size': 'Size'
+  'board.size': 'Size',
+
+  /* --- board zoom --- */
+  'board.zoom': 'Zoom',
+  'board.zoomIn': 'Zoom in',
+  'board.zoomOut': 'Zoom out',
+  'board.zoomReset': 'Fit',
+  'board.hintPan': 'Zoomed in: drag empty space to move. Wheel or two fingers to zoom.',
+
+  /* --- post to X (inside the ⋯ menu) --- */
+  'share.xMatch': 'Post match result to X',
+  'share.needRounds': 'No rounds recorded yet.',
+
+  /* --- what the fit score means --- */
+  'pick.legend': 'The fit score rates, by fixed rules, how well a tactic suits the situation right now. It is not a win rate or a success probability. Green = fits now, yellow = neutral, red = low priority now. The number on each note is the actual adjustment.',
+  'pick.scoreTitle': 'How this fit score was built (rule-based adjustments)',
+  'pick.scoreBase': 'Base {n}',
+  'pick.scoreTotal': 'Total {n}',
+  'reason.winrateThin': 'Used {used}x this match / {n}% won',
+  'reason.recentUse': 'Used only {n} rounds ago',
+  'reason.rhythmChange': 'Changes the tempo',
+  'reason.openingKind': 'Solid opening type',
+
+  /* --- round review --- */
+  'eval.title': 'Round review',
+  'eval.sub': 'Round {n} — {result} / {name}',
+  'eval.bar': 'Round {n} {result} — "{name}" — did it go to plan?',
+  'eval.exec': 'Did it go to plan?',
+  'eval.exec.clean': 'As planned',
+  'eval.exec.partial': 'Partly broke down',
+  'eval.exec.failed': 'Never happened',
+  'eval.exec.unrated': 'Not rated',
+  'eval.broken': 'Broke down',
+  'eval.reasons': 'Why (pick any number)',
+  'eval.reasonsHint': 'Only what applies. You can add more later.',
+  'eval.note': 'Note (other)',
+  'eval.notePh': 'Short note (optional)',
+  'eval.detail': 'Add reasons',
+  'eval.clear': 'Clear review',
+  'eval.saved': 'Review saved.',
+  'eval.cleared': 'Review cleared.',
+  'eval.reason.read': 'Read by the enemy / answered early',
+  'eval.reason.utility': 'Utility missed or not enough',
+  'eval.reason.entry': 'Entry failed',
+  'eval.reason.trade': 'Trade failed',
+  'eval.reason.numbers': 'Down a player',
+  'eval.reason.preplant': 'Pre-plant decision',
+  'eval.reason.postplant': 'Post-plant setup / retake handling',
+  'eval.reason.counter': 'Enemy repositioned or countered',
+  'eval.reason.rotation': 'Rotation call',
+  'eval.reason.timing': 'Timing did not line up',
+  'eval.reason.comms': 'Comms breakdown',
+  'eval.reason.duel': 'Lost the duel',
+  'eval.reason.outplay': 'Won on individual play',
+  'eval.reason.planWorked': 'The plan itself worked',
+  'eval.reason.other': 'Other'
 });
 </script>
 <script>
@@ -4813,7 +5081,62 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'banner.nextMatch': '새 매치 시작',
   'tactic.limitReached': '등록 가능한 전술 상한({n}개)에 도달했습니다.',
   'board.disarm': '선택 해제',
-  'board.size': '표시 크기'
+  'board.size': '표시 크기',
+
+  /* --- 보드 확대·축소 --- */
+  'board.zoom': '확대',
+  'board.zoomIn': '확대',
+  'board.zoomOut': '축소',
+  'board.zoomReset': '전체 보기',
+  'board.hintPan': '확대 중: 빈 곳을 드래그해 이동. 휠 또는 두 손가락으로 확대·축소.',
+
+  /* --- X 포스트(⋯ 메뉴 안) --- */
+  'share.xMatch': 'X에 포스트(매치 결과)',
+  'share.needRounds': '아직 라운드 기록이 없습니다.',
+
+  /* --- 추천도의 의미 --- */
+  'pick.legend': '추천도는 현재 상황에 얼마나 맞는지를 규칙으로 매긴 값입니다(승률이나 성공 확률이 아닙니다). 초록＝지금 잘 맞음 / 노랑＝보통 / 빨강＝지금은 우선도가 낮음. 각 항목 옆 숫자가 실제 가감점입니다.',
+  'pick.scoreTitle': '추천도 내역(규칙 기반 가감점)',
+  'pick.scoreBase': '기준점 {n}',
+  'pick.scoreTotal': '합계 {n}',
+  'reason.winrateThin': '이번 매치 {used}회 / 승률 {n}%',
+  'reason.recentUse': '{n}라운드 전에 사용함',
+  'reason.rhythmChange': '템포를 바꾸는 유형',
+  'reason.openingKind': '초반에 두기 좋은 유형',
+
+  /* --- 라운드 평가 --- */
+  'eval.title': '라운드 평가',
+  'eval.sub': '라운드 {n} — {result} / {name}',
+  'eval.bar': '라운드 {n} {result} — "{name}" — 작전대로였나요?',
+  'eval.exec': '작전대로 실행했는가',
+  'eval.exec.clean': '실행함',
+  'eval.exec.partial': '일부 무너짐',
+  'eval.exec.failed': '실행 못 함',
+  'eval.exec.unrated': '미평가',
+  'eval.broken': '무너짐',
+  'eval.reasons': '성패 이유(복수 선택 가능)',
+  'eval.reasonsHint': '해당하는 것만 고르면 됩니다. 나중에 추가할 수 있습니다.',
+  'eval.note': '기타 보충',
+  'eval.notePh': '짧은 메모(선택)',
+  'eval.detail': '이유 선택',
+  'eval.clear': '평가 지우기',
+  'eval.saved': '평가를 기록했습니다.',
+  'eval.cleared': '평가를 지웠습니다.',
+  'eval.reason.read': '상대에게 읽힘 / 초반 대응당함',
+  'eval.reason.utility': '스킬 실패·부족',
+  'eval.reason.entry': '엔트리 실패',
+  'eval.reason.trade': '트레이드 실패',
+  'eval.reason.numbers': '인원 열세',
+  'eval.reason.preplant': '설치 전 판단 실수',
+  'eval.reason.postplant': '설치 후 배치·리테이크 대응 실수',
+  'eval.reason.counter': '상대 배치 변경·카운터',
+  'eval.reason.rotation': '로테이션 판단 실수',
+  'eval.reason.timing': '타이밍 불일치',
+  'eval.reason.comms': '커뮤니케이션 실수',
+  'eval.reason.duel': '개인 교전 패배',
+  'eval.reason.outplay': '개인기로 이김',
+  'eval.reason.planWorked': '작전 자체가 유효했음',
+  'eval.reason.other': '기타'
 });
 </script>
 <script>
@@ -6085,7 +6408,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     state.tactics = Array.isArray(obj.tactics) ? obj.tactics.map(normalizeTactic) : [];
     state.rounds  = Array.isArray(obj.rounds) ? obj.rounds.filter(function (r) {
       return r && (r.result === 'WIN' || r.result === 'LOSS');
-    }) : [];
+    }).map(normalizeRound) : [];
     state.comps   = normalizeComps(obj.comps);
     state.pending = obj.pending && obj.pending.tacticId ? obj.pending : null;
     state.sideOverrides = obj.sideOverrides && typeof obj.sideOverrides === 'object' ? obj.sideOverrides : {};
@@ -6183,13 +6506,36 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   const MARK_KINDS = ['agent', 'ability', 'plant'];
 
+  /* 局面の表示範囲（ズームとパン）。
+     古い保存データは持っていないので、その場合は付けない（= 全体表示）。
+     倍率の上限や中心の丸めは board.js が正本で、読み込めるならそれを使う。 */
+  function normalizeView(v) {
+    if (!v || typeof v !== 'object') return undefined;
+    const zoom = Number(v.zoom);
+    if (!Number.isFinite(zoom) || zoom <= 1) return undefined;
+    const B = global.VCT_BOARD;
+    if (B && B.clampView) {
+      const clamped = B.clampView(v);
+      return clamped.zoom > 1 ? clamped : undefined;
+    }
+    /* board.js より先に呼ばれた場合の保険。値を捨てずに最低限の範囲へ収める */
+    const z = Math.min(4, zoom);
+    const half = 50 / z;
+    const fit = function (n) {
+      const x = Number(n);
+      return Math.max(half, Math.min(100 - half, Number.isFinite(x) ? x : 50));
+    };
+    return { zoom: z, cx: fit(v.cx), cy: fit(v.cy) };
+  }
+
   /** 配置盤。壊れた入力を読み込んでも落ちないよう作り直す */
   function normalizeBoard(board) {
     const src = board && typeof board === 'object' ? board : {};
     const marks = Array.isArray(src.marks) ? src.marks : [];
     const routes = Array.isArray(src.routes) ? src.routes : [];
+    const view = normalizeView(src.view);
 
-    return {
+    return Object.assign(view ? { view: view } : {}, {
       marks: marks.slice(0, 60).map(function (m) {
         return {
           id: String(m.id || uid()),
@@ -6211,7 +6557,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
           })
         };
       }).filter(function (r) { return r.points.length >= 2; })
-    };
+    });
   }
 
   function numberIn(v) {
@@ -6307,6 +6653,53 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     save();
   }
 
+  /* ---------------- ラウンドの評価 ----------------
+     勝敗だけでは「作戦そのものが悪かった」のか「作戦は良かったが実行が崩れた」のかが
+     分からない。作戦品質と遂行品質を分けて見られるよう、遂行度（exec）と理由を別に持つ。
+     古い保存データはどちらも持っていないので、その場合は未評価として扱う。
+     今回は貯めるだけで、推奨スコアには反映しない（サンプル数が無いため）。 */
+  const EXEC_LEVELS = ['clean', 'partial', 'failed', 'unrated'];
+  const REASON_KEYS = [
+    'read', 'utility', 'entry', 'trade', 'numbers', 'preplant', 'postplant',
+    'counter', 'rotation', 'timing', 'comms', 'duel', 'outplay', 'planWorked', 'other'
+  ];
+  const REASON_NOTE_MAX = 120;
+
+  function normalizeExec(v) {
+    return EXEC_LEVELS.indexOf(v) >= 0 ? v : 'unrated';
+  }
+
+  /* 知らない理由が来ても落とさず捨てる。重複も 1 つにまとめる */
+  function normalizeReasons(list) {
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    list.forEach(function (r) {
+      if (REASON_KEYS.indexOf(r) >= 0 && out.indexOf(r) < 0) out.push(r);
+    });
+    return out;
+  }
+
+  function normalizeRound(r) {
+    return Object.assign({}, r, {
+      exec: normalizeExec(r && r.exec),
+      reasons: normalizeReasons(r && r.reasons),
+      reasonNote: String((r && r.reasonNote) || '').slice(0, REASON_NOTE_MAX)
+    });
+  }
+
+  /** ラウンド n の評価を書き換える。渡されたものだけ触る（後から足せるように） */
+  function setRoundEval(n, patch) {
+    const rec = state.rounds.filter(function (r) { return r.n === n; })[0];
+    if (!rec || !patch) return null;
+    if (patch.exec !== undefined) rec.exec = normalizeExec(patch.exec);
+    if (patch.reasons !== undefined) rec.reasons = normalizeReasons(patch.reasons);
+    if (patch.reasonNote !== undefined) {
+      rec.reasonNote = String(patch.reasonNote || '').slice(0, REASON_NOTE_MAX);
+    }
+    save();
+    return rec;
+  }
+
   function commitRound(result, note) {
     if (!state.pending) return null;
     const n = currentRoundNumber();
@@ -6317,6 +6710,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       economy: state.pending.economy || 'full',
       result: result === 'WIN' ? 'WIN' : 'LOSS',
       note: String(note || '').slice(0, 200),
+      /* 評価は後から付ける。押した瞬間に入力を求めると試合が止まる */
+      exec: 'unrated',
+      reasons: [],
+      reasonNote: '',
       at: Date.now()
     };
     state.rounds.push(rec);
@@ -6341,10 +6738,16 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   /* ---------------- 戦術ごとの成績 ---------------- */
   function statsFor(tacticId) {
     let win = 0, loss = 0, streak = 0, lastUsedRound = 0;
+    /* 遂行度ごとの内訳。「作戦通りに動けたラウンドだけの勝率」と
+       「崩れたラウンドの勝率」を分けて見るための土台 */
+    const byExec = { clean: { win: 0, loss: 0 }, partial: { win: 0, loss: 0 },
+                     failed: { win: 0, loss: 0 }, unrated: { win: 0, loss: 0 } };
     for (let i = 0; i < state.rounds.length; i++) {
       const r = state.rounds[i];
       if (r.tacticId !== tacticId) continue;
       if (r.result === 'WIN') win++; else loss++;
+      const bucket = byExec[normalizeExec(r.exec)];
+      if (r.result === 'WIN') bucket.win++; else bucket.loss++;
       lastUsedRound = r.n;
     }
     // 直近の連続使用回数
@@ -6352,6 +6755,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       if (state.rounds[i].tacticId === tacticId) streak++; else break;
     }
     const used = win + loss;
+    const rate = function (b) {
+      const n = b.win + b.loss;
+      return n ? Math.round((b.win / n) * 100) : null;
+    };
+    /* 一部崩れた・実行できなかったをまとめて「崩れた」として見る */
+    const broken = { win: byExec.partial.win + byExec.failed.win,
+                     loss: byExec.partial.loss + byExec.failed.loss };
     return {
       win: win,
       loss: loss,
@@ -6359,7 +6769,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       winRate: used ? Math.round((win / used) * 100) : null,
       streak: streak,
       lastUsedRound: lastUsedRound,
-      roundsSinceUse: lastUsedRound ? state.rounds.length - lastUsedRound + 1 : null
+      roundsSinceUse: lastUsedRound ? state.rounds.length - lastUsedRound + 1 : null,
+      byExec: byExec,
+      cleanUsed: byExec.clean.win + byExec.clean.loss,
+      cleanWinRate: rate(byExec.clean),
+      brokenUsed: broken.win + broken.loss,
+      brokenWinRate: rate(broken),
+      ratedUsed: used - (byExec.unrated.win + byExec.unrated.loss)
     };
   }
 
@@ -6411,6 +6827,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     setPending: setPending,
     clearPending: clearPending,
     commitRound: commitRound,
+    setRoundEval: setRoundEval,
+    EXEC_LEVELS: EXEC_LEVELS,
+    REASON_KEYS: REASON_KEYS,
+    REASON_NOTE_MAX: REASON_NOTE_MAX,
     undoLastRound: undoLastRound,
     lastRound: lastRound,
     statsFor: statsFor,
@@ -6445,22 +6865,58 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
    TACTIC ADVISOR
    直前のラウンド結果から「次のラウンドに置く戦術」を採点する
    ---------------------------------------------------------
+   この数値が何なのか（重要）:
+
+   **ルールベースの「推奨度（いまの状況への合い方）」であり、
+     成功確率でも勝率の予測でもない。** 統計モデルも学習も使っていない。
+   基準点 50 から、下に並べた固定の加点・減点を足し引きして 0-100 に丸めるだけ。
+   同じ状態なら必ず同じ数値になる（決定論的）。
+
+   加点・減点はすべて WEIGHTS に集めてある。画面にもこの内訳をそのまま出すので、
+   数字を変えるときは「なぜその重みなのか」を添えること。
+
    考え方:
    - 勝った戦術は相手が対応してくるまで継続する価値がある（+）
    - ただし同じ戦術の連投は読まれる（連投数に応じて -）
    - 負けた直後の同じ戦術は基本避ける（-）
    - まだ使っていない戦術は情報アドバンテージがある（+）
-   - 通算勝率は素直に加点 / 減点
+   - 通算勝率は素直に加点 / 減点（ただし「その試合の中の」実績にすぎない）
+
+   ラウンド評価（exec / reasons）はここでは使っていない。
+   サンプルが貯まっていない段階で推奨度へ混ぜると、
+   根拠のない数字に見た目だけの説得力が付いてしまうため。
    ========================================================= */
 (function (global) {
   'use strict';
 
   const S = global.VCT_STORE;
 
+  /* 色の境目。緑＝いまの状況に合っている / 黄＝ふつう / 赤＝いまは優先度が低い。
+     成功率の色ではない。テストもこの値を読むので、ここを唯一の正本にする */
+  const BASE_SCORE = 50;
+  const TONE_GOOD = 66;   /* これ以上が緑 */
+  const TONE_BAD = 38;    /* これ以下が赤 */
+
+  /* 加点・減点の重み。画面の内訳表示もテストもここを参照する */
+  const WEIGHTS = {
+    winRateFactor: 0.7,   /* (勝率 - 50) × これ */
+    unused: 14,
+    lastWin: 10,
+    lastLoss: -22,
+    streakPerRound: -8,
+    recentUse: -6,
+    longUnused: 8,
+    targetChange: 7,
+    rhythmChange: 4,
+    sideMismatch: -30,
+    openingKind: 6
+  };
+
   /**
    * 次ラウンド候補の採点。
    * @param {Object} opts { side: 'ATK'|'DEF', includeOffSide: boolean }
-   * @returns {Array} [{ tactic, stats, score, reasons: [{text, tone}] , tone }]
+   * @returns {Array} [{ tactic, stats, score, reasons: [{key, params, delta, tone}], tone }]
+   *   reasons は「なぜこの数値なのか」の内訳。delta が実際の加点・減点。
    */
   function rank(opts) {
     opts = opts || {};
@@ -6476,51 +6932,55 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     const scored = list.map(function (t) {
       const st = S.statsFor(t.id);
-      let score = 50;
+      let score = BASE_SCORE;
       const reasons = [];
 
-      /* 通算勝率 */
+      /* 足し引きは必ずここを通す。画面に出す内訳と実際の計算がずれないようにするため */
+      function apply(delta, key, params, tone) {
+        const d = Math.round(delta);
+        if (!d) return;
+        score += d;
+        reasons.push({ key: key, params: params || {}, delta: d, tone: tone || 'neutral' });
+      }
+
+      /* 通算勝率。あくまで「この試合の中で」の実績で、確率の推定ではない */
       if (st.used > 0) {
-        const delta = Math.round((st.winRate - 50) * 0.7);
-        score += delta;
+        const delta = (st.winRate - 50) * WEIGHTS.winRateFactor;
         if (st.used >= 2 && st.winRate >= 60) {
-          reasons.push({ key: 'reason.winrateGood', params: { n: st.winRate }, tone: 'good' });
+          apply(delta, 'reason.winrateGood', { n: st.winRate }, 'good');
         } else if (st.used >= 2 && st.winRate <= 40) {
-          reasons.push({ key: 'reason.winrateBad', params: { n: st.winRate }, tone: 'bad' });
+          apply(delta, 'reason.winrateBad', { n: st.winRate }, 'bad');
+        } else {
+          /* 1 回しか使っていない、または五分に近い。数字は動くので黙らせない */
+          apply(delta, 'reason.winrateThin', { n: st.winRate, used: st.used }, 'neutral');
         }
       }
 
       /* 未使用ボーナス（相手に情報を与えていない） */
       if (st.used === 0) {
-        score += 14;
-        reasons.push({ key: 'reason.unused', tone: 'good' });
+        apply(WEIGHTS.unused, 'reason.unused', null, 'good');
       }
 
       /* 直前ラウンドとの関係 */
       if (last) {
         const isSame = last.tacticId === t.id;
         if (isSame && last.result === 'WIN') {
-          score += 10;
-          reasons.push({ key: 'reason.lastWin', tone: 'good' });
+          apply(WEIGHTS.lastWin, 'reason.lastWin', null, 'good');
         }
         if (isSame && last.result === 'LOSS') {
-          score -= 22;
-          reasons.push({ key: 'reason.lastLoss', tone: 'bad' });
+          apply(WEIGHTS.lastLoss, 'reason.lastLoss', null, 'bad');
         }
         /* 連投による「読まれ」ペナルティ */
         if (st.streak >= 2) {
-          const pen = 8 * st.streak;
-          score -= pen;
-          reasons.push({ key: 'reason.streak', params: { n: st.streak }, tone: 'warn' });
+          apply(WEIGHTS.streakPerRound * st.streak, 'reason.streak', { n: st.streak }, 'warn');
         }
         /* 直近3ラウンド以内に使用 */
         if (!isSame && st.roundsSinceUse !== null && st.roundsSinceUse <= 3) {
-          score -= 6;
+          apply(WEIGHTS.recentUse, 'reason.recentUse', { n: st.roundsSinceUse }, 'warn');
         }
         /* 久しぶりの戦術は刺さりやすい */
         if (st.roundsSinceUse !== null && st.roundsSinceUse >= 6) {
-          score += 8;
-          reasons.push({ key: 'reason.longUnused', params: { n: st.roundsSinceUse }, tone: 'good' });
+          apply(WEIGHTS.longUnused, 'reason.longUnused', { n: st.roundsSinceUse }, 'good');
         }
       }
 
@@ -6528,25 +6988,27 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       if (last && last.result === 'LOSS') {
         const lastT = S.tacticById(last.tacticId);
         if (lastT && lastT.site && t.site && lastT.site !== t.site && t.site !== '-') {
-          score += 7;
-          reasons.push({ key: 'reason.targetChange', params: { from: lastT.site, to: t.site }, tone: 'good' });
+          apply(WEIGHTS.targetChange, 'reason.targetChange',
+            { from: lastT.site, to: t.site }, 'good');
         }
         if (t.kind === 'fake' || t.kind === 'split') {
-          score += 4;
+          apply(WEIGHTS.rhythmChange, 'reason.rhythmChange', null, 'good');
         }
       }
 
       /* サイド不一致（表示だけ許可した場合）は大きく減点 */
       if (side && t.side !== 'BOTH' && t.side !== side) {
-        score -= 30;
-        reasons.push({ key: 'reason.sideMismatch', params: { side: t.side }, tone: 'bad' });
+        apply(WEIGHTS.sideMismatch, 'reason.sideMismatch', { side: t.side }, 'bad');
       }
 
       /* ピストル / 序盤は勝率データが無いので素の並びを尊重 */
       if (rounds.length === 0) {
-        score = 50 + (t.kind === 'execute' || t.kind === 'default' ? 6 : 0);
+        score = BASE_SCORE;
         reasons.length = 0;
-        reasons.push({ key: 'reason.firstRound', tone: 'neutral' });
+        reasons.push({ key: 'reason.firstRound', params: {}, delta: 0, tone: 'neutral' });
+        if (t.kind === 'execute' || t.kind === 'default') {
+          apply(WEIGHTS.openingKind, 'reason.openingKind', null, 'neutral');
+        }
       }
 
       score = Math.max(0, Math.min(100, Math.round(score)));
@@ -6554,8 +7016,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         tactic: t,
         stats: st,
         score: score,
+        base: BASE_SCORE,
         reasons: reasons,
-        tone: score >= 66 ? 'good' : (score <= 38 ? 'bad' : 'warn')
+        tone: score >= TONE_GOOD ? 'good' : (score <= TONE_BAD ? 'bad' : 'warn')
       };
     });
 
@@ -6580,7 +7043,14 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     return { titleKey: 'headline.loss.title', textKey: 'headline.loss.text', params: params };
   }
 
-  global.VCT_ADVISOR = { rank: rank, headline: headline };
+  global.VCT_ADVISOR = {
+    rank: rank,
+    headline: headline,
+    BASE_SCORE: BASE_SCORE,
+    TONE_GOOD: TONE_GOOD,
+    TONE_BAD: TONE_BAD,
+    WEIGHTS: WEIGHTS
+  };
 })(window);
 </script>
 <script>
@@ -7063,6 +7533,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
      marks:  [{ id, kind:'agent'|'ability'|'plant', ref, team, x, y, order }]
      plant はスパイクの設置位置。1 つの盤面に 1 つだけ置ける。
      routes: [{ id, team, points:[{x,y}] }]
+     view:   { zoom, cx, cy }  局面ごとの表示範囲（A 側だけ見る、など）。
+             全体表示が既定なので、ズームしていない局面はこのキーを持たない。
    座標はマップ簡易図と同じ 0-100 の正規化空間。
    ========================================================= */
 (function (global) {
@@ -7148,6 +7620,87 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   function isEmpty(phase) {
     return !phase || ((phase.marks || []).length === 0 && (phase.routes || []).length === 0);
+  }
+
+  /* ---------------- 表示範囲（ズームとパン） ----------------
+     A ラッシュなら A 側だけ、B セットなら B 側だけを大きく見たい、という
+     競技上の要求に対する答え。盤面は 0-100 の正規化空間なので、
+     SVG の viewBox を切り取るだけで済む。マークもルートも同じ空間に載っているため、
+     下地の画像と一緒に拡大・移動する（座標そのものは一切書き換えない）。
+
+     倍率と位置は局面ごとに持つ。A フェイク → B 本命 のように見たい場所が
+     局面ごとに違うので、戦術単位ではなく局面単位にしている。 */
+
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 4;
+  const FULL_VIEW = { zoom: 1, cx: 50, cy: 50 };
+
+  function num(v, fallback) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  /** 倍率と中心を、盤面の外を映さない範囲へ収める */
+  function clampView(v) {
+    const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, num(v && v.zoom, 1)));
+    const half = 50 / zoom;                    /* 見えている範囲の半分 */
+    return {
+      zoom: zoom,
+      cx: Math.max(half, Math.min(100 - half, num(v && v.cx, 50))),
+      cy: Math.max(half, Math.min(100 - half, num(v && v.cy, 50)))
+    };
+  }
+
+  /** 局面の表示範囲。持っていない（＝古いデータ）なら全体表示 */
+  function view(phase) {
+    const b = ensure(phase);
+    return b.view ? clampView(b.view) : { zoom: 1, cx: 50, cy: 50 };
+  }
+
+  /* 全体表示は既定なので保存しない。こうしておくと、
+     ズームを触っていない戦術の保存内容が以前とまったく同じ形のままになる */
+  function setView(phase, v) {
+    const b = ensure(phase);
+    const next = clampView(v);
+    if (next.zoom <= MIN_ZOOM) delete b.view;
+    else b.view = next;
+    return view(phase);
+  }
+
+  /**
+   * 拡大・縮小。anchor（0-100 空間の点）を渡すと、その点を画面に留めたまま寄る。
+   * ホイールやピンチで「指の下が動かない」ようにするためのもの。
+   */
+  function zoomBy(phase, factor, anchor) {
+    const cur = view(phase);
+    const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cur.zoom * (num(factor, 1) || 1)));
+    if (!anchor) return setView(phase, { zoom: zoom, cx: cur.cx, cy: cur.cy });
+    const k = cur.zoom / zoom;
+    return setView(phase, {
+      zoom: zoom,
+      cx: num(anchor.x, cur.cx) + (cur.cx - num(anchor.x, cur.cx)) * k,
+      cy: num(anchor.y, cur.cy) + (cur.cy - num(anchor.y, cur.cy)) * k
+    });
+  }
+
+  function panBy(phase, dx, dy) {
+    const cur = view(phase);
+    return setView(phase, { zoom: cur.zoom, cx: cur.cx + num(dx, 0), cy: cur.cy + num(dy, 0) });
+  }
+
+  function resetView(phase) {
+    return setView(phase, FULL_VIEW);
+  }
+
+  function isZoomed(phase) {
+    return view(phase).zoom > MIN_ZOOM + 0.001;
+  }
+
+  /** SVG に与える viewBox。全体表示なら 0 0 100 100 */
+  function viewBox(phase) {
+    const v = view(phase);
+    const size = 100 / v.zoom;
+    return { x: v.cx - size / 2, y: v.cy - size / 2, w: size, h: size, zoom: v.zoom };
   }
 
   /** 戦術に配置がひとつも無いか（デッキの印やライブ画面の判定に使う） */
@@ -7308,8 +7861,14 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       return markHTML(m, m.id === opts.selectedId);
     }).join('');
 
+    /* 拡大は viewBox を切り取るだけ。マークもルートも同じ 0-100 空間なので、
+       下地と一緒に拡大・移動し、保存されている座標は変わらない */
+    const vb = viewBox(opts.phase);
+
     return '' +
-      '<svg class="board-svg' + (interactive ? ' is-interactive' : '') + '" viewBox="0 0 100 100" ' +
+      '<svg class="board-svg' + (interactive ? ' is-interactive' : '') + '" ' +
+           'viewBox="' + r3(vb.x) + ' ' + r3(vb.y) + ' ' + r3(vb.w) + ' ' + r3(vb.h) + '" ' +
+           'data-zoom="' + r3(vb.zoom) + '" ' +
            'width="' + size + '" height="' + size + '" ' +
            (interactive ? 'data-board="1" ' : '') +
            'role="img" aria-label="tactical board">' +
@@ -7459,14 +8018,35 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   /* ---------------- 座標変換 ---------------- */
 
-  /** ポインタ座標を盤面の 0-100 空間に変換する */
+  function r3(v) {
+    return Math.round(Number(v) * 1000) / 1000;
+  }
+
+  /** その SVG が今映している範囲。拡大していなければ 0 0 100 100 */
+  function boxOf(svg) {
+    const vb = svg && svg.viewBox && svg.viewBox.baseVal;
+    if (vb && vb.width) return { x: vb.x, y: vb.y, w: vb.width, h: vb.height };
+    return { x: 0, y: 0, w: 100, h: 100 };
+  }
+
+  /** ポインタ座標を盤面の 0-100 空間に変換する。
+      拡大中は画面の比率だけで計算すると必ずズレるので、viewBox を通す */
   function toBoardPoint(svg, evt) {
     const r = svg.getBoundingClientRect();
     if (!r.width || !r.height) return { x: 50, y: 50 };
+    const vb = boxOf(svg);
     return {
-      x: clamp(((evt.clientX - r.left) / r.width) * 100),
-      y: clamp(((evt.clientY - r.top) / r.height) * 100)
+      x: clamp(vb.x + ((evt.clientX - r.left) / r.width) * vb.w),
+      y: clamp(vb.y + ((evt.clientY - r.top) / r.height) * vb.h)
     };
+  }
+
+  /** 画面上の移動量（px）を盤面の移動量に直す。パンで使う */
+  function toBoardDelta(svg, dxPx, dyPx) {
+    const r = svg.getBoundingClientRect();
+    if (!r.width || !r.height) return { x: 0, y: 0 };
+    const vb = boxOf(svg);
+    return { x: (dxPx / r.width) * vb.w, y: (dyPx / r.height) * vb.h };
   }
 
   /** 設置位置のマーク。無ければ null */
@@ -7498,6 +8078,17 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     clearBoard: clearBoard,
     render: render,
     toBoardPoint: toBoardPoint,
+    toBoardDelta: toBoardDelta,
+    view: view,
+    setView: setView,
+    clampView: clampView,
+    zoomBy: zoomBy,
+    panBy: panBy,
+    resetView: resetView,
+    isZoomed: isZoomed,
+    viewBox: viewBox,
+    MIN_ZOOM: MIN_ZOOM,
+    MAX_ZOOM: MAX_ZOOM,
     renumber: renumber,
     agentOf: agentOf
   };
@@ -8453,11 +9044,13 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       banner.className = 'match-banner is-final ' + (result === 'WIN' ? 'win' : 'loss');
       /* 決着したら「次のマッチへ」をここに大きく出す。
          下段の小さな「スコアリセット」は見つけにくい。 */
+      /* X へのポストはここには置かない。競技用のツールとして使う画面に
+         SNS への投稿ボタンが並ぶと、道具の性格が変わって見える。
+         機能は消さず、上部の ⋯ メニューへ移してある */
       banner.innerHTML =
         '<span class="banner-text">' +
           esc(t(result === 'WIN' ? 'banner.won' : 'banner.lost', { a: sc.ally, b: sc.enemy })) +
         '</span>' +
-        '<button class="btn btn-ghost btn-sm btn-x" data-act="share-x">' + t('share.x') + '</button>' +
         '<button class="btn btn-primary btn-sm" id="btn-next-match">' + t('banner.nextMatch') + '</button>';
     } else if (sc.ally >= 12 || sc.enemy >= 12) {
       banner.hidden = false;
@@ -8585,6 +9178,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
              '<header class="panel-head">' +
                '<h2><span class="idx">▣</span>' + t('board.title') + '</h2>' +
                '<div class="panel-head-actions">' +
+                 boardZoomControlHTML('act', phase) +
                  boardSizeControlHTML('act') +
                  '<button class="btn btn-primary btn-sm" data-act="edit-board">' + t('board.edit') + '</button>' +
                '</div>' +
@@ -8979,6 +9573,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
                   esc(armedLabel(uiState.armed)) + '</button>';
       }
     }
+    html += '</div>';
+    html += '<div class="board-tool-row">';
+    html += boardZoomControlHTML('board-act', B.phaseAt(uiState.boardTactic, uiState.phaseIndex));
     html += boardSizeControlHTML('board-act');
     html += '</div>';
 
@@ -9022,6 +9619,28 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       if (Number.isFinite(saved)) return Math.max(0, Math.min(SIZE_STEPS.length - 1, saved));
     } catch (e) { /* noop */ }
     return 2;
+  }
+
+  /**
+   * 盤面の拡大・縮小。A ラッシュなら A 側だけを見たい、という用途のためのもの。
+   * ブラウザの拡大と違い、盤面だけが拡大して置いたものも一緒に動く。
+   * 表示サイズ（＝盤面そのものの大きさ）とは別物なので、並べて置いている。
+   */
+  function boardZoomControlHTML(attr, phase) {
+    const v = B.view(phase);
+    const a = attr === 'act' ? 'data-act' : 'data-board-act';
+    const atMin = v.zoom <= B.MIN_ZOOM + 0.001;
+    const atMax = v.zoom >= B.MAX_ZOOM - 0.001;
+    return '<span class="board-zoom">' +
+             '<span class="lc-label">' + t('board.zoom') + '</span>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="zoom-out"' +
+               (atMin ? ' disabled' : '') + ' title="' + esc(t('board.zoomOut')) + '">−</button>' +
+             '<b>' + Math.round(v.zoom * 100) + '%</b>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="zoom-in"' +
+               (atMax ? ' disabled' : '') + ' title="' + esc(t('board.zoomIn')) + '">＋</button>' +
+             '<button class="btn btn-ghost btn-sm" ' + a + '="zoom-reset"' +
+               (atMin ? ' disabled' : '') + '>' + t('board.zoomReset') + '</button>' +
+           '</span>';
   }
 
   /**
@@ -9109,6 +9728,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function renderBoardHint(uiState) {
     const el = $('board-hint');
     if (uiState.routeTeam) { el.textContent = t('board.hintRoute'); return; }
+    /* 拡大中は、余白のドラッグが「動かす」に変わる。知らないと迷うので先に言う */
+    if (B.isZoomed(B.phaseAt(uiState.boardTactic, uiState.phaseIndex)) &&
+        !uiState.armed && !uiState.selectedMarkId) {
+      el.textContent = t('board.hintPan');
+      return;
+    }
     if (uiState.armed) {
       el.textContent = t('board.armed', { name: armedLabel(uiState.armed) });
       return;
@@ -9267,7 +9892,8 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       ? treeHTML + listLabel + '<div class="pick-list">' + ranked.map(function (r, i) {
           const st = r.stats;
           return '' +
-            '<button type="button" class="pick' + (i === 0 && !suggested ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '">' +
+            '<button type="button" class="pick' + (i === 0 && !suggested ? ' is-top' : '') + '" data-act="pick" data-id="' + r.tactic.id + '"' +
+              ' title="' + esc(scoreTitle(r)) + '">' +
               '<span class="pick-score ' + r.tone + '"><b>' + r.score + '</b><small>' + t('pick.score') + '</small></span>' +
               '<span class="pick-main">' +
                 '<span class="pick-name">' + esc(r.tactic.name) + sideBadge(r.tactic.side) +
@@ -9275,7 +9901,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
                 '</span>' +
                 (r.reasons.length
                   ? '<span class="pick-reasons">' + r.reasons.map(function (rs) {
-                      return '<span class="reason ' + rs.tone + '">' + esc(reasonText(rs)) + '</span>';
+                      /* 「なぜこの数値なのか」を、実際に足し引きした値そのままで出す */
+                      return '<span class="reason ' + rs.tone + '">' + esc(reasonText(rs)) +
+                               (rs.delta ? '<b class="reason-delta">' + deltaText(rs.delta) + '</b>' : '') +
+                             '</span>';
                     }).join('') + '</span>'
                   : '') +
               '</span>' +
@@ -9288,6 +9917,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       : '<p class="deck-empty">' + t('pick.noTactics') + '</p>';
 
     return '' +
+      roundEvalBarHTML() +
       '<div class="stage-head">' +
         '<h3>' + t('live.selecting', { n: n }) + ' ' + pill + '</h3>' +
         '<div class="stage-actions">' +
@@ -9301,7 +9931,53 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         '<span class="lc-label">' + t('eco.label') + '</span>' +
         '<span class="eco-seg">' + ecoSeg + '</span>' +
       '</div>' +
+      /* 数字の意味をここで言い切る。成功率と読まれると判断を誤らせる */
+      '<p class="pick-legend">' + esc(t('pick.legend')) + '</p>' +
       body;
+  }
+
+  function deltaText(d) {
+    return (d > 0 ? '+' : '−') + Math.abs(d);
+  }
+
+  /* ホバーで出る内訳。基準点からの足し引きと合計をそのまま並べる */
+  function scoreTitle(r) {
+    const lines = [t('pick.scoreTitle'), t('pick.scoreBase', { n: r.base })];
+    r.reasons.forEach(function (rs) {
+      lines.push((rs.delta ? deltaText(rs.delta) + '  ' : '±0  ') + reasonText(rs));
+    });
+    lines.push(t('pick.scoreTotal', { n: r.score }));
+    return lines.join('\n');
+  }
+
+  /**
+   * 直前ラウンドの評価バー。
+   * 勝敗を押した直後にここへ出す。1 タップで遂行度だけ記録でき、
+   * 押さずに次のラウンドへ進んでもよい（未評価のまま残るだけ）。
+   * 試合を止める確認ダイアログにはしない。
+   */
+  function roundEvalBarHTML() {
+    const last = S.lastRound();
+    if (!last) return '';
+    const tac = S.tacticById(last.tacticId);
+    const chips = ['clean', 'partial', 'failed'].map(function (lv) {
+      return '<button type="button" class="eval-chip' + (last.exec === lv ? ' is-active' : '') + '" ' +
+               'data-act="eval-exec" data-exec="' + lv + '">' + esc(t('eval.exec.' + lv)) + '</button>';
+    }).join('');
+    const n = (last.reasons || []).length;
+    return '<div class="eval-bar' + (last.exec === 'unrated' ? ' is-todo' : '') + '">' +
+             '<span class="eval-bar-label">' +
+               esc(t('eval.bar', {
+                 n: last.n,
+                 result: t('res.' + last.result.toLowerCase()),
+                 name: tac ? tac.name : t('timeline.deleted')
+               })) +
+             '</span>' +
+             '<span class="eval-chips">' + chips + '</span>' +
+             '<button type="button" class="btn btn-ghost btn-sm" data-act="eval-open" data-round="' + last.n + '">' +
+               esc(t('eval.detail')) + (n ? ' (' + n + ')' : '') +
+             '</button>' +
+           '</div>';
   }
 
   /* --- タイムライン / 成績 --- */
@@ -9310,12 +9986,19 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     $('timeline-empty').hidden = rounds.length > 0;
     $('timeline').innerHTML = rounds.slice().reverse().map(function (r) {
       const tac = S.tacticById(r.tacticId);
+      const rated = r.exec && r.exec !== 'unrated';
+      const n = (r.reasons || []).length;
       return '' +
         '<li class="tl-row ' + r.result.toLowerCase() + '">' +
           '<span class="tl-round">R' + r.n + '</span>' +
           '<span class="tl-side" data-side="' + r.side + '">' + r.side + '</span>' +
           '<span class="tl-name">' + esc(tac ? tac.name : t('timeline.deleted')) + '</span>' +
           '<span class="tl-res">' + t('res.' + r.result.toLowerCase()) + '</span>' +
+          /* 評価はあとから足せる。押すと同じ入力欄が開く */
+          '<button type="button" class="tl-eval' + (rated ? ' is-rated' : '') + '" ' +
+            'data-eval-round="' + r.n + '" title="' + esc(t('eval.title')) + '">' +
+            esc(t('eval.exec.' + (rated ? r.exec : 'unrated'))) + (n ? ' ·' + n : '') +
+          '</button>' +
         '</li>';
     }).join('');
   }
@@ -9340,8 +10023,60 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
             '<span class="perf-count">' + row.st.win + 'W ' + row.st.loss + 'L</span>' +
           '</span>' +
           '<span class="perf-bar ' + cls + '"><span style="width:' + (rate === null ? 0 : rate) + '%"></span></span>' +
+          execSplitHTML(row.st) +
         '</li>';
     }).join('');
+  }
+
+  /**
+   * 作戦品質と遂行品質を分けて見るための行。
+   * 「作戦通りに動けたラウンドの勝率」と「崩れたラウンドの勝率」を並べる。
+   * 評価が 1 件も付いていない戦術には出さない（0% と誤読させないため）。
+   */
+  function execSplitHTML(st) {
+    if (!st.ratedUsed) return '';
+    const parts = [];
+    if (st.cleanUsed) {
+      parts.push('<span class="perf-split good">' + esc(t('eval.exec.clean')) + ' ' +
+                 st.cleanWinRate + '%<small>' + st.cleanUsed + '</small></span>');
+    }
+    if (st.brokenUsed) {
+      parts.push('<span class="perf-split bad">' + esc(t('eval.broken')) + ' ' +
+                 st.brokenWinRate + '%<small>' + st.brokenUsed + '</small></span>');
+    }
+    return parts.length ? '<span class="perf-splits">' + parts.join('') + '</span>' : '';
+  }
+
+  /* --- ラウンド評価の入力欄 --- */
+
+  /** 評価モーダルの中身を、そのラウンドの今の内容で埋める */
+  function renderRoundEval(n) {
+    const rec = S.state.rounds.filter(function (r) { return r.n === n; })[0];
+    if (!rec) return null;
+    const tac = S.tacticById(rec.tacticId);
+
+    $('round-eval-sub').textContent = t('eval.sub', {
+      n: rec.n,
+      result: t('res.' + rec.result.toLowerCase()),
+      name: tac ? tac.name : t('timeline.deleted')
+    });
+
+    $('eval-exec').innerHTML = S.EXEC_LEVELS.map(function (lv) {
+      return '<button type="button" data-val="' + lv + '"' +
+             (rec.exec === lv ? ' class="is-active"' : '') + '>' + esc(t('eval.exec.' + lv)) + '</button>';
+    }).join('');
+
+    $('eval-reasons').innerHTML = S.REASON_KEYS.map(function (k) {
+      return '<label class="eval-reason' + (k === 'planWorked' || k === 'outplay' ? ' is-good' : '') + '">' +
+               '<input type="checkbox" value="' + k + '"' +
+                 (rec.reasons.indexOf(k) >= 0 ? ' checked' : '') + ' />' +
+               '<span>' + esc(t('eval.reason.' + k)) + '</span>' +
+             '</label>';
+    }).join('');
+
+    $('eval-note').value = rec.reasonNote || '';
+    $('eval-note-field').hidden = rec.reasons.indexOf('other') < 0;
+    return rec;
   }
 
   /* ================= COMMUNITY ================= */
@@ -9649,6 +10384,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     renderBoardPhases: renderBoardPhases,
     renderTimeline: renderTimeline,
     renderPerf: renderPerf,
+    renderRoundEval: renderRoundEval,
     renderAccount: renderAccount,
     renderCommunityMapFilter: renderCommunityMapFilter,
     renderPosts: renderPosts,
@@ -9807,7 +10543,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-report', 'modal-breakdown', 'modal-modlog', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-report', 'modal-breakdown', 'modal-modlog', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree', 'modal-round-eval'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -9931,8 +10667,23 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
+      /* X へのポストは試合の記録があってはじめて意味を持つ。
+         開くたびに見直す（押しても何も起きないボタンを作らない） */
+      $('btn-share-x').disabled = S.state.rounds.length === 0;
       pop.hidden = !pop.hidden;
       btn.setAttribute('aria-expanded', String(!pop.hidden));
+    });
+
+    /* 競技用の画面から SNS の導線を外し、機能はここへ移した。
+       出すのは試合全体の要約で、ラウンド単位のカードは出さない */
+    $('btn-share-x').addEventListener('click', function () {
+      if (!S.state.rounds.length) { U.toast(t('share.needRounds'), 'err'); return; }
+      SHARE.postMatchToX({
+        map: S.state.match.map,
+        score: S.score(),
+        rounds: S.state.rounds,
+        tactics: S.state.tactics
+      });
     });
 
     /* 中の項目を押したら閉じる。外を押しても閉じる */
@@ -10221,6 +10972,12 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       } else if (act === 'size-up' || act === 'size-down') {
         U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
         if (ui.view === 'live') renderLive();
+      } else if (act === 'zoom-in' || act === 'zoom-out') {
+        BOARD.zoomBy(curPhase(), act === 'zoom-in' ? ZOOM_STEP : 1 / ZOOM_STEP);
+        commitBoard();
+      } else if (act === 'zoom-reset') {
+        BOARD.resetView(curPhase());
+        commitBoard();
       } else if (act === 'order-up' || act === 'order-down') {
         BOARD.bumpOrder(curPhase(), ui.selectedMarkId, act === 'order-up' ? -1 : 1);
         commitBoard();
@@ -10381,7 +11138,40 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     const THRESHOLD = 4;   // これ以上動いたらドラッグとみなす（px）
     let press = null;
 
+    /* ピンチ（2 本指）の状態。指が 2 本になった時点で通常の操作は打ち切る。
+       置く・動かすと取り合いにならないよう、本数で完全に分けている */
+    const points = new Map();
+    let pinchDist = 0;
+
     function svgEl() { return canvas.querySelector('svg[data-board]'); }
+
+    /* Map.values() はイテレータなので slice では配列にならない。
+       ここを取り違えると 2 本目の指に触れた瞬間に落ちる */
+    function pinchPoints() {
+      return Array.from(points.values());
+    }
+
+    function midpoint() {
+      const list = pinchPoints();
+      return { clientX: (list[0].x + list[1].x) / 2, clientY: (list[0].y + list[1].y) / 2 };
+    }
+
+    function pinchSpan() {
+      const list = pinchPoints();
+      return Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y);
+    }
+
+    /* ホイールで拡大・縮小。カーソルの下の地点を動かさないので、
+       見たい場所へ寄っていける */
+    canvas.addEventListener('wheel', function (e) {
+      const svg = svgEl();
+      if (!svg) return;
+      e.preventDefault();
+      BOARD.zoomBy(curPhase(), e.deltaY < 0 ? WHEEL_STEP : 1 / WHEEL_STEP,
+        BOARD.toBoardPoint(svg, e));
+      commitBoard();
+      refreshBoard();
+    }, { passive: false });
 
     /* 右クリックで消す。
        マークの上なら そのマーク、ルートの上なら そのルート、
@@ -10425,13 +11215,26 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     canvas.addEventListener('pointerdown', function (e) {
       if (!svgEl()) return;
       if (e.button) return;            // 左ボタン（とタッチ）だけ掴める
+
+      points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (points.size >= 2) {
+        /* 2 本目が触れた時点でピンチ。掴みかけのものは離す */
+        if (press && press.el) press.el.classList.remove('is-dragging');
+        press = null;
+        pinchDist = pinchSpan();
+        return;
+      }
+
       const markEl = e.target.closest('.board-mark');
       press = {
         el: markEl || null,
         markId: markEl ? markEl.dataset.mark : null,
         startX: e.clientX,
         startY: e.clientY,
+        lastX: e.clientX,
+        lastY: e.clientY,
         moved: false,
+        panned: false,
         pointerId: e.pointerId
       };
       if (markEl && !ui.routeTeam) {
@@ -10440,6 +11243,20 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
 
     canvas.addEventListener('pointermove', function (e) {
+      /* ピンチ中は指の間隔の比で倍率を変える。中点は動かさない */
+      if (points.size >= 2) {
+        if (!points.has(e.pointerId)) return;
+        points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const svg = svgEl();
+        const span = pinchSpan();
+        if (!svg || !span || !pinchDist) return;
+        BOARD.zoomBy(curPhase(), span / pinchDist, BOARD.toBoardPoint(svg, midpoint()));
+        pinchDist = span;
+        U.renderBoardCanvas(ui);
+        e.preventDefault();
+        return;
+      }
+
       if (!press) return;
 
       if (!press.moved) {
@@ -10448,6 +11265,22 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         if (Math.sqrt(dx * dx + dy * dy) < THRESHOLD) return;
         press.moved = true;
         if (press.el) press.el.classList.add('is-dragging');
+      }
+
+      /* 拡大中に、マークの無いところを掴んだら表示位置の移動（パン）。
+         全体表示のときは動かす先が無いので、従来どおり何も起きない。
+         ＝ 既存の「置く・選ぶ・消す」は拡大していない限り一切変わらない */
+      if (!press.markId && !ui.routeTeam && BOARD.isZoomed(curPhase())) {
+        const svg = svgEl();
+        if (!svg) return;
+        const d = BOARD.toBoardDelta(svg, press.lastX - e.clientX, press.lastY - e.clientY);
+        BOARD.panBy(curPhase(), d.x, d.y);
+        press.panned = true;
+        press.lastX = e.clientX;
+        press.lastY = e.clientY;
+        U.renderBoardCanvas(ui);
+        e.preventDefault();
+        return;
       }
 
       /* マークを掴んでいるときだけ動かす */
@@ -10463,10 +11296,28 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
 
     canvas.addEventListener('pointerup', function (e) {
+      const wasPinching = points.size >= 2;
+      points.delete(e.pointerId);
+      if (wasPinching) {
+        /* 指が減ってもすぐ掴み直させない。残りの指はパンにも使わせない */
+        pinchDist = points.size >= 2 ? pinchSpan() : 0;
+        press = null;
+        commitBoard();
+        refreshBoard();
+        return;
+      }
+
       const svg = svgEl();
       const current = press;
       press = null;
       if (!svg || !current) return;
+
+      /* 表示位置を動かしただけ。置く・選ぶには進めない */
+      if (current.panned) {
+        commitBoard();
+        refreshBoard();
+        return;
+      }
 
       if (current.el) {
         current.el.classList.remove('is-dragging');
@@ -10518,15 +11369,21 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     });
 
     /* 指が画面外に出るなどして中断された場合も、位置は確定させる */
-    canvas.addEventListener('pointercancel', function () {
+    canvas.addEventListener('pointercancel', function (e) {
+      points.delete(e.pointerId);
+      pinchDist = points.size >= 2 ? pinchSpan() : 0;
       const current = press;
       press = null;
       if (!current) return;
       if (current.el) current.el.classList.remove('is-dragging');
-      if (current.moved && current.markId) commitBoard();
+      if ((current.moved && current.markId) || current.panned) commitBoard();
       refreshBoard();
     });
   }
+
+  /* ズームの刻み。ボタンは大きめ、ホイールは細かく */
+  const ZOOM_STEP = 1.5;
+  const WHEEL_STEP = 1.15;
 
   /* ================= 共有 ================= */
   function shareOpts() {
@@ -10735,6 +11592,27 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       } else if (act === 'size-up' || act === 'size-down') {
         U.setBoardSizeIndex(U.boardSizeIndex() + (act === 'size-up' ? 1 : -1));
         renderLive();
+      } else if (act === 'zoom-in' || act === 'zoom-out' || act === 'zoom-reset') {
+        /* ライブ画面からも同じ表示範囲を動かす。編集画面で寄せた範囲がそのまま出るので、
+           ここで戻せないと「切れて見える」状態から抜けられなくなる */
+        const tac = currentTactic();
+        const phase = tac ? BOARD.phaseAt(tac, ui.livePhase) : null;
+        if (phase) {
+          if (act === 'zoom-reset') BOARD.resetView(phase);
+          else BOARD.zoomBy(phase, act === 'zoom-in' ? ZOOM_STEP : 1 / ZOOM_STEP);
+          S.save();
+          renderLive();
+        }
+      } else if (act === 'eval-exec') {
+        /* 直前ラウンドの遂行度を 1 タップで記録する。確認は挟まない */
+        const last = S.lastRound();
+        if (last) {
+          S.setRoundEval(last.n, { exec: el.dataset.exec });
+          renderLive();
+          U.toast(t('eval.saved'), 'ok');
+        }
+      } else if (act === 'eval-open') {
+        openRoundEval(Number(el.dataset.round));
       } else if (act === 'live-phase') {
         ui.livePhase = Number(el.dataset.phaseIndex) || 0;
         renderLive();
@@ -10754,21 +11632,70 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       renderLive();
     });
 
-    /* 決着バナー内のボタンは再描画で作り直されるため、委譲で拾う */
+    /* 決着バナー内のボタンは再描画で作り直されるため、委譲で拾う。
+       X へのポストはここには置かない（⋯ メニューへ移した） */
     $('match-banner').addEventListener('click', function (e) {
-      if (e.target.closest('[data-act="share-x"]')) {
-        SHARE.postMatchToX({
-          map: S.state.match.map,
-          score: S.score(),
-          rounds: S.state.rounds,
-          tactics: S.state.tactics
-        });
-        return;
-      }
       if (e.target.closest('#btn-next-match')) askResetMatch();
     });
 
     $('btn-reset-match').addEventListener('click', askResetMatch);
+
+    /* ラウンド履歴からあとで評価を足す・直す */
+    $('timeline').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-eval-round]');
+      if (btn) openRoundEval(Number(btn.dataset.evalRound));
+    });
+  }
+
+  /* ================= ラウンドの評価 =================
+     勝敗だけでは「作戦が悪かった」のか「実行が崩れた」のか分けられない。
+     試合を止めないよう、入力はすべて任意・あとから編集可能にしてある。 */
+
+  let evalRoundN = null;
+
+  function openRoundEval(n) {
+    if (!U.renderRoundEval(n)) return;
+    evalRoundN = n;
+    openModal('modal-round-eval');
+  }
+
+  function bindRoundEval() {
+    $('eval-exec').addEventListener('click', function (e) {
+      const btn = e.target.closest('button');
+      if (btn) U.setSegActive($('eval-exec'), btn.dataset.val);
+    });
+
+    /* 「その他」を選んだときだけ補足欄を出す（通報の入力と同じ作法） */
+    $('eval-reasons').addEventListener('change', function () {
+      const other = $('eval-reasons').querySelector('input[value="other"]');
+      $('eval-note-field').hidden = !(other && other.checked);
+    });
+
+    $('btn-eval-clear').addEventListener('click', function () {
+      if (evalRoundN === null) return;
+      S.setRoundEval(evalRoundN, { exec: 'unrated', reasons: [], reasonNote: '' });
+      closeModal('modal-round-eval');
+      renderLive();
+      U.toast(t('eval.cleared'));
+    });
+
+    $('round-eval-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (evalRoundN === null) return;
+      const reasons = Array.prototype.map.call(
+        $('eval-reasons').querySelectorAll('input:checked'),
+        function (i) { return i.value; }
+      );
+      S.setRoundEval(evalRoundN, {
+        exec: U.segValue($('eval-exec')) || 'unrated',
+        reasons: reasons,
+        /* 補足は「その他」のためのもの。外したら残さない */
+        reasonNote: reasons.indexOf('other') >= 0 ? ($('eval-note').value || '').trim() : ''
+      });
+      closeModal('modal-round-eval');
+      renderLive();
+      U.toast(t('eval.saved'), 'ok');
+    });
   }
 
   /** スコアだけ消して同じ構成・戦術で次の試合へ */
@@ -11313,7 +12240,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         return;
       }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree', 'modal-round-eval']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;
@@ -11420,6 +12347,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     bindBoardEditor();
     bindAgentModal();
     bindTacticModal();
+    bindRoundEval();
     bindGlobal();
     renderAll();
 

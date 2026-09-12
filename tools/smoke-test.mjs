@@ -1137,7 +1137,20 @@ for (const key of ['community.report', 'community.reported', 'community.reportCo
                    'community.modLogEmpty', 'community.action.restore',
                    'community.action.force_hide', 'community.action.set_threshold',
                    'intro.title', 'intro.steps', 'intro.save', 'intro.cloud', 'intro.close',
-                   'board.hintPlaceTouch', 'community.postDisclosure', 'feedback.link']) {
+                   'board.hintPlaceTouch', 'community.postDisclosure', 'feedback.link',
+                   'share.xMatch', 'share.needRounds',
+                   'board.zoom', 'board.zoomIn', 'board.zoomOut', 'board.zoomReset', 'board.hintPan',
+                   'pick.legend', 'pick.scoreTitle', 'pick.scoreBase', 'pick.scoreTotal',
+                   'reason.winrateThin', 'reason.recentUse', 'reason.rhythmChange', 'reason.openingKind',
+                   'eval.title', 'eval.sub', 'eval.bar', 'eval.exec', 'eval.exec.clean',
+                   'eval.exec.partial', 'eval.exec.failed', 'eval.exec.unrated', 'eval.broken',
+                   'eval.reasons', 'eval.reasonsHint', 'eval.note', 'eval.notePh', 'eval.detail',
+                   'eval.clear', 'eval.saved', 'eval.cleared',
+                   'eval.reason.read', 'eval.reason.utility', 'eval.reason.entry', 'eval.reason.trade',
+                   'eval.reason.numbers', 'eval.reason.preplant', 'eval.reason.postplant',
+                   'eval.reason.counter', 'eval.reason.rotation', 'eval.reason.timing',
+                   'eval.reason.comms', 'eval.reason.duel', 'eval.reason.outplay',
+                   'eval.reason.planWorked', 'eval.reason.other']) {
   check(`${key} が 3 言語にある`,
     localeKeys.ja.has(key) && localeKeys.en.has(key) && localeKeys.ko.has(key));
 }
@@ -1331,6 +1344,609 @@ check('最初の案内にはフォームへの誘導を書かない', fb.introMe
 await openVariant('feedback-bad', [[feedbackConfig, "FEEDBACK_URL: 'javascript:alert(1)'"]]);
 fb = await feedbackState();
 check('https:// で始まらないリンク先は出さない', fb.shown === false);
+
+/* ---------------- 競技向けの手直し ----------------
+   X 投稿の導線 / 盤面の局所ズーム / ラウンドの評価 / 推奨度の意味。
+   前のセクションで config の変種を読み込んでいるので、
+   素の配布版を別のコンテキストで開き直してから確かめる。 */
+console.log('\n競技向けの手直し');
+
+const gymCtx = await browser.newContext({ viewport: { width: 1500, height: 1000 }, locale: 'ja-JP' });
+const g = await gymCtx.newPage();
+g.on('pageerror', (e) => pageErrors.push('[競技UI] ' + String(e.message)));
+g.on('dialog', (d) => { pageErrors.push('[競技UI] ネイティブダイアログ: ' + d.message()); d.dismiss(); });
+await g.goto('file://' + DIST);
+await g.waitForTimeout(600);
+
+/** 味方・敵をそろえ、渡したラウンド記録を入れて開き直す */
+async function seedMatch(rounds, phase) {
+  await g.evaluate(([a, e, rs, ph]) => {
+    const S = window.VCT_STORE;
+    a.forEach((x, i) => { S.state.allies[i].agent = x; });
+    e.forEach((x, i) => { S.state.enemies[i].agent = x; });
+    S.state.rounds = rs;
+    S.state.pending = null;
+    S.state.sideOverrides = {};
+    S.state.phase = ph || 'live';
+    /* 盤面の拡大は局面ごとに残るので、次の確認へ持ち越さないよう全体表示に戻す */
+    S.state.tactics.forEach((t) => (t.phases || []).forEach((p) => { delete p.view; }));
+    S.save();
+  }, [ALLY, ENEMY, rounds || [], phase || 'live']);
+  await g.reload();
+  await g.waitForTimeout(500);
+}
+
+/* 評価の列を持たない「古い形」のラウンド記録。互換性の確認にも使う */
+function oldRound(n, tacticId, result) {
+  return { n: n, side: 'ATK', tacticId: tacticId, economy: 'full', result: result, note: '', at: 1 };
+}
+
+const roundsOf = () => g.evaluate(() => window.VCT_STORE.state.rounds);
+const clickIfEnabled = (sel) => g.evaluate((s) => {
+  const el = document.querySelector(s);
+  if (el && !el.disabled) el.click();
+}, sel);
+
+const sampleIds = await g.evaluate(() => window.VCT_STORE.state.tactics.map((t) => t.id));
+
+/* --- X 投稿の導線 --- */
+await seedMatch([oldRound(1, sampleIds[0], 'WIN')]);
+check('ライブ画面に X への導線が無い',
+  (await g.locator('#view-live [data-act="share-x"]').count()) === 0);
+
+await seedMatch(Array.from({ length: 13 }, (_, i) => oldRound(i + 1, sampleIds[0], 'WIN')));
+const bannerHTML = await g.locator('#match-banner').innerHTML();
+check('決着バナーからも X への導線を外した', !/share-x/.test(bannerHTML), bannerHTML.slice(0, 90));
+check('決着バナーの「新しいマッチ」は残っている', /btn-next-match/.test(bannerHTML));
+
+await g.click('#btn-topmenu');
+await g.waitForTimeout(200);
+const xMenu = await g.evaluate(() => {
+  const btn = document.getElementById('btn-share-x');
+  const pop = document.getElementById('topmenu-pop');
+  const r = btn.getBoundingClientRect();
+  return {
+    inMenu: !!(btn && pop && pop.contains(btn)),
+    disabled: btn.disabled,
+    text: btn.textContent,
+    inTopbar: !!btn.closest('.topbar'),
+    visible: r.width > 0 && r.height > 0
+  };
+});
+check('X へのポストは ⋯ メニューの中にある', xMenu.inMenu && xMenu.inTopbar);
+check('X へのポストの文言で試合結果だと分かる', /試合結果/.test(xMenu.text), xMenu.text);
+check('記録があるときは押せる', xMenu.disabled === false);
+await g.keyboard.press('Escape');
+
+await seedMatch([], 'setup');
+await g.click('#btn-topmenu');
+await g.waitForTimeout(200);
+check('記録が無いときは押せない',
+  await g.evaluate(() => document.getElementById('btn-share-x').disabled));
+await g.keyboard.press('Escape');
+
+await seedMatch([oldRound(1, sampleIds[0], 'WIN'), oldRound(2, sampleIds[1], 'LOSS')]);
+const xOpen = await g.evaluate(() => {
+  let captured = null;
+  const orig = window.open;
+  window.open = function (url) { captured = url; return null; };
+  document.getElementById('btn-topmenu').click();
+  document.getElementById('btn-share-x').click();
+  window.open = orig;
+  return {
+    captured: captured,
+    text: window.VCT_SHARE.buildMatchText({
+      map: window.VCT_STORE.state.match.map,
+      score: window.VCT_STORE.score(),
+      rounds: window.VCT_STORE.state.rounds,
+      tactics: window.VCT_STORE.state.tactics
+    })
+  };
+});
+check('X へのポストは今までどおり intent を開く',
+  /^https:\/\/x\.com\/intent\/tweet\?/.test(String(xOpen.captured)), String(xOpen.captured).slice(0, 70));
+check('ポスト本文は試合全体の要約になっている',
+  /1-1/.test(xOpen.text) && /W/.test(xOpen.text), xOpen.text.replace(/\n/g, ' / '));
+
+/* --- 盤面の局所ズーム --- */
+async function openBoardEditor() {
+  await g.evaluate(() => { window.VCT_STORE.state.phase = 'setup'; window.VCT_STORE.save(); });
+  await g.reload();
+  await g.waitForTimeout(500);
+  await g.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+  await g.waitForTimeout(800);
+}
+
+const viewBoxOf = () => g.evaluate(() => {
+  const svg = document.querySelector('#board-canvas svg');
+  if (!svg) return null;
+  const b = svg.viewBox.baseVal;
+  return { x: b.x, y: b.y, w: b.width, h: b.height, zoom: Number(svg.getAttribute('data-zoom')) };
+});
+const boardMarks = () => g.evaluate(() => {
+  const S = window.VCT_STORE;
+  const p = window.VCT_BOARD.phaseAt(S.state.tactics[0], 0);
+  return p.marks.map((m) => ({ kind: m.kind, x: m.x, y: m.y }));
+});
+const insideBoard = (v) => v.x >= -0.01 && v.y >= -0.01 && v.x + v.w <= 100.01 && v.y + v.h <= 100.01;
+const maxZoom = await g.evaluate(() => window.VCT_BOARD.MAX_ZOOM);
+
+await openBoardEditor();
+let vbox = await viewBoxOf();
+check('既定は全体表示', vbox.zoom === 1 && vbox.w === 100 && vbox.x === 0, JSON.stringify(vbox));
+check('全体表示では縮小と「全体表示」は押せない',
+  await g.evaluate(() => document.querySelector('[data-board-act="zoom-out"]').disabled &&
+                         document.querySelector('[data-board-act="zoom-reset"]').disabled));
+
+await clickIfEnabled('[data-board-act="zoom-in"]');
+await g.waitForTimeout(250);
+vbox = await viewBoxOf();
+check('＋で拡大できる', vbox.zoom > 1 && vbox.w < 100, JSON.stringify(vbox));
+check('拡大しても盤面の外は映さない', insideBoard(vbox), JSON.stringify(vbox));
+
+for (let i = 0; i < 8; i++) { await clickIfEnabled('[data-board-act="zoom-in"]'); await g.waitForTimeout(90); }
+vbox = await viewBoxOf();
+check('拡大には上限がある', vbox.zoom <= maxZoom + 0.001, String(vbox.zoom));
+check('上限まで拡大しても盤面の外は映さない', insideBoard(vbox), JSON.stringify(vbox));
+
+await clickIfEnabled('[data-board-act="zoom-reset"]');
+await g.waitForTimeout(250);
+check('「全体表示」で戻せる', (await viewBoxOf()).zoom === 1);
+
+await clickIfEnabled('[data-board-act="zoom-in"]');
+await clickIfEnabled('[data-board-act="zoom-in"]');
+await g.waitForTimeout(250);
+const panBefore = await viewBoxOf();
+let bbox = await g.locator('#board-canvas svg').boundingBox();
+await g.mouse.move(bbox.x + bbox.width * 0.5, bbox.y + bbox.height * 0.5);
+await g.mouse.down();
+await g.mouse.move(bbox.x + bbox.width * 0.25, bbox.y + bbox.height * 0.25, { steps: 8 });
+await g.mouse.up();
+await g.waitForTimeout(250);
+const panAfter = await viewBoxOf();
+check('拡大中は何も無い所のドラッグで表示位置が動く',
+  Math.abs(panAfter.x - panBefore.x) > 1 || Math.abs(panAfter.y - panBefore.y) > 1,
+  `${JSON.stringify(panBefore)} → ${JSON.stringify(panAfter)}`);
+check('パンしても倍率は変わらない', Math.abs(panAfter.zoom - panBefore.zoom) < 0.001);
+check('パンしても盤面の外は映さない', insideBoard(panAfter), JSON.stringify(panAfter));
+
+for (let i = 0; i < 5; i++) {
+  await g.mouse.move(bbox.x + bbox.width * 0.2, bbox.y + bbox.height * 0.2);
+  await g.mouse.down();
+  await g.mouse.move(bbox.x + bbox.width * 0.95, bbox.y + bbox.height * 0.95, { steps: 5 });
+  await g.mouse.up();
+}
+await g.waitForTimeout(250);
+check('端まで動かしても盤面の外は映さない', insideBoard(await viewBoxOf()), JSON.stringify(await viewBoxOf()));
+
+/* 拡大中に置いたものが、クリックした場所と一致すること（ここがズレると使い物にならない） */
+const zoomView = await viewBoxOf();
+bbox = await g.locator('#board-canvas svg').boundingBox();
+await g.locator('#board-palette-ally .pal-agent').first().click();
+await g.waitForTimeout(200);
+await g.mouse.click(bbox.x + bbox.width * 0.3, bbox.y + bbox.height * 0.65);
+await g.waitForTimeout(300);
+const placed = (await boardMarks())[0];
+const wantPlace = { x: zoomView.x + zoomView.w * 0.3, y: zoomView.y + zoomView.h * 0.65 };
+check('拡大中に置いても座標がズレない',
+  !!placed && Math.abs(placed.x - wantPlace.x) < 1.5 && Math.abs(placed.y - wantPlace.y) < 1.5,
+  `置いた ${JSON.stringify(placed)} / 期待 ${JSON.stringify(wantPlace)}`);
+
+await clickIfEnabled('[data-board-act="disarm"]');
+await g.waitForTimeout(200);
+await g.mouse.click(bbox.x + bbox.width * 0.3, bbox.y + bbox.height * 0.65);
+await g.waitForTimeout(250);
+check('拡大中でもマークを選べる',
+  await g.evaluate(() => !!document.querySelector('#board-canvas .board-mark.is-selected')));
+
+/* 選ぶと道具の行が 1 段増えて盤面が少し縮む。
+   ここで測り直さないと、ドラッグ先の期待値の方がずれる */
+const markBox = await g.locator('#board-canvas .board-mark').first().boundingBox();
+bbox = await g.locator('#board-canvas svg').boundingBox();
+const zoomView2 = await viewBoxOf();
+await g.mouse.move(markBox.x + markBox.width / 2, markBox.y + markBox.height / 2);
+await g.mouse.down();
+await g.mouse.move(bbox.x + bbox.width * 0.6, bbox.y + bbox.height * 0.4, { steps: 8 });
+await g.mouse.up();
+await g.waitForTimeout(250);
+const dragged = (await boardMarks())[0];
+const wantDrag = { x: zoomView2.x + zoomView2.w * 0.6, y: zoomView2.y + zoomView2.h * 0.4 };
+check('拡大中でもドラッグで動かせて、座標がズレない',
+  !!dragged && Math.abs(dragged.x - wantDrag.x) < 1.5 && Math.abs(dragged.y - wantDrag.y) < 1.5,
+  `動かした ${JSON.stringify(dragged)} / 期待 ${JSON.stringify(wantDrag)}`);
+
+await clickIfEnabled('[data-board-act="delete-mark"]');
+await g.waitForTimeout(250);
+check('拡大中でも選んだマークを消せる', (await boardMarks()).length === 0);
+
+const savedView = await g.evaluate(() => {
+  const p = window.VCT_BOARD.phaseAt(window.VCT_STORE.state.tactics[0], 0);
+  return p.view || null;
+});
+check('拡大の状態は局面ごとに保存される', !!savedView && savedView.zoom > 1, JSON.stringify(savedView));
+await g.reload();
+await g.waitForTimeout(600);
+await g.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+await g.waitForTimeout(800);
+check('再読み込みしても拡大の状態が残る',
+  Math.abs((await viewBoxOf()).zoom - savedView.zoom) < 0.01, JSON.stringify(await viewBoxOf()));
+
+await g.locator('.stage-add').click();
+await g.waitForTimeout(400);
+check('新しい局面は全体表示から始まる', (await viewBoxOf()).zoom === 1);
+await g.locator('#board-phases .stage-tab').first().click();
+await g.waitForTimeout(300);
+check('局面を戻すと拡大の状態も戻る', (await viewBoxOf()).zoom > 1);
+
+/* 古いデータ・壊れた値 */
+await g.evaluate(() => {
+  const S = window.VCT_STORE;
+  S.state.tactics[0].phases[0].view = { zoom: 99, cx: -40, cy: 500 };
+  delete S.state.tactics[1].phases[0].view;
+  S.save();
+});
+await g.reload();
+await g.waitForTimeout(600);
+const viewsAfterLoad = await g.evaluate(() => {
+  const B = window.VCT_BOARD, S = window.VCT_STORE;
+  return {
+    broken: B.view(B.phaseAt(S.state.tactics[0], 0)),
+    old: B.view(B.phaseAt(S.state.tactics[1], 0)),
+    savedOld: S.state.tactics[1].phases[0].view === undefined
+  };
+});
+check('壊れた拡大設定は読み込み時に範囲内へ直す',
+  viewsAfterLoad.broken.zoom <= maxZoom && viewsAfterLoad.broken.cx >= 12 && viewsAfterLoad.broken.cy <= 88,
+  JSON.stringify(viewsAfterLoad.broken));
+check('拡大設定を持たない古い戦術は全体表示のまま',
+  viewsAfterLoad.old.zoom === 1 && viewsAfterLoad.savedOld);
+
+/* ライブ画面からも戻せること（編集画面で寄せた範囲がそのまま出るため） */
+await seedMatch([]);
+await g.locator('[data-act="pick"]').first().click();
+await g.waitForTimeout(400);
+check('ライブ画面の配置盤にも拡大の操作がある',
+  (await g.locator('.board-panel [data-act="zoom-in"]').count()) === 1);
+await g.locator('.board-panel [data-act="zoom-in"]').click();
+await g.waitForTimeout(300);
+const liveZoom = () => g.evaluate(() => {
+  const S = window.VCT_STORE, B = window.VCT_BOARD;
+  return B.view(B.phaseAt(S.tacticById(S.state.pending.tacticId), 0)).zoom;
+});
+check('ライブ画面から拡大できる', (await liveZoom()) > 1);
+await g.locator('.board-panel [data-act="zoom-reset"]').click();
+await g.waitForTimeout(300);
+check('ライブ画面から全体表示へ戻せる', (await liveZoom()) === 1);
+
+/* 画面の広さ違い。スマホでは指の操作でも動くこと */
+for (const [label, opts] of Object.entries({
+  'スマホ幅 375': { viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true },
+  '広い画面 1440': { viewport: { width: 1440, height: 900 } }
+})) {
+  const ctx3 = await browser.newContext({ ...opts, locale: 'ja-JP' });
+  const zp = await ctx3.newPage();
+  zp.on('pageerror', (e) => pageErrors.push(`[${label}] ` + String(e.message)));
+  await zp.goto('file://' + DIST);
+  await zp.waitForTimeout(600);
+  await zp.evaluate(([a, e]) => {
+    const S = window.VCT_STORE;
+    a.forEach((x, i) => { S.state.allies[i].agent = x; });
+    e.forEach((x, i) => { S.state.enemies[i].agent = x; });
+    S.save();
+  }, [ALLY, ENEMY]);
+  await zp.reload();
+  await zp.waitForTimeout(600);
+  await zp.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+  await zp.waitForTimeout(900);
+
+  const zoomBtn = await zp.evaluate(() => {
+    const b = document.querySelector('[data-board-act="zoom-in"]');
+    if (!b) return null;
+    b.scrollIntoView({ block: 'center' });
+    const r = b.getBoundingClientRect();
+    const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return {
+      size: r.width > 0 && r.height > 0,
+      hit: !!(el && (el === b || b.contains(el))),
+      inView: r.left >= 0 && r.right <= window.innerWidth
+    };
+  });
+  check(`${label}: 拡大ボタンが押せる位置にある`,
+    !!zoomBtn && zoomBtn.size && zoomBtn.hit && zoomBtn.inView, JSON.stringify(zoomBtn));
+
+  await zp.evaluate(() => {
+    for (let i = 0; i < 3; i++) {
+      const b = document.querySelector('[data-board-act="zoom-in"]');
+      if (b && !b.disabled) b.click();
+    }
+  });
+  await zp.waitForTimeout(400);
+  const zoomFit = await zp.evaluate(() => {
+    const svg = document.querySelector('#board-canvas svg');
+    const r = svg.getBoundingClientRect();
+    const card = document.querySelector('#modal-board .modal-card').getBoundingClientRect();
+    return { left: Math.round(r.left), right: Math.round(r.right), cardRight: Math.round(card.right),
+             vw: window.innerWidth, zoom: Number(svg.getAttribute('data-zoom')) };
+  });
+  check(`${label}: 拡大が効いている`, zoomFit.zoom > 1, String(zoomFit.zoom));
+  check(`${label}: 拡大しても盤面が画面に収まる`,
+    zoomFit.left >= 0 && zoomFit.right <= zoomFit.vw + 1 && zoomFit.cardRight <= zoomFit.vw + 1,
+    JSON.stringify(zoomFit));
+
+  if (opts.hasTouch) {
+    /* 全体表示から 2 本指で広げられること（上限に張り付いた状態では確かめられない） */
+    await zp.evaluate(() => {
+      const b = document.querySelector('[data-board-act="zoom-reset"]');
+      if (b && !b.disabled) b.click();
+    });
+    await zp.waitForTimeout(300);
+    const pinch = await zp.evaluate(() => {
+      const el = document.getElementById('board-canvas');
+      const svg = el.querySelector('svg');
+      const r = svg.getBoundingClientRect();
+      const before = Number(svg.getAttribute('data-zoom'));
+      const fire = (type, id, x, y) => el.dispatchEvent(new PointerEvent(type, {
+        pointerId: id, clientX: x, clientY: y, bubbles: true, button: 0, buttons: 1,
+        isPrimary: id === 1, pointerType: 'touch'
+      }));
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      fire('pointerdown', 1, cx - 20, cy);
+      fire('pointerdown', 2, cx + 20, cy);
+      fire('pointermove', 2, cx + 70, cy);
+      fire('pointerup', 2, cx + 70, cy);
+      fire('pointerup', 1, cx - 20, cy);
+      return { before: before, after: Number(document.querySelector('#board-canvas svg').getAttribute('data-zoom')) };
+    });
+    check('スマホ: 2 本指で拡大できる', pinch.after > pinch.before, JSON.stringify(pinch));
+
+    const touchPan = await zp.evaluate(() => {
+      const el = document.getElementById('board-canvas');
+      const svg = el.querySelector('svg');
+      const r = svg.getBoundingClientRect();
+      const before = svg.viewBox.baseVal.x;
+      const fire = (type, x, y) => el.dispatchEvent(new PointerEvent(type, {
+        pointerId: 1, clientX: x, clientY: y, bubbles: true, button: 0, buttons: 1,
+        isPrimary: true, pointerType: 'touch'
+      }));
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      fire('pointerdown', cx, cy);
+      fire('pointermove', cx - 40, cy);
+      fire('pointermove', cx - 80, cy);
+      fire('pointerup', cx - 80, cy);
+      return { before: before, after: document.querySelector('#board-canvas svg').viewBox.baseVal.x };
+    });
+    check('スマホ: 拡大中は 1 本指のドラッグで表示位置が動く',
+      Math.abs(touchPan.after - touchPan.before) > 0.5, JSON.stringify(touchPan));
+  }
+  await ctx3.close();
+}
+
+/* --- ラウンドの評価 --- */
+await seedMatch([]);
+await g.locator('[data-act="pick"]').first().click();
+await g.waitForTimeout(300);
+await g.locator('[data-act="result"][data-result="WIN"]').click();
+await g.waitForTimeout(400);
+check('勝敗を押すと評価バーが出る', (await g.locator('.eval-bar').count()) === 1);
+check('未評価のあいだは目立たせる',
+  await g.evaluate(() => document.querySelector('.eval-bar').classList.contains('is-todo')));
+await g.locator('[data-act="eval-exec"][data-exec="clean"]').click();
+await g.waitForTimeout(300);
+let evalRounds = await roundsOf();
+check('1 タップで遂行度を記録できる', evalRounds[0].exec === 'clean', JSON.stringify(evalRounds[0]));
+check('評価しても勝敗は変わらない', evalRounds[0].result === 'WIN');
+
+await g.locator('[data-act="eval-open"]').click();
+await g.waitForTimeout(400);
+check('理由の入力欄が開く', await g.locator('#modal-round-eval').isVisible());
+check('遂行度は 4 段階', (await g.locator('#eval-exec button').count()) === 4);
+check('理由の選択肢が 15 個ある', (await g.locator('#eval-reasons input').count()) === 15);
+check('その他を選ぶまで補足欄は出ない', await g.locator('#eval-note-field').isHidden());
+await g.locator('#eval-reasons input[value="read"]').check();
+await g.locator('#eval-reasons input[value="utility"]').check();
+await g.locator('#eval-reasons input[value="other"]').check();
+await g.waitForTimeout(200);
+check('その他を選ぶと補足欄が出る', await g.locator('#eval-note-field').isVisible());
+await g.fill('#eval-note', 'スモークが 1 枚足りなかった');
+await g.locator('#round-eval-form button[type="submit"]').click();
+await g.waitForTimeout(400);
+evalRounds = await roundsOf();
+check('理由を複数選べる',
+  evalRounds[0].reasons.length === 3 && evalRounds[0].reasons.indexOf('read') >= 0 &&
+  evalRounds[0].reasons.indexOf('utility') >= 0, JSON.stringify(evalRounds[0].reasons));
+check('その他の補足が残る',
+  evalRounds[0].reasonNote === 'スモークが 1 枚足りなかった', evalRounds[0].reasonNote);
+
+await g.reload();
+await g.waitForTimeout(600);
+evalRounds = await roundsOf();
+check('再読み込みしても評価が残る',
+  evalRounds[0].exec === 'clean' && evalRounds[0].reasons.length === 3 &&
+  evalRounds[0].reasonNote.length > 0);
+
+await g.locator('[data-act="pick"]').first().click();
+await g.waitForTimeout(300);
+await g.locator('[data-act="result"][data-result="LOSS"]').click();
+await g.waitForTimeout(400);
+evalRounds = await roundsOf();
+check('新しいラウンドは未評価から始まる', evalRounds[1].exec === 'unrated');
+await g.locator('#timeline [data-eval-round="2"]').click();
+await g.waitForTimeout(400);
+check('ラウンド履歴からあとで評価できる', await g.locator('#modal-round-eval').isVisible());
+await g.locator('#eval-exec button[data-val="failed"]').click();
+await g.locator('#round-eval-form button[type="submit"]').click();
+await g.waitForTimeout(400);
+evalRounds = await roundsOf();
+check('敗北ラウンドにも遂行度を記録できる',
+  evalRounds[1].exec === 'failed' && evalRounds[1].result === 'LOSS');
+
+await g.locator('#btn-undo').click();
+await g.waitForTimeout(400);
+evalRounds = await roundsOf();
+check('取り消すと評価ごと消える', evalRounds.length === 1 && evalRounds[0].n === 1);
+check('取り消すと戦術が選び直せる状態に戻る',
+  await g.evaluate(() => !!window.VCT_STORE.state.pending));
+await g.locator('[data-act="result"][data-result="WIN"]').click();
+await g.waitForTimeout(400);
+evalRounds = await roundsOf();
+check('入れ直したラウンドは未評価から始まる',
+  evalRounds[1].exec === 'unrated' && evalRounds[1].reasons.length === 0);
+check('取り消しても前のラウンドの評価は残っている', evalRounds[0].exec === 'clean');
+
+const exportedJSON = await g.evaluate(() => window.VCT_STORE.exportJSON());
+const exportedObj = JSON.parse(exportedJSON);
+check('書き出しに評価が含まれる',
+  exportedObj.rounds[0].exec === 'clean' && exportedObj.rounds[0].reasons.length === 3 &&
+  typeof exportedObj.rounds[0].reasonNote === 'string');
+const roundTrip = await g.evaluate((json) => {
+  const S = window.VCT_STORE;
+  S.resetAll();
+  S.importJSON(json);
+  return S.state.rounds;
+}, exportedJSON);
+check('読み込むと評価も戻る',
+  roundTrip[0].exec === 'clean' && roundTrip[0].reasons.length === 3 && roundTrip[0].reasonNote.length > 0);
+check('クラウド保存は書き出しと同じ内容を送っている',
+  /C\.saveSetup\(name, JSON\.parse\(S\.exportJSON\(\)\)\)/.test(distHtml) &&
+  /C\.updateSetup\(saved\.id, saved\.name, JSON\.parse\(S\.exportJSON\(\)\)\)/.test(distHtml));
+
+await seedMatch([oldRound(1, sampleIds[0], 'WIN'), oldRound(2, sampleIds[0], 'LOSS')]);
+evalRounds = await roundsOf();
+check('評価を持たない古い記録は未評価として読める',
+  evalRounds.length === 2 && evalRounds[0].exec === 'unrated' &&
+  Array.isArray(evalRounds[0].reasons) && evalRounds[0].reasons.length === 0);
+check('古い記録でもラウンド履歴が壊れない', (await g.locator('#timeline .tl-row').count()) === 2);
+
+const execSplit = await g.evaluate((tid) => {
+  const S = window.VCT_STORE;
+  S.setRoundEval(1, { exec: 'clean' });
+  S.setRoundEval(2, { exec: 'failed' });
+  return S.statsFor(tid);
+}, sampleIds[0]);
+check('作戦通りに動けたラウンドだけの勝率が取れる',
+  execSplit.cleanUsed === 1 && execSplit.cleanWinRate === 100, JSON.stringify(execSplit.byExec));
+check('崩れたラウンドの勝率も別に取れる',
+  execSplit.brokenUsed === 1 && execSplit.brokenWinRate === 0);
+check('全体の勝率とは別の数字として持っている',
+  execSplit.winRate === 50 && execSplit.ratedUsed === 2);
+await g.reload();
+await g.waitForTimeout(600);
+check('戦術別成績に遂行度の内訳が出る', (await g.locator('.perf-splits').count()) >= 1);
+
+/* --- 推奨度（カードの数値と色）--- */
+const advisorCfg = await g.evaluate(() => ({
+  base: window.VCT_ADVISOR.BASE_SCORE,
+  good: window.VCT_ADVISOR.TONE_GOOD,
+  bad: window.VCT_ADVISOR.TONE_BAD,
+  weights: window.VCT_ADVISOR.WEIGHTS
+}));
+check('基準点と色の境目がコードから読める',
+  advisorCfg.base === 50 && advisorCfg.good > advisorCfg.bad &&
+  typeof advisorCfg.weights.lastLoss === 'number', JSON.stringify(advisorCfg).slice(0, 120));
+
+const rankedRows = await g.evaluate(() =>
+  window.VCT_ADVISOR.rank({ side: window.VCT_STORE.sideForRound(window.VCT_STORE.currentRoundNumber()) })
+    .map((r) => ({ score: r.score, base: r.base, tone: r.tone, deltas: r.reasons.map((x) => x.delta) })));
+check('内訳の合計が表示している数値と一致する', rankedRows.every((r) => {
+  const sum = r.deltas.reduce((a, x) => a + (x || 0), 0);
+  return Math.max(0, Math.min(100, r.base + sum)) === r.score;
+}), JSON.stringify(rankedRows).slice(0, 160));
+check('色は決められた境目どおりに付く', rankedRows.every((r) =>
+  r.tone === (r.score >= advisorCfg.good ? 'good' : (r.score <= advisorCfg.bad ? 'bad' : 'warn'))),
+  JSON.stringify(rankedRows.map((r) => [r.score, r.tone])).slice(0, 160));
+check('同じ状態なら同じ数値になる', await g.evaluate(() => {
+  const A = window.VCT_ADVISOR;
+  const a = JSON.stringify(A.rank({ side: 'ATK' }).map((r) => [r.tactic.id, r.score]));
+  const b = JSON.stringify(A.rank({ side: 'ATK' }).map((r) => [r.tactic.id, r.score]));
+  return a === b;
+}));
+
+const evalEffect = await g.evaluate(() => {
+  const S = window.VCT_STORE, A = window.VCT_ADVISOR;
+  const before = JSON.stringify(A.rank({ side: 'ATK' }).map((r) => r.score));
+  S.setRoundEval(1, { exec: 'failed', reasons: ['read'] });
+  const after = JSON.stringify(A.rank({ side: 'ATK' }).map((r) => r.score));
+  S.setRoundEval(1, { exec: 'clean', reasons: [] });
+  return { before: before, after: after };
+});
+check('ラウンド評価は推奨度に混ぜていない', evalEffect.before === evalEffect.after);
+
+const factorRow = await g.evaluate(() => {
+  const S = window.VCT_STORE, A = window.VCT_ADVISOR;
+  const id = S.state.tactics[0].id;
+  /* 同じ戦術で 2 連敗した直後、という状況を作る */
+  S.state.rounds = [
+    { n: 1, side: 'ATK', tacticId: id, economy: 'full', result: 'LOSS', exec: 'unrated', reasons: [], reasonNote: '', at: 1 },
+    { n: 2, side: 'ATK', tacticId: id, economy: 'full', result: 'LOSS', exec: 'unrated', reasons: [], reasonNote: '', at: 2 }
+  ];
+  S.state.pending = null;
+  S.save();
+  const rows = A.rank({ side: 'ATK' });
+  const used = rows.filter((r) => r.tactic.id === id)[0];
+  const unused = rows.filter((r) => r.stats.used === 0)[0];
+  const by = {};
+  used.reasons.forEach((x) => { by[x.key] = x.delta; });
+  const byUnused = {};
+  if (unused) unused.reasons.forEach((x) => { byUnused[x.key] = x.delta; });
+  return { by: by, byUnused: byUnused, score: used.score, tone: used.tone };
+});
+check('直前に負けた同じ戦術は決めた重みだけ下がる',
+  factorRow.by['reason.lastLoss'] === advisorCfg.weights.lastLoss, JSON.stringify(factorRow.by));
+check('連投は連投数ぶん下がる',
+  factorRow.by['reason.streak'] === advisorCfg.weights.streakPerRound * 2, JSON.stringify(factorRow.by));
+check('この試合の勝率も内訳に出る',
+  factorRow.by['reason.winrateBad'] === Math.round((0 - 50) * advisorCfg.weights.winRateFactor),
+  JSON.stringify(factorRow.by));
+check('未使用の戦術には未使用ぶんの加点が出る',
+  factorRow.byUnused['reason.unused'] === advisorCfg.weights.unused, JSON.stringify(factorRow.byUnused));
+check('下がりきった戦術は赤になる', factorRow.tone === 'bad' && factorRow.score <= advisorCfg.bad,
+  `${factorRow.score} / ${factorRow.tone}`);
+
+await g.reload();
+await g.waitForTimeout(600);
+const scoreUI = await g.evaluate(() => {
+  const pick = document.querySelector('.pick');
+  const delta = document.querySelector('.pick .pick-reasons .reason .reason-delta');
+  const legend = document.querySelector('.pick-legend');
+  const label = document.querySelector('.pick .pick-score small');
+  return {
+    delta: delta ? delta.textContent : null,
+    title: pick ? pick.getAttribute('title') : '',
+    legend: legend ? legend.textContent : '',
+    label: label ? label.textContent : ''
+  };
+});
+check('カードに加点・減点の数字が出る', /^[+−]\d+$/.test(String(scoreUI.delta)), String(scoreUI.delta));
+check('内訳と合計をその場で読める',
+  /基準点/.test(scoreUI.title) && /合計/.test(scoreUI.title), String(scoreUI.title).slice(0, 70));
+check('数値の意味と色の意味が画面に書いてある',
+  /勝率や成功確率ではありません/.test(scoreUI.legend) && /緑/.test(scoreUI.legend) &&
+  /黄/.test(scoreUI.legend) && /赤/.test(scoreUI.legend), scoreUI.legend.slice(0, 60));
+check('見出しは「推奨度」で確率とは書いていない',
+  scoreUI.label === '推奨度', scoreUI.label);
+
+const legends = await g.evaluate(() => {
+  const I = window.VCT_I18N;
+  const cur = I.get();
+  const out = {};
+  ['ja', 'en', 'ko'].forEach((l) => {
+    I.set(l);
+    out[l] = { legend: I.t('pick.legend'), label: I.t('pick.score') };
+  });
+  I.set(cur);
+  return out;
+});
+check('英語でも成功確率ではないと書いてある',
+  /not a win rate or a success probability/i.test(legends.en.legend), legends.en.legend.slice(0, 80));
+check('韓国語でも成功確率ではないと書いてある',
+  /승률이나 성공 확률이 아닙니다/.test(legends.ko.legend));
+check('見出しの語も確率を名乗っていない',
+  legends.ja.label === '推奨度' && legends.en.label === 'FIT' && !/probability|SCORE/i.test(legends.en.label),
+  JSON.stringify(legends.en));
+
+await gymCtx.close();
 
 /* ---------------- まとめ ---------------- */
 check('ページ内で例外が出ていない', pageErrors.length === 0, pageErrors.join(' / '));

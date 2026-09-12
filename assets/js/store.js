@@ -68,7 +68,7 @@
     state.tactics = Array.isArray(obj.tactics) ? obj.tactics.map(normalizeTactic) : [];
     state.rounds  = Array.isArray(obj.rounds) ? obj.rounds.filter(function (r) {
       return r && (r.result === 'WIN' || r.result === 'LOSS');
-    }) : [];
+    }).map(normalizeRound) : [];
     state.comps   = normalizeComps(obj.comps);
     state.pending = obj.pending && obj.pending.tacticId ? obj.pending : null;
     state.sideOverrides = obj.sideOverrides && typeof obj.sideOverrides === 'object' ? obj.sideOverrides : {};
@@ -166,13 +166,36 @@
 
   const MARK_KINDS = ['agent', 'ability', 'plant'];
 
+  /* 局面の表示範囲（ズームとパン）。
+     古い保存データは持っていないので、その場合は付けない（= 全体表示）。
+     倍率の上限や中心の丸めは board.js が正本で、読み込めるならそれを使う。 */
+  function normalizeView(v) {
+    if (!v || typeof v !== 'object') return undefined;
+    const zoom = Number(v.zoom);
+    if (!Number.isFinite(zoom) || zoom <= 1) return undefined;
+    const B = global.VCT_BOARD;
+    if (B && B.clampView) {
+      const clamped = B.clampView(v);
+      return clamped.zoom > 1 ? clamped : undefined;
+    }
+    /* board.js より先に呼ばれた場合の保険。値を捨てずに最低限の範囲へ収める */
+    const z = Math.min(4, zoom);
+    const half = 50 / z;
+    const fit = function (n) {
+      const x = Number(n);
+      return Math.max(half, Math.min(100 - half, Number.isFinite(x) ? x : 50));
+    };
+    return { zoom: z, cx: fit(v.cx), cy: fit(v.cy) };
+  }
+
   /** 配置盤。壊れた入力を読み込んでも落ちないよう作り直す */
   function normalizeBoard(board) {
     const src = board && typeof board === 'object' ? board : {};
     const marks = Array.isArray(src.marks) ? src.marks : [];
     const routes = Array.isArray(src.routes) ? src.routes : [];
+    const view = normalizeView(src.view);
 
-    return {
+    return Object.assign(view ? { view: view } : {}, {
       marks: marks.slice(0, 60).map(function (m) {
         return {
           id: String(m.id || uid()),
@@ -194,7 +217,7 @@
           })
         };
       }).filter(function (r) { return r.points.length >= 2; })
-    };
+    });
   }
 
   function numberIn(v) {
@@ -290,6 +313,53 @@
     save();
   }
 
+  /* ---------------- ラウンドの評価 ----------------
+     勝敗だけでは「作戦そのものが悪かった」のか「作戦は良かったが実行が崩れた」のかが
+     分からない。作戦品質と遂行品質を分けて見られるよう、遂行度（exec）と理由を別に持つ。
+     古い保存データはどちらも持っていないので、その場合は未評価として扱う。
+     今回は貯めるだけで、推奨スコアには反映しない（サンプル数が無いため）。 */
+  const EXEC_LEVELS = ['clean', 'partial', 'failed', 'unrated'];
+  const REASON_KEYS = [
+    'read', 'utility', 'entry', 'trade', 'numbers', 'preplant', 'postplant',
+    'counter', 'rotation', 'timing', 'comms', 'duel', 'outplay', 'planWorked', 'other'
+  ];
+  const REASON_NOTE_MAX = 120;
+
+  function normalizeExec(v) {
+    return EXEC_LEVELS.indexOf(v) >= 0 ? v : 'unrated';
+  }
+
+  /* 知らない理由が来ても落とさず捨てる。重複も 1 つにまとめる */
+  function normalizeReasons(list) {
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    list.forEach(function (r) {
+      if (REASON_KEYS.indexOf(r) >= 0 && out.indexOf(r) < 0) out.push(r);
+    });
+    return out;
+  }
+
+  function normalizeRound(r) {
+    return Object.assign({}, r, {
+      exec: normalizeExec(r && r.exec),
+      reasons: normalizeReasons(r && r.reasons),
+      reasonNote: String((r && r.reasonNote) || '').slice(0, REASON_NOTE_MAX)
+    });
+  }
+
+  /** ラウンド n の評価を書き換える。渡されたものだけ触る（後から足せるように） */
+  function setRoundEval(n, patch) {
+    const rec = state.rounds.filter(function (r) { return r.n === n; })[0];
+    if (!rec || !patch) return null;
+    if (patch.exec !== undefined) rec.exec = normalizeExec(patch.exec);
+    if (patch.reasons !== undefined) rec.reasons = normalizeReasons(patch.reasons);
+    if (patch.reasonNote !== undefined) {
+      rec.reasonNote = String(patch.reasonNote || '').slice(0, REASON_NOTE_MAX);
+    }
+    save();
+    return rec;
+  }
+
   function commitRound(result, note) {
     if (!state.pending) return null;
     const n = currentRoundNumber();
@@ -300,6 +370,10 @@
       economy: state.pending.economy || 'full',
       result: result === 'WIN' ? 'WIN' : 'LOSS',
       note: String(note || '').slice(0, 200),
+      /* 評価は後から付ける。押した瞬間に入力を求めると試合が止まる */
+      exec: 'unrated',
+      reasons: [],
+      reasonNote: '',
       at: Date.now()
     };
     state.rounds.push(rec);
@@ -324,10 +398,16 @@
   /* ---------------- 戦術ごとの成績 ---------------- */
   function statsFor(tacticId) {
     let win = 0, loss = 0, streak = 0, lastUsedRound = 0;
+    /* 遂行度ごとの内訳。「作戦通りに動けたラウンドだけの勝率」と
+       「崩れたラウンドの勝率」を分けて見るための土台 */
+    const byExec = { clean: { win: 0, loss: 0 }, partial: { win: 0, loss: 0 },
+                     failed: { win: 0, loss: 0 }, unrated: { win: 0, loss: 0 } };
     for (let i = 0; i < state.rounds.length; i++) {
       const r = state.rounds[i];
       if (r.tacticId !== tacticId) continue;
       if (r.result === 'WIN') win++; else loss++;
+      const bucket = byExec[normalizeExec(r.exec)];
+      if (r.result === 'WIN') bucket.win++; else bucket.loss++;
       lastUsedRound = r.n;
     }
     // 直近の連続使用回数
@@ -335,6 +415,13 @@
       if (state.rounds[i].tacticId === tacticId) streak++; else break;
     }
     const used = win + loss;
+    const rate = function (b) {
+      const n = b.win + b.loss;
+      return n ? Math.round((b.win / n) * 100) : null;
+    };
+    /* 一部崩れた・実行できなかったをまとめて「崩れた」として見る */
+    const broken = { win: byExec.partial.win + byExec.failed.win,
+                     loss: byExec.partial.loss + byExec.failed.loss };
     return {
       win: win,
       loss: loss,
@@ -342,7 +429,13 @@
       winRate: used ? Math.round((win / used) * 100) : null,
       streak: streak,
       lastUsedRound: lastUsedRound,
-      roundsSinceUse: lastUsedRound ? state.rounds.length - lastUsedRound + 1 : null
+      roundsSinceUse: lastUsedRound ? state.rounds.length - lastUsedRound + 1 : null,
+      byExec: byExec,
+      cleanUsed: byExec.clean.win + byExec.clean.loss,
+      cleanWinRate: rate(byExec.clean),
+      brokenUsed: broken.win + broken.loss,
+      brokenWinRate: rate(broken),
+      ratedUsed: used - (byExec.unrated.win + byExec.unrated.loss)
     };
   }
 
@@ -394,6 +487,10 @@
     setPending: setPending,
     clearPending: clearPending,
     commitRound: commitRound,
+    setRoundEval: setRoundEval,
+    EXEC_LEVELS: EXEC_LEVELS,
+    REASON_KEYS: REASON_KEYS,
+    REASON_NOTE_MAX: REASON_NOTE_MAX,
     undoLastRound: undoLastRound,
     lastRound: lastRound,
     statsFor: statsFor,
