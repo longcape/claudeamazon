@@ -30,6 +30,12 @@ create table if not exists public.tactic_posts (
   analysis_score int check (analysis_score is null or analysis_score between 0 and 100),
   ai_review      text check (ai_review is null or char_length(ai_review) <= 1200),
 
+  -- 配置盤（局面ごとの marks / routes / view を丸ごと）。
+  -- 文字だけを共有しても「どこに何を置くか」が伝わらないので盤面ごと送る。
+  -- この列が無い時代の投稿と、配置を持たない戦術では null のまま。
+  -- 大きさの上限はレート制限のトリガで見ている（CHECK では pg_column_size を使えないため）。
+  board          jsonb,
+
   likes          int not null default 0,
   reports        int not null default 0,
   hidden         boolean not null default false,
@@ -57,6 +63,10 @@ create index if not exists tactic_posts_user_idx    on public.tactic_posts (user
 -- ---------------------------------------------------------
 -- 2. いいね（1 投稿につき 1 投票者 1 回まで）
 -- ---------------------------------------------------------
+-- すでに動いているプロジェクトにも配置盤の列を足す。
+-- 既存の投稿は null のままで、画面では「配置なし」として扱われる。
+alter table public.tactic_posts add column if not exists board jsonb;
+
 create table if not exists public.tactic_likes (
   post_id    uuid not null references public.tactic_posts (id) on delete cascade,
   voter      text not null check (char_length(voter) <= 64),
@@ -212,6 +222,13 @@ begin
     'unknown'
   );
   new.ip_hash := encode(digest(v_ip, 'sha256'), 'hex');
+
+  -- 配置盤は匿名でも投稿できるので、大きさの上限をサーバ側でも持つ。
+  -- 画面側は局面 4 枚・マーク 60 個までに絞っており、実際は数 KB に収まる。
+  if new.board is not null and pg_column_size(new.board) > 65536 then
+    raise exception 'BOARD_TOO_LARGE: placement data is too large'
+      using errcode = 'check_violation';
+  end if;
 
   select count(*) into v_count
     from public.tactic_posts

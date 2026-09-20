@@ -354,7 +354,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'intro.cloud': 'Only if you want it on another device, save it from “☁” on the tactic deck (sign-in required).',
   'intro.close': 'Got it',
   'board.hintPlaceTouch': 'Drag to place. Tap to select, then delete.',
-  'community.postDisclosure': 'What gets published: tactic name, call details, map, side, site, tactic type, both teams’ agent picks, matchup score, and your author name. Team names and match notes are not published. Anyone can see posts.',
+  'community.postDisclosure': 'What gets published: tactic name, call details, map, side, site, tactic type, the placement (agents, abilities and routes you placed), both teams’ agent picks, matchup score, and your author name. Team names and match notes are not published. Anyone can see posts.',
 
   /* --- Moderation --- */
   'community.showHidden': 'Show hidden',
@@ -471,10 +471,26 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'banner.nextMatch': 'Start a new match',
   'tactic.limitReached': 'You have reached the limit of {n} saved tactics.',
   'board.disarm': 'Cancel selection',
-  'board.size': 'Size',
+  'board.size': 'Board size',
+
+  /* --- save state (always visible in the top bar) --- */
+  'save.auto': 'Saved on this device',
+  'save.savedAt': 'Saved {time}',
+  'save.failed': 'Not saved',
+  'save.failedHint': 'This browser could not save (private mode, or storage is full). Use ⋯ → Export to keep a file.',
+  'save.explain': 'Everything you enter is saved in this browser automatically. No login needed. To use it on another device, use ⋯ → Export, or ☁ Cloud in the tactic deck.',
+
+  /* --- pointing back to the roster --- */
+  'board.goRoster': 'Go pick agents',
+
+  /* --- placement in community posts --- */
+  'community.boardIncluded': 'The placement is shared too',
+  'community.boardNone': 'This tactic has no placement',
+  'community.importedWithBoard': 'Added to your deck, placement included.',
+  'err.boardTooLarge': 'The placement data is too large. Remove some phases and try again.',
 
   /* --- board zoom --- */
-  'board.zoom': 'Zoom',
+  'board.zoom': 'Map zoom',
   'board.zoomIn': 'Zoom in',
   'board.zoomOut': 'Zoom out',
   'board.zoomReset': 'Fit',

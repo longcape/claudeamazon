@@ -2699,6 +2699,102 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   opacity: .85;
 }
 
+/* =========================================================
+   テストで出たつまずきどころへの手当て
+   ========================================================= */
+
+/* --- 保存の状態（上部に常設） --- */
+.save-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  background: rgba(20, 33, 42, .55);
+  color: var(--text-mute);
+  font-size: 11px;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  cursor: pointer;
+  clip-path: var(--clip-sm);
+  transition: color .15s, border-color .15s;
+}
+.save-state::before { content: '✓'; color: var(--teal); font-size: 12px; }
+.save-state:hover { color: var(--text); border-color: var(--line-hot); }
+.save-state.is-ng { color: var(--red); border-color: rgba(255, 70, 85, .5); }
+.save-state.is-ng::before { content: '!'; color: var(--red); }
+
+/* --- 配置盤：エージェント未設定のときの案内 --- */
+.board-goto-roster { margin-top: 10px; width: 100%; }
+
+/* --- 投稿プレビュー：配置が付いてくるか --- */
+.preview-board {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+  font-size: 11px;
+}
+.preview-board.is-on { color: var(--teal); border-color: rgba(34, 211, 166, .35); }
+
+/* --- 行き先を示すための一瞬の強調 --- */
+.is-flash { animation: panel-flash 1.8s ease both; }
+@keyframes panel-flash {
+  0%, 100% { box-shadow: none; }
+  12%, 62% { box-shadow: 0 0 0 2px var(--cyan), 0 0 30px rgba(53, 198, 232, .35); }
+}
+
+/* --- モーダルが開いている間のトースト ---
+   画面下に出すと「すべて消去 / 完了」に重なるので上へ逃がす */
+.toast.is-high { bottom: auto; top: 22px; }
+
+/* --- 狭い画面 --- */
+@media (max-width: 1180px) {
+  /* 盤面までスクロールさせない。先に盤面、そのあとに置くものの一覧 */
+  .board-layout .board-stage { order: -1; }
+  /* タイルを小さくして一覧の縦を詰める（2 列だと 1 枚が大きすぎて盤面が遠い） */
+  .pal-abilities { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 820px) {
+  .pal-abilities { grid-template-columns: repeat(4, 1fr); }
+  /* 「マッチ開始」まで 4 画面以上スクロールしていた。いつでも押せるよう下に貼り付ける */
+  .setup-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    margin-top: 16px;
+    padding: 12px 14px;
+    gap: 10px;
+    background: linear-gradient(180deg, rgba(11, 18, 23, .92), rgba(9, 14, 18, .98));
+    backdrop-filter: blur(6px);
+  }
+  .setup-footer .ready-list { gap: 10px; }
+  .setup-footer .ready-item { font-size: 10.5px; }
+}
+
+@media (max-width: 560px) {
+  /* タブの文字が語の途中で折り返っていた（「セットア／ップ」） */
+  .phase-tab { padding: 8px 10px; gap: 5px; font-size: 10.5px; letter-spacing: .04em; }
+  .phase-tab > span { white-space: nowrap; }
+  /* モーダルの見出しも同じ理由で折れていた（「分岐ツリ／ー」） */
+  .modal-head { flex-wrap: wrap; row-gap: 4px; }
+  .modal-head h2 { white-space: nowrap; }
+  .modal-head .board-tactic-name {
+    order: 3;
+    flex-basis: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .save-state { font-size: 10px; padding: 6px 9px; }
+}
+
+@media (max-width: 400px) {
+  .phase-tab .num { display: none; }
+}
+
 .topmenu { position: relative; }
 #btn-topmenu { padding: 8px 12px; letter-spacing: .12em; }
 
@@ -2758,6 +2854,12 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   </nav>
 
   <div class="topbar-actions">
+    <!-- 保存されているかどうかが画面のどこにも出ていなかった。
+         自動保存の案内は初回の帯だけで、閉じると二度と出ない。
+         常に見える場所に状態を出し、押すと保存先の説明が出る -->
+    <button type="button" class="save-state" id="btn-save-state" aria-live="polite">
+      <span id="save-state-text"></span>
+    </button>
     <label class="lang-picker">
       <span class="lang-globe" aria-hidden="true">🌐</span>
       <select id="lang-select" aria-label="Language"></select>
@@ -2955,7 +3057,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
     <div class="lower">
       <article class="panel panel-clip">
         <header class="panel-head">
-          <h2><span class="idx">04</span><span data-i18n="timeline.title">ROUND TIMELINE</span></h2>
+          <h2><span class="idx">01</span><span data-i18n="timeline.title">ROUND TIMELINE</span></h2>
           <div class="panel-head-actions">
             <button class="btn btn-ghost btn-sm" id="btn-undo" data-i18n="timeline.undo"></button>
             <button class="btn btn-ghost btn-sm btn-danger" id="btn-reset-match" data-i18n="timeline.resetMatch"></button>
@@ -2969,7 +3071,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
       <article class="panel panel-clip">
         <header class="panel-head">
-          <h2><span class="idx">05</span><span data-i18n="perf.title">TACTIC PERFORMANCE</span></h2>
+          <h2><span class="idx">02</span><span data-i18n="perf.title">TACTIC PERFORMANCE</span></h2>
           <p class="panel-sub" data-i18n="perf.sub"></p>
         </header>
         <div class="panel-body">
@@ -2983,7 +3085,7 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
   <section class="view" id="view-community" hidden>
     <article class="panel panel-clip">
       <header class="panel-head">
-        <h2><span class="idx">06</span><span data-i18n="community.title">COMMUNITY TACTICS</span></h2>
+        <h2><span class="idx">01</span><span data-i18n="community.title">COMMUNITY TACTICS</span></h2>
         <p class="panel-sub" data-i18n="community.sub"></p>
         <div class="panel-head-actions" id="community-account"></div>
       </header>
@@ -3896,7 +3998,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'intro.cloud': '別の端末でも使いたいときだけ、戦術デッキの「☁ クラウド」から保存してください（ログインが要ります）。',
   'intro.close': 'わかった',
   'board.hintPlaceTouch': 'ドラッグで配置。タップで選んで削除',
-  'community.postDisclosure': '公開されるもの：戦術名・コール詳細・マップ・サイド・サイト・戦術の種類・味方と相手のエージェント構成・相性スコア・投稿者名。チーム名とマッチメモは公開されません。投稿は誰でも見られます。',
+  'community.postDisclosure': '公開されるもの：戦術名・コール詳細・マップ・サイド・サイト・戦術の種類・配置盤（置いたエージェント・スキル・ルート）・味方と相手のエージェント構成・相性スコア・投稿者名。チーム名とマッチメモは公開されません。投稿は誰でも見られます。',
 
   /* --- 運営操作 --- */
   'community.showHidden': '非表示も表示',
@@ -4015,10 +4117,26 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'banner.nextMatch': '新しいマッチを始める',
   'tactic.limitReached': '登録できる戦術の上限（{n} 件）に達しました。',
   'board.disarm': '選択を解除',
-  'board.size': '表示サイズ',
+  'board.size': '盤面の大きさ',
+
+  /* --- 保存の状態（上部に常設） --- */
+  'save.auto': 'この端末に自動保存',
+  'save.savedAt': '保存済み {time}',
+  'save.failed': '保存できていません',
+  'save.failedHint': 'このブラウザに保存できませんでした（プライベートモードか容量不足の可能性）。⋯ の「書き出し」でファイルに残してください。',
+  'save.explain': '入力した内容はこのブラウザに自動で保存されます。ログインは要りません。別の端末で使うときは ⋯ の「書き出し」か、戦術デッキの「☁ クラウド」から。',
+
+  /* --- 配置盤への行き先案内 --- */
+  'board.goRoster': 'エージェントを選びに行く',
+
+  /* --- 投稿に配置盤を含める --- */
+  'community.boardIncluded': '配置盤も一緒に公開されます',
+  'community.boardNone': 'この戦術には配置がありません',
+  'community.importedWithBoard': '配置ごとデッキに取り込みました。',
+  'err.boardTooLarge': '配置のデータが大きすぎます。局面を減らしてから投稿してください。',
 
   /* --- 盤面の拡大・縮小 --- */
-  'board.zoom': '拡大',
+  'board.zoom': 'マップ拡大',
   'board.zoomIn': '拡大する',
   'board.zoomOut': '縮小する',
   'board.zoomReset': '全体表示',
@@ -4431,7 +4549,7 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'intro.cloud': 'Only if you want it on another device, save it from “☁” on the tactic deck (sign-in required).',
   'intro.close': 'Got it',
   'board.hintPlaceTouch': 'Drag to place. Tap to select, then delete.',
-  'community.postDisclosure': 'What gets published: tactic name, call details, map, side, site, tactic type, both teams’ agent picks, matchup score, and your author name. Team names and match notes are not published. Anyone can see posts.',
+  'community.postDisclosure': 'What gets published: tactic name, call details, map, side, site, tactic type, the placement (agents, abilities and routes you placed), both teams’ agent picks, matchup score, and your author name. Team names and match notes are not published. Anyone can see posts.',
 
   /* --- Moderation --- */
   'community.showHidden': 'Show hidden',
@@ -4548,10 +4666,26 @@ window.VCT_I18N.register('en', { name: 'English', flag: '🇺🇸' }, {
   'banner.nextMatch': 'Start a new match',
   'tactic.limitReached': 'You have reached the limit of {n} saved tactics.',
   'board.disarm': 'Cancel selection',
-  'board.size': 'Size',
+  'board.size': 'Board size',
+
+  /* --- save state (always visible in the top bar) --- */
+  'save.auto': 'Saved on this device',
+  'save.savedAt': 'Saved {time}',
+  'save.failed': 'Not saved',
+  'save.failedHint': 'This browser could not save (private mode, or storage is full). Use ⋯ → Export to keep a file.',
+  'save.explain': 'Everything you enter is saved in this browser automatically. No login needed. To use it on another device, use ⋯ → Export, or ☁ Cloud in the tactic deck.',
+
+  /* --- pointing back to the roster --- */
+  'board.goRoster': 'Go pick agents',
+
+  /* --- placement in community posts --- */
+  'community.boardIncluded': 'The placement is shared too',
+  'community.boardNone': 'This tactic has no placement',
+  'community.importedWithBoard': 'Added to your deck, placement included.',
+  'err.boardTooLarge': 'The placement data is too large. Remove some phases and try again.',
 
   /* --- board zoom --- */
-  'board.zoom': 'Zoom',
+  'board.zoom': 'Map zoom',
   'board.zoomIn': 'Zoom in',
   'board.zoomOut': 'Zoom out',
   'board.zoomReset': 'Fit',
@@ -4964,7 +5098,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'intro.cloud': '다른 기기에서도 쓰고 싶을 때만 전술 덱의 「☁」에서 저장하세요(로그인 필요).',
   'intro.close': '알겠어요',
   'board.hintPlaceTouch': '드래그로 배치. 탭해서 선택 후 삭제',
-  'community.postDisclosure': '공개되는 내용: 전술 이름, 콜 상세, 맵, 사이드, 사이트, 전술 종류, 아군과 상대의 에이전트 구성, 상성 점수, 작성자 이름. 팀 이름과 매치 메모는 공개되지 않습니다. 게시물은 누구나 볼 수 있습니다.',
+  'community.postDisclosure': '공개되는 내용: 전술 이름, 콜 상세, 맵, 사이드, 사이트, 전술 종류, 배치(놓은 요원·스킬·경로), 아군과 상대의 에이전트 구성, 상성 점수, 작성자 이름. 팀 이름과 매치 메모는 공개되지 않습니다. 게시물은 누구나 볼 수 있습니다.',
 
   /* --- 운영 --- */
   'community.showHidden': '숨김도 표시',
@@ -5081,10 +5215,26 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'banner.nextMatch': '새 매치 시작',
   'tactic.limitReached': '등록 가능한 전술 상한({n}개)에 도달했습니다.',
   'board.disarm': '선택 해제',
-  'board.size': '표시 크기',
+  'board.size': '보드 크기',
+
+  /* --- 저장 상태(상단에 상시 표시) --- */
+  'save.auto': '이 기기에 자동 저장',
+  'save.savedAt': '저장됨 {time}',
+  'save.failed': '저장되지 않았습니다',
+  'save.failedHint': '이 브라우저에 저장하지 못했습니다(시크릿 모드이거나 용량 부족일 수 있습니다). ⋯ 의 "내보내기"로 파일에 남겨 주세요.',
+  'save.explain': '입력한 내용은 이 브라우저에 자동으로 저장됩니다. 로그인은 필요 없습니다. 다른 기기에서 쓰려면 ⋯ 의 "내보내기" 또는 전술 덱의 "☁ 클라우드"를 사용하세요.',
+
+  /* --- 요원 선택으로 돌아가는 안내 --- */
+  'board.goRoster': '요원 고르러 가기',
+
+  /* --- 커뮤니티 게시물의 배치 --- */
+  'community.boardIncluded': '배치도 함께 공개됩니다',
+  'community.boardNone': '이 전술에는 배치가 없습니다',
+  'community.importedWithBoard': '배치까지 덱에 가져왔습니다.',
+  'err.boardTooLarge': '배치 데이터가 너무 큽니다. 국면을 줄인 뒤 다시 게시하세요.',
 
   /* --- 보드 확대·축소 --- */
-  'board.zoom': '확대',
+  'board.zoom': '맵 확대',
   'board.zoomIn': '확대',
   'board.zoomOut': '축소',
   'board.zoomReset': '전체 보기',
@@ -6380,11 +6530,31 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
 
   const state = defaultState();
 
-  /* ---------------- 永続化 ---------------- */
+  /* ---------------- 永続化 ----------------
+     保存できたかどうかを画面に出すため、結果を覚えて合図を投げる。
+     store は UI を知らないので、描画は受け取った側に任せる。
+     （「保存されているのか分からない」が実際のつまずきどころだった） */
+  let savedAt = 0;
+  let saveOk = true;
+
   function save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) { /* プライベートモード等では黙って諦める */ }
+      savedAt = Date.now();
+      saveOk = true;
+    } catch (e) {
+      /* プライベートモードや容量超過。黙って落とすと利用者は気づけない */
+      saveOk = false;
+    }
+    try {
+      document.dispatchEvent(new CustomEvent('vct:saved', {
+        detail: { ok: saveOk, at: savedAt }
+      }));
+    } catch (e) { /* イベントを使えない環境でも保存自体は済んでいる */ }
+  }
+
+  function saveState() {
+    return { ok: saveOk, at: savedAt };
   }
 
   function load() {
@@ -6812,6 +6982,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     state: state,
     uid: uid,
     save: save,
+    saveState: saveState,
     load: load,
     addTactic: addTactic,
     tacticLimit: tacticLimit,
@@ -8487,7 +8658,10 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
       lang: payload.lang || 'ja',
       ally_comp: payload.allyComp || [],
       enemy_comp: payload.enemyComp || [],
-      analysis_score: payload.analysisScore === undefined ? null : payload.analysisScore
+      analysis_score: payload.analysisScore === undefined ? null : payload.analysisScore,
+      /* 配置盤。文字だけを共有しても「どこに何を置くか」が伝わらないので、
+         盤面ごと送る。持っていない戦術と、この列が無い古い投稿では null になる */
+      board: payload.board || null
     };
     return ensureFresh().then(function () {
       return request('/rest/v1/tactic_posts', {
@@ -9539,9 +9713,17 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
              '</div>';
     }).join('');
 
+    /* エージェントを選ぶ前に配置盤を開くと、ここが空のままで手が止まる。
+       戻る先を書くだけでなく、そこへ行けるボタンを置く */
+    const emptyHTML =
+      '<p class="deck-empty">' + t('board.noRoster') + '</p>' +
+      '<button type="button" class="btn btn-primary btn-sm board-goto-roster" data-board-act="go-roster">' +
+        t('board.goRoster') +
+      '</button>';
+
     $('board-palette-' + team).innerHTML =
       '<h3 class="pal-title"><span class="tag tag-' + team + '">' + t('tag.' + team) + '</span></h3>' +
-      (groups.trim() ? groups : '<p class="deck-empty">' + t('board.noRoster') + '</p>');
+      (groups.trim() ? groups : emptyHTML);
   }
 
   function renderBoardTools(uiState) {
@@ -10273,11 +10455,16 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     const box = $('post-preview');
     if (!tactic) { box.innerHTML = ''; return; }
     const map = D.mapById(S.state.match.map);
+    /* 配置盤も一緒に公開される。プレビューに盤面そのものは出せないので、
+       付いてくるかどうかだけは先に分かるようにする */
+    const hasBoard = !B.tacticIsEmpty(tactic);
     box.innerHTML = '' +
       '<div class="preview-card">' +
         '<span class="lc-label">' + esc(map ? map.name : '-') + ' / ' + esc(tactic.side) + ' / ' + esc(tactic.site) + '</span>' +
         '<h4>' + esc(tactic.name) + '</h4>' +
         (tactic.note ? '<p>' + esc(tactic.note) + '</p>' : '') +
+        '<span class="preview-board' + (hasBoard ? ' is-on' : '') + '">' +
+          esc(t(hasBoard ? 'community.boardIncluded' : 'community.boardNone')) + '</span>' +
         (analysis && analysis.ready
           ? '<span class="verdict verdict-' + analysis.verdict + '">' + t('analyst.' + analysis.verdict) + ' ' + analysis.score + '/100</span>'
           : '') +
@@ -10346,12 +10533,38 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     return active ? active.dataset.val : null;
   }
 
+  /* ================= 保存の状態 =================
+     入力が自動で保存されることは初回の案内にしか書かれておらず、
+     閉じると二度と出ない。「いま保存されているのか」が分からないので、
+     上部に常に出しておく。押すと保存先の説明が出る（app.js 側）。 */
+  function renderSaveState() {
+    const el = $('save-state-text');
+    if (!el) return;
+    const st = S.saveState();
+    const btn = $('btn-save-state');
+    if (!st.ok) {
+      el.textContent = t('save.failed');
+      btn.classList.add('is-ng');
+      btn.title = t('save.failedHint');
+      return;
+    }
+    btn.classList.remove('is-ng');
+    btn.title = t('save.explain');
+    if (!st.at) { el.textContent = t('save.auto'); return; }
+    const d = new Date(st.at);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    el.textContent = t('save.savedAt', { time: hh + ':' + mm });
+  }
+
   /* ================= トースト ================= */
   let toastTimer = null;
   function toast(message, kind) {
     const el = $('toast');
     el.textContent = message;
-    el.className = 'toast' + (kind ? ' ' + kind : '');
+    /* モーダルが開いているときは、下部のボタン（すべて消去 / 完了）に重なるので上へ逃がす */
+    const overModal = !!document.querySelector('.modal:not([hidden])');
+    el.className = 'toast' + (kind ? ' ' + kind : '') + (overModal ? ' is-high' : '');
     el.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { el.hidden = true; }, 2800);
@@ -10385,6 +10598,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     renderTimeline: renderTimeline,
     renderPerf: renderPerf,
     renderRoundEval: renderRoundEval,
+    renderSaveState: renderSaveState,
     renderAccount: renderAccount,
     renderCommunityMapFilter: renderCommunityMapFilter,
     renderPosts: renderPosts,
@@ -10987,6 +11201,25 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         commitBoard();
       }
       refreshBoard();
+    });
+
+    /* エージェント未設定のときにパレットへ出す「エージェントを選びに行く」。
+       ここで戻り先を示さないと、配置盤を開いた人の手がそこで止まる */
+    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
+      $(id).addEventListener('click', function (e) {
+        if (!e.target.closest('[data-board-act="go-roster"]')) return;
+        closeModal('modal-board');
+        ui.view = 'setup';
+        S.state.phase = 'setup';
+        S.save();
+        renderAll();
+        const panel = $('panel-roster');
+        if (!panel) return;
+        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        /* どこへ来たのかが分かるよう、少しだけ光らせる */
+        panel.classList.add('is-flash');
+        setTimeout(function () { panel.classList.remove('is-flash'); }, 1800);
+      });
     });
 
     $('btn-board-clear').addEventListener('click', function () {
@@ -11727,6 +11960,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     const code = err && err.code;
     if (/NOT_ADMIN/.test(raw)) return t('err.notAdmin');
     if (/RATE_LIMIT/.test(raw)) return t('err.rateLimit');
+    if (/BOARD_TOO_LARGE/.test(raw)) return t('err.boardTooLarge');
     if (code === '23505' || /duplicate key/i.test(raw)) return t('err.duplicate');
     if (code === '42501' || /row-level security/i.test(raw)) return t('err.denied');
     if (code === '23514' || /check constraint/i.test(raw)) {
@@ -11951,14 +12185,34 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
           }, function (err) { U.toast(friendlyError(err), 'err'); });
         });
       } else if (el.dataset.act === 'import-post') {
-        S.addTactic({
+        /* 配置盤も一緒に取り込む。文字だけだと「どこに何を置くか」が伝わらない。
+           他人の投稿に入っている id は持ち込まない（手元の id と衝突しうるので、
+           外しておけば store 側が採番し直す）。列が無い時代の投稿は board が無い */
+        const phases = post.board && Array.isArray(post.board.phases)
+          ? post.board.phases.map(function (ph) {
+              return {
+                name: ph && ph.name,
+                view: ph && ph.view,
+                marks: (ph && Array.isArray(ph.marks) ? ph.marks : []).map(function (m) {
+                  return { kind: m.kind, ref: m.ref, team: m.team, x: m.x, y: m.y, order: m.order };
+                }),
+                routes: (ph && Array.isArray(ph.routes) ? ph.routes : []).map(function (r) {
+                  return { team: r.team, points: r.points };
+                })
+              };
+            })
+          : null;
+
+        const added = S.addTactic({
           name: post.name,
           side: post.side,
           site: post.site,
           kind: post.kind,
-          note: post.note
+          note: post.note,
+          phases: phases || undefined
         });
-        U.toast(t('community.imported'), 'ok');
+        const withBoard = !!(added && !BOARD.tacticIsEmpty(added));
+        U.toast(t(withBoard ? 'community.importedWithBoard' : 'community.imported'), 'ok');
       }
     });
 
@@ -11984,7 +12238,9 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
         lang: I.get(),
         allyComp: S.state.allies.map(function (s) { return s.agent; }).filter(Boolean),
         enemyComp: S.state.enemies.map(function (s) { return s.agent; }).filter(Boolean),
-        analysisScore: analysis && analysis.ready ? analysis.score : null
+        analysisScore: analysis && analysis.ready ? analysis.score : null,
+        /* 配置盤も一緒に公開する。置いていない戦術では null になる */
+        board: BOARD.tacticIsEmpty(tac) ? null : { phases: BOARD.phases(tac) }
       }).then(function () {
         closeModal('modal-post');
         U.toast(t('community.posted'), 'ok');
@@ -12325,6 +12581,17 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     if (ok) $('feedback-link').href = url;
   }
 
+  /* 保存の状態表示。保存のたびに更新し、押すと保存先の説明を出す。
+     「どこに保存されているのか分からない」が実際のつまずきどころだった */
+  function bindSaveState() {
+    document.addEventListener('vct:saved', function () { U.renderSaveState(); });
+    $('btn-save-state').addEventListener('click', function () {
+      const ok = S.saveState().ok;
+      U.toast(t(ok ? 'save.explain' : 'save.failedHint'), ok ? 'ok' : 'err');
+    });
+    U.renderSaveState();
+  }
+
   function init() {
     I.set(I.detect());
     I.applyDom();
@@ -12348,6 +12615,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
     bindAgentModal();
     bindTacticModal();
     bindRoundEval();
+    bindSaveState();
     bindGlobal();
     renderAll();
 

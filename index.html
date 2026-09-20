@@ -37,6 +37,12 @@
   </nav>
 
   <div class="topbar-actions">
+    <!-- 保存されているかどうかが画面のどこにも出ていなかった。
+         自動保存の案内は初回の帯だけで、閉じると二度と出ない。
+         常に見える場所に状態を出し、押すと保存先の説明が出る -->
+    <button type="button" class="save-state" id="btn-save-state" aria-live="polite">
+      <span id="save-state-text"></span>
+    </button>
     <label class="lang-picker">
       <span class="lang-globe" aria-hidden="true">🌐</span>
       <select id="lang-select" aria-label="Language"></select>
@@ -234,7 +240,7 @@
     <div class="lower">
       <article class="panel panel-clip">
         <header class="panel-head">
-          <h2><span class="idx">04</span><span data-i18n="timeline.title">ROUND TIMELINE</span></h2>
+          <h2><span class="idx">01</span><span data-i18n="timeline.title">ROUND TIMELINE</span></h2>
           <div class="panel-head-actions">
             <button class="btn btn-ghost btn-sm" id="btn-undo" data-i18n="timeline.undo"></button>
             <button class="btn btn-ghost btn-sm btn-danger" id="btn-reset-match" data-i18n="timeline.resetMatch"></button>
@@ -248,7 +254,7 @@
 
       <article class="panel panel-clip">
         <header class="panel-head">
-          <h2><span class="idx">05</span><span data-i18n="perf.title">TACTIC PERFORMANCE</span></h2>
+          <h2><span class="idx">02</span><span data-i18n="perf.title">TACTIC PERFORMANCE</span></h2>
           <p class="panel-sub" data-i18n="perf.sub"></p>
         </header>
         <div class="panel-body">
@@ -262,7 +268,7 @@
   <section class="view" id="view-community" hidden>
     <article class="panel panel-clip">
       <header class="panel-head">
-        <h2><span class="idx">06</span><span data-i18n="community.title">COMMUNITY TACTICS</span></h2>
+        <h2><span class="idx">01</span><span data-i18n="community.title">COMMUNITY TACTICS</span></h2>
         <p class="panel-sub" data-i18n="community.sub"></p>
         <div class="panel-head-actions" id="community-account"></div>
       </header>

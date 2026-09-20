@@ -362,7 +362,7 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'intro.cloud': '別の端末でも使いたいときだけ、戦術デッキの「☁ クラウド」から保存してください（ログインが要ります）。',
   'intro.close': 'わかった',
   'board.hintPlaceTouch': 'ドラッグで配置。タップで選んで削除',
-  'community.postDisclosure': '公開されるもの：戦術名・コール詳細・マップ・サイド・サイト・戦術の種類・味方と相手のエージェント構成・相性スコア・投稿者名。チーム名とマッチメモは公開されません。投稿は誰でも見られます。',
+  'community.postDisclosure': '公開されるもの：戦術名・コール詳細・マップ・サイド・サイト・戦術の種類・配置盤（置いたエージェント・スキル・ルート）・味方と相手のエージェント構成・相性スコア・投稿者名。チーム名とマッチメモは公開されません。投稿は誰でも見られます。',
 
   /* --- 運営操作 --- */
   'community.showHidden': '非表示も表示',
@@ -481,10 +481,26 @@ window.VCT_I18N.register('ja', { name: '日本語', flag: '🇯🇵' }, {
   'banner.nextMatch': '新しいマッチを始める',
   'tactic.limitReached': '登録できる戦術の上限（{n} 件）に達しました。',
   'board.disarm': '選択を解除',
-  'board.size': '表示サイズ',
+  'board.size': '盤面の大きさ',
+
+  /* --- 保存の状態（上部に常設） --- */
+  'save.auto': 'この端末に自動保存',
+  'save.savedAt': '保存済み {time}',
+  'save.failed': '保存できていません',
+  'save.failedHint': 'このブラウザに保存できませんでした（プライベートモードか容量不足の可能性）。⋯ の「書き出し」でファイルに残してください。',
+  'save.explain': '入力した内容はこのブラウザに自動で保存されます。ログインは要りません。別の端末で使うときは ⋯ の「書き出し」か、戦術デッキの「☁ クラウド」から。',
+
+  /* --- 配置盤への行き先案内 --- */
+  'board.goRoster': 'エージェントを選びに行く',
+
+  /* --- 投稿に配置盤を含める --- */
+  'community.boardIncluded': '配置盤も一緒に公開されます',
+  'community.boardNone': 'この戦術には配置がありません',
+  'community.importedWithBoard': '配置ごとデッキに取り込みました。',
+  'err.boardTooLarge': '配置のデータが大きすぎます。局面を減らしてから投稿してください。',
 
   /* --- 盤面の拡大・縮小 --- */
-  'board.zoom': '拡大',
+  'board.zoom': 'マップ拡大',
   'board.zoomIn': '拡大する',
   'board.zoomOut': '縮小する',
   'board.zoomReset': '全体表示',

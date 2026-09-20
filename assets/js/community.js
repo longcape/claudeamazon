@@ -232,7 +232,10 @@
       lang: payload.lang || 'ja',
       ally_comp: payload.allyComp || [],
       enemy_comp: payload.enemyComp || [],
-      analysis_score: payload.analysisScore === undefined ? null : payload.analysisScore
+      analysis_score: payload.analysisScore === undefined ? null : payload.analysisScore,
+      /* 配置盤。文字だけを共有しても「どこに何を置くか」が伝わらないので、
+         盤面ごと送る。持っていない戦術と、この列が無い古い投稿では null になる */
+      board: payload.board || null
     };
     return ensureFresh().then(function () {
       return request('/rest/v1/tactic_posts', {

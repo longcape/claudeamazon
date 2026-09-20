@@ -840,9 +840,17 @@
              '</div>';
     }).join('');
 
+    /* エージェントを選ぶ前に配置盤を開くと、ここが空のままで手が止まる。
+       戻る先を書くだけでなく、そこへ行けるボタンを置く */
+    const emptyHTML =
+      '<p class="deck-empty">' + t('board.noRoster') + '</p>' +
+      '<button type="button" class="btn btn-primary btn-sm board-goto-roster" data-board-act="go-roster">' +
+        t('board.goRoster') +
+      '</button>';
+
     $('board-palette-' + team).innerHTML =
       '<h3 class="pal-title"><span class="tag tag-' + team + '">' + t('tag.' + team) + '</span></h3>' +
-      (groups.trim() ? groups : '<p class="deck-empty">' + t('board.noRoster') + '</p>');
+      (groups.trim() ? groups : emptyHTML);
   }
 
   function renderBoardTools(uiState) {
@@ -1574,11 +1582,16 @@
     const box = $('post-preview');
     if (!tactic) { box.innerHTML = ''; return; }
     const map = D.mapById(S.state.match.map);
+    /* 配置盤も一緒に公開される。プレビューに盤面そのものは出せないので、
+       付いてくるかどうかだけは先に分かるようにする */
+    const hasBoard = !B.tacticIsEmpty(tactic);
     box.innerHTML = '' +
       '<div class="preview-card">' +
         '<span class="lc-label">' + esc(map ? map.name : '-') + ' / ' + esc(tactic.side) + ' / ' + esc(tactic.site) + '</span>' +
         '<h4>' + esc(tactic.name) + '</h4>' +
         (tactic.note ? '<p>' + esc(tactic.note) + '</p>' : '') +
+        '<span class="preview-board' + (hasBoard ? ' is-on' : '') + '">' +
+          esc(t(hasBoard ? 'community.boardIncluded' : 'community.boardNone')) + '</span>' +
         (analysis && analysis.ready
           ? '<span class="verdict verdict-' + analysis.verdict + '">' + t('analyst.' + analysis.verdict) + ' ' + analysis.score + '/100</span>'
           : '') +
@@ -1647,12 +1660,38 @@
     return active ? active.dataset.val : null;
   }
 
+  /* ================= 保存の状態 =================
+     入力が自動で保存されることは初回の案内にしか書かれておらず、
+     閉じると二度と出ない。「いま保存されているのか」が分からないので、
+     上部に常に出しておく。押すと保存先の説明が出る（app.js 側）。 */
+  function renderSaveState() {
+    const el = $('save-state-text');
+    if (!el) return;
+    const st = S.saveState();
+    const btn = $('btn-save-state');
+    if (!st.ok) {
+      el.textContent = t('save.failed');
+      btn.classList.add('is-ng');
+      btn.title = t('save.failedHint');
+      return;
+    }
+    btn.classList.remove('is-ng');
+    btn.title = t('save.explain');
+    if (!st.at) { el.textContent = t('save.auto'); return; }
+    const d = new Date(st.at);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    el.textContent = t('save.savedAt', { time: hh + ':' + mm });
+  }
+
   /* ================= トースト ================= */
   let toastTimer = null;
   function toast(message, kind) {
     const el = $('toast');
     el.textContent = message;
-    el.className = 'toast' + (kind ? ' ' + kind : '');
+    /* モーダルが開いているときは、下部のボタン（すべて消去 / 完了）に重なるので上へ逃がす */
+    const overModal = !!document.querySelector('.modal:not([hidden])');
+    el.className = 'toast' + (kind ? ' ' + kind : '') + (overModal ? ' is-high' : '');
     el.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { el.hidden = true; }, 2800);
@@ -1686,6 +1725,7 @@
     renderTimeline: renderTimeline,
     renderPerf: renderPerf,
     renderRoundEval: renderRoundEval,
+    renderSaveState: renderSaveState,
     renderAccount: renderAccount,
     renderCommunityMapFilter: renderCommunityMapFilter,
     renderPosts: renderPosts,

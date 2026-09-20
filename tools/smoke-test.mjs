@@ -1150,7 +1150,10 @@ for (const key of ['community.report', 'community.reported', 'community.reportCo
                    'eval.reason.numbers', 'eval.reason.preplant', 'eval.reason.postplant',
                    'eval.reason.counter', 'eval.reason.rotation', 'eval.reason.timing',
                    'eval.reason.comms', 'eval.reason.duel', 'eval.reason.outplay',
-                   'eval.reason.planWorked', 'eval.reason.other']) {
+                   'eval.reason.planWorked', 'eval.reason.other',
+                   'save.auto', 'save.savedAt', 'save.failed', 'save.failedHint', 'save.explain',
+                   'board.goRoster', 'community.boardIncluded', 'community.boardNone',
+                   'community.importedWithBoard', 'err.boardTooLarge']) {
   check(`${key} が 3 言語にある`,
     localeKeys.ja.has(key) && localeKeys.en.has(key) && localeKeys.ko.has(key));
 }
@@ -1275,7 +1278,10 @@ for (const [label, opts] of Object.entries({
       const hit = el && (el === b || b.contains(el) || (el.closest && el.closest('.pal-agent, .pal-ability') === b));
       if (!hit) covered++;
     }
-    return { overlap: pal.bottom > stage.top + 1, buttons: btns.length, covered };
+    /* 一覧が盤面の上に来るか下に来るかは画面幅で変わる（狭い画面では盤面を先に出す）。
+       ここで見たいのは「重なって押せなくなっていないか」なので、矩形の交差だけを見る */
+    const overlap = !(pal.bottom <= stage.top + 1 || pal.top >= stage.bottom - 1);
+    return { overlap: overlap, buttons: btns.length, covered };
   });
   check(`${label}: エージェントとスキルの一覧が盤面に重ならない`, lay.overlap === false);
   check(`${label}: 一覧のボタンがすべて押せる位置にある`,
@@ -1947,6 +1953,313 @@ check('見出しの語も確率を名乗っていない',
   JSON.stringify(legends.en));
 
 await gymCtx.close();
+
+/* ---------------- つまずきどころへの手当て ----------------
+   テストで実際に手が止まった場所を直したぶん。ここが戻ると同じ所で詰まる。 */
+console.log('\nつまずきどころへの手当て');
+
+const fixCtx = await browser.newContext({ viewport: { width: 1366, height: 900 }, locale: 'ja-JP' });
+const f = await fixCtx.newPage();
+f.on('pageerror', (e) => pageErrors.push('[手当て] ' + String(e.message)));
+await f.goto('file://' + DIST);
+await f.waitForTimeout(700);
+
+/* --- 保存されているかどうかが分かる --- */
+const saveUI = await f.evaluate(() => {
+  const btn = document.getElementById('btn-save-state');
+  const r = btn ? btn.getBoundingClientRect() : null;
+  return {
+    inTopbar: !!(btn && btn.closest('.topbar')),
+    text: btn ? btn.textContent.trim() : '',
+    visible: !!(r && r.width > 0 && r.height > 0)
+  };
+});
+check('保存の状態が上部に常に出ている',
+  saveUI.inTopbar && saveUI.visible && /保存/.test(saveUI.text), JSON.stringify(saveUI));
+
+await f.fill('#inp-ally-team', 'SAVE TEST');
+await f.waitForTimeout(400);
+const savedText = await f.evaluate(() => document.getElementById('save-state-text').textContent);
+check('入力すると保存時刻が出る', /\d{1,2}:\d{2}/.test(savedText), savedText);
+
+await f.locator('#btn-save-state').click();
+await f.waitForTimeout(300);
+const saveToast = await f.evaluate(() => {
+  const t = document.getElementById('toast');
+  return t && !t.hidden ? t.textContent : '';
+});
+check('押すと保存先の説明が出る',
+  /自動で保存/.test(saveToast) && /ログイン/.test(saveToast), saveToast.slice(0, 50));
+
+/* --- 配置盤からエージェント選択へ戻れる --- */
+await f.evaluate(() => {
+  const S = window.VCT_STORE;
+  S.state.allies.forEach((s) => { s.agent = ''; });
+  S.state.enemies.forEach((s) => { s.agent = ''; });
+  S.save();
+});
+await f.reload();
+await f.waitForTimeout(600);
+await f.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+await f.waitForTimeout(700);
+check('エージェント未設定なら「選びに行く」ボタンが出る',
+  (await f.locator('#board-palette-ally [data-board-act="go-roster"]').count()) === 1);
+await f.locator('#board-palette-ally [data-board-act="go-roster"]').click();
+await f.waitForTimeout(700);
+const wentBack = await f.evaluate(() => ({
+  closed: document.getElementById('modal-board').hidden,
+  onSetup: !document.getElementById('view-setup').hidden,
+  flashed: document.getElementById('panel-roster').classList.contains('is-flash')
+}));
+check('押すと配置盤が閉じて構成の画面へ戻る',
+  wentBack.closed && wentBack.onSetup && wentBack.flashed, JSON.stringify(wentBack));
+
+/* --- 拡大と表示サイズの名前が別物だと分かる --- */
+await f.evaluate(([a, e]) => {
+  const S = window.VCT_STORE;
+  a.forEach((x, i) => { S.state.allies[i].agent = x; });
+  e.forEach((x, i) => { S.state.enemies[i].agent = x; });
+  S.save();
+}, [ALLY, ENEMY]);
+await f.reload();
+await f.waitForTimeout(600);
+await f.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+await f.waitForTimeout(800);
+const labels = await f.evaluate(() => ({
+  zoom: (document.querySelector('#board-tools .board-zoom .lc-label') || {}).textContent,
+  size: (document.querySelector('#board-tools .board-size .lc-label') || {}).textContent
+}));
+check('「マップ拡大」と「盤面の大きさ」が別の名前になっている',
+  labels.zoom === 'マップ拡大' && labels.size === '盤面の大きさ', JSON.stringify(labels));
+
+/* --- モーダルが開いている間のトーストは下のボタンに重ならない --- */
+const toastPos = await f.evaluate(() => {
+  window.VCT_UI.toast('位置の確認');
+  const t = document.getElementById('toast');
+  const foot = document.querySelector('#modal-board .modal-foot');
+  const tr = t.getBoundingClientRect();
+  const fr = foot.getBoundingClientRect();
+  return { high: t.classList.contains('is-high'), overlap: !(tr.bottom < fr.top || tr.top > fr.bottom) };
+});
+check('モーダル表示中のトーストは下部のボタンに重ならない',
+  toastPos.high && toastPos.overlap === false, JSON.stringify(toastPos));
+await f.keyboard.press('Escape');
+await f.waitForTimeout(300);
+
+/* --- 画面内の見出し番号がタブと食い違わない --- */
+const idx = await f.evaluate(() => {
+  const pick = (sel) => [...document.querySelectorAll(sel)].map((el) => el.textContent);
+  return {
+    live: pick('#view-live .panel-head .idx'),
+    community: pick('#view-community .panel-head .idx')
+  };
+});
+check('ライブ画面の見出し番号が 01 から振り直されている',
+  idx.live.join(',') === '01,02', JSON.stringify(idx.live));
+check('コミュニティの見出し番号が 06 のまま残っていない',
+  idx.community.join(',') === '01', JSON.stringify(idx.community));
+await fixCtx.close();
+
+/* --- 投稿と取り込みに配置盤が付いてくる ---
+   通信はすべて差し替えて、送られた中身と取り込み結果だけを見る */
+const OLD_POST = {
+  id: 'old-post', name: '旧い投稿（配置なし）', map: 'ascent', side: 'ATK', site: 'A',
+  kind: 'execute', note: '配置盤の列が無い時代の投稿', author_name: 'OLD', lang: 'ja',
+  ally_comp: [], enemy_comp: [], analysis_score: null, likes: 0, reports: 0, hidden: false,
+  moderation: 'auto', user_id: null, created_at: '2026-09-01T00:00:00Z'
+};
+const NEW_POST = Object.assign({}, OLD_POST, {
+  id: 'new-post', name: '配置つきの投稿', note: '盤面ごと共有された投稿',
+  board: { phases: [{ id: 'ph_x', name: 'A 入り', view: { zoom: 2, cx: 30, cy: 40 },
+    marks: [{ id: 'mk_x', kind: 'agent', ref: 'jett', team: 'ally', x: 25, y: 35, order: null },
+            { id: 'mk_y', kind: 'ability', ref: 'sova:E', team: 'ally', x: 40, y: 50, order: 1 }],
+    routes: [{ id: 'rt_x', team: 'ally', points: [{ x: 20, y: 80 }, { x: 30, y: 40 }] }] }] }
+});
+
+const boardCtx = await browser.newContext({ viewport: { width: 1366, height: 900 }, locale: 'ja-JP' });
+await boardCtx.addInitScript((feed) => {
+  window.__posted = null;
+  const json = (data, status) => Promise.resolve(new Response(JSON.stringify(data), {
+    status: status, headers: { 'Content-Type': 'application/json' }
+  }));
+  window.fetch = function (url, opts) {
+    const u = String(url);
+    const method = (opts && opts.method) || 'GET';
+    if (u.indexOf('/rest/v1/tactic_posts') >= 0 && method === 'POST') {
+      window.__posted = JSON.parse(opts.body);
+      return json([Object.assign({ id: 'posted' }, window.__posted)], 201);
+    }
+    if (u.indexOf('/rest/v1/tactic_posts') >= 0) return json(feed, 200);
+    if (u.indexOf('/rpc/is_admin') >= 0) return json(false, 200);
+    return json([], 200);
+  };
+}, [NEW_POST, OLD_POST]);
+
+const bp = await boardCtx.newPage();
+bp.on('pageerror', (e) => pageErrors.push('[配置つき投稿] ' + String(e.message)));
+let variantHtml = distHtml;
+for (const [from, to] of [CFG_URL, CFG_KEY]) variantHtml = variantHtml.split(from).join(to);
+const variantFile = path.join(os.tmpdir(), 'vct-smoke-board-post.html');
+fs.writeFileSync(variantFile, variantHtml);
+await bp.goto('file://' + variantFile);
+await bp.waitForTimeout(800);
+
+/* 配置を持つ戦術を 1 つ用意して投稿する */
+await bp.evaluate(([a, e]) => {
+  const S = window.VCT_STORE;
+  a.forEach((x, i) => { S.state.allies[i].agent = x; });
+  e.forEach((x, i) => { S.state.enemies[i].agent = x; });
+  const t = S.state.tactics[0];
+  t.phases = [{ id: 'ph_1', name: '', marks: [
+    { id: 'mk_1', kind: 'agent', ref: 'jett', team: 'ally', x: 30, y: 40, order: null }
+  ], routes: [] }];
+  S.save();
+}, [ALLY, ENEMY]);
+await bp.reload();
+await bp.waitForTimeout(700);
+await bp.click('.phase-tab[data-phase="community"]');
+await bp.waitForTimeout(600);
+await bp.click('#btn-open-post');
+await bp.waitForTimeout(500);
+const previewNote = await bp.evaluate(() => {
+  const el = document.querySelector('#post-preview .preview-board');
+  return el ? { text: el.textContent, on: el.classList.contains('is-on') } : null;
+});
+check('投稿前に「配置も公開される」と分かる',
+  !!previewNote && previewNote.on && /配置盤/.test(previewNote.text), JSON.stringify(previewNote));
+check('公開範囲の説明に配置盤が入っている',
+  /配置盤/.test(await bp.locator('#post-disclosure').textContent()));
+
+await bp.locator('#post-form button[type="submit"]').click();
+await bp.waitForTimeout(800);
+const posted = await bp.evaluate(() => window.__posted);
+check('投稿に配置盤が入る',
+  !!(posted && posted.board && posted.board.phases && posted.board.phases[0].marks.length === 1),
+  JSON.stringify(posted && posted.board).slice(0, 120));
+
+/* 配置を持たない戦術なら null で送る */
+await bp.evaluate(() => {
+  const S = window.VCT_STORE;
+  S.state.tactics[0].phases = [{ id: 'ph_1', name: '', marks: [], routes: [] }];
+  S.save();
+  window.__posted = null;
+});
+await bp.click('#btn-open-post');
+await bp.waitForTimeout(400);
+await bp.selectOption('#post-tactic', await bp.evaluate(() => window.VCT_STORE.state.tactics[0].id));
+await bp.waitForTimeout(300);
+const previewOff = await bp.evaluate(() => {
+  const el = document.querySelector('#post-preview .preview-board');
+  return el ? { text: el.textContent, on: el.classList.contains('is-on') } : null;
+});
+check('配置が無い戦術では「配置がありません」と出る',
+  !!previewOff && previewOff.on === false && /ありません/.test(previewOff.text), JSON.stringify(previewOff));
+await bp.locator('#post-form button[type="submit"]').click();
+await bp.waitForTimeout(700);
+check('配置が無ければ board は null で送る',
+  (await bp.evaluate(() => window.__posted)).board === null);
+
+/* 取り込み */
+const beforeImport = await bp.evaluate(() => window.VCT_STORE.state.tactics.length);
+await bp.locator('#post-grid article[data-id="new-post"] [data-act="import-post"]').click();
+await bp.waitForTimeout(700);
+const importedBoard = await bp.evaluate(() => {
+  const S = window.VCT_STORE;
+  const t = S.state.tactics[S.state.tactics.length - 1];
+  const ph = window.VCT_BOARD.phaseAt(t, 0);
+  return {
+    name: t.name, phases: t.phases.length, marks: ph.marks.length, routes: ph.routes.length,
+    zoom: (ph.view || {}).zoom || 1,
+    keptForeignIds: ph.marks.some((m) => m.id === 'mk_x') || t.phases.some((p) => p.id === 'ph_x')
+  };
+});
+check('取り込むと配置盤も付いてくる',
+  importedBoard.marks === 2 && importedBoard.routes === 1 && importedBoard.name === '配置つきの投稿',
+  JSON.stringify(importedBoard));
+check('取り込んだ配置の寄せ（ズーム）も残る', importedBoard.zoom === 2, String(importedBoard.zoom));
+check('他人の投稿の id は持ち込まない', importedBoard.keptForeignIds === false);
+check('取り込みで戦術が 1 件増える',
+  (await bp.evaluate(() => window.VCT_STORE.state.tactics.length)) === beforeImport + 1);
+
+await bp.locator('#post-grid article[data-id="old-post"] [data-act="import-post"]').click();
+await bp.waitForTimeout(700);
+const oldImported = await bp.evaluate(() => {
+  const S = window.VCT_STORE;
+  const t = S.state.tactics[S.state.tactics.length - 1];
+  return { name: t.name, marks: window.VCT_BOARD.phaseAt(t, 0).marks.length };
+});
+check('配置を持たない古い投稿も今までどおり取り込める',
+  oldImported.name === '旧い投稿（配置なし）' && oldImported.marks === 0, JSON.stringify(oldImported));
+await boardCtx.close();
+
+check('スキーマに配置盤の列がある',
+  /alter table public\.tactic_posts add column if not exists board jsonb/.test(schema) &&
+  /board\s+jsonb/.test(schema));
+check('配置盤の大きさに上限がある',
+  /BOARD_TOO_LARGE/.test(schema) && /pg_column_size\(new\.board\)/.test(schema));
+
+/* --- 狭い画面（375px）で直したところ --- */
+const narrowCtx = await browser.newContext({
+  viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, locale: 'ja-JP'
+});
+const nb = await narrowCtx.newPage();
+nb.on('pageerror', (e) => pageErrors.push('[狭い画面] ' + String(e.message)));
+await nb.goto('file://' + DIST);
+await nb.waitForTimeout(700);
+
+/* 接続情報の無い配布版ではコミュニティタブが隠れている。見えているタブだけを見る */
+const tabLines = await nb.evaluate(() =>
+  [...document.querySelectorAll('.phase-tab')]
+    .filter((t) => !t.hidden)
+    .map((t) => t.querySelector('span:not(.num)'))
+    .filter(Boolean)
+    .map((s) => ({ text: s.textContent, lines: s.getClientRects().length })));
+check('スマホでタブの文字が語の途中で折り返らない',
+  tabLines.every((t) => t.lines === 1), JSON.stringify(tabLines));
+check('スマホで横にはみ出さない（タブを詰めたあと）',
+  await nb.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2));
+
+const startVisible = await nb.evaluate(() => {
+  window.scrollTo(0, 0);
+  const r = document.getElementById('btn-start').getBoundingClientRect();
+  return { top: Math.round(r.top), bottom: Math.round(r.bottom), vh: window.innerHeight };
+});
+check('スマホでスクロールしなくても「マッチ開始」が画面内にある',
+  startVisible.bottom <= startVisible.vh + 1 && startVisible.top >= 0, JSON.stringify(startVisible));
+
+await nb.evaluate(([a, e]) => {
+  const S = window.VCT_STORE;
+  a.forEach((x, i) => { S.state.allies[i].agent = x; });
+  e.forEach((x, i) => { S.state.enemies[i].agent = x; });
+  S.save();
+}, [ALLY, ENEMY]);
+await nb.reload();
+await nb.waitForTimeout(700);
+await nb.locator('#deck-grid button', { hasText: '配置を編集' }).first().click();
+await nb.waitForTimeout(900);
+const order = await nb.evaluate(() => {
+  const stage = document.querySelector('#modal-board .board-stage').getBoundingClientRect();
+  const pal = document.getElementById('board-palette-ally').getBoundingClientRect();
+  const cols = getComputedStyle(document.querySelector('.pal-abilities')).gridTemplateColumns.split(' ').length;
+  return { stageTop: Math.round(stage.top), palTop: Math.round(pal.top), cols: cols };
+});
+check('スマホでは盤面が一覧より先に出る',
+  order.stageTop < order.palTop, JSON.stringify(order));
+check('スマホのスキル一覧は 4 列に詰めている', order.cols === 4, String(order.cols));
+await nb.keyboard.press('Escape');
+await nb.waitForTimeout(400);
+
+await nb.locator('#btn-tree').click();
+await nb.waitForTimeout(600);
+const treeHead = await nb.evaluate(() => {
+  const h = document.getElementById('tree-modal-title');
+  const sub = document.querySelector('#modal-tree .board-tactic-name');
+  return { lines: h.getClientRects().length, text: h.textContent, subClipped: sub ? sub.scrollWidth > sub.clientWidth + 1 : null };
+});
+check('スマホで分岐ツリーの見出しが折れない',
+  treeHead.lines === 1, JSON.stringify(treeHead));
+check('見出しの説明文が切れていない', treeHead.subClipped === false, JSON.stringify(treeHead));
+await narrowCtx.close();
 
 /* ---------------- まとめ ---------------- */
 check('ページ内で例外が出ていない', pageErrors.length === 0, pageErrors.join(' / '));

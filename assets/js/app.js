@@ -580,6 +580,25 @@
       refreshBoard();
     });
 
+    /* エージェント未設定のときにパレットへ出す「エージェントを選びに行く」。
+       ここで戻り先を示さないと、配置盤を開いた人の手がそこで止まる */
+    ['board-palette-ally', 'board-palette-enemy'].forEach(function (id) {
+      $(id).addEventListener('click', function (e) {
+        if (!e.target.closest('[data-board-act="go-roster"]')) return;
+        closeModal('modal-board');
+        ui.view = 'setup';
+        S.state.phase = 'setup';
+        S.save();
+        renderAll();
+        const panel = $('panel-roster');
+        if (!panel) return;
+        panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        /* どこへ来たのかが分かるよう、少しだけ光らせる */
+        panel.classList.add('is-flash');
+        setTimeout(function () { panel.classList.remove('is-flash'); }, 1800);
+      });
+    });
+
     $('btn-board-clear').addEventListener('click', function () {
       if (!ui.boardTactic) return;
       U.ask({ message: t('board.confirmClear'), danger: true }).then(function (ok) {
@@ -1318,6 +1337,7 @@
     const code = err && err.code;
     if (/NOT_ADMIN/.test(raw)) return t('err.notAdmin');
     if (/RATE_LIMIT/.test(raw)) return t('err.rateLimit');
+    if (/BOARD_TOO_LARGE/.test(raw)) return t('err.boardTooLarge');
     if (code === '23505' || /duplicate key/i.test(raw)) return t('err.duplicate');
     if (code === '42501' || /row-level security/i.test(raw)) return t('err.denied');
     if (code === '23514' || /check constraint/i.test(raw)) {
@@ -1542,14 +1562,34 @@
           }, function (err) { U.toast(friendlyError(err), 'err'); });
         });
       } else if (el.dataset.act === 'import-post') {
-        S.addTactic({
+        /* 配置盤も一緒に取り込む。文字だけだと「どこに何を置くか」が伝わらない。
+           他人の投稿に入っている id は持ち込まない（手元の id と衝突しうるので、
+           外しておけば store 側が採番し直す）。列が無い時代の投稿は board が無い */
+        const phases = post.board && Array.isArray(post.board.phases)
+          ? post.board.phases.map(function (ph) {
+              return {
+                name: ph && ph.name,
+                view: ph && ph.view,
+                marks: (ph && Array.isArray(ph.marks) ? ph.marks : []).map(function (m) {
+                  return { kind: m.kind, ref: m.ref, team: m.team, x: m.x, y: m.y, order: m.order };
+                }),
+                routes: (ph && Array.isArray(ph.routes) ? ph.routes : []).map(function (r) {
+                  return { team: r.team, points: r.points };
+                })
+              };
+            })
+          : null;
+
+        const added = S.addTactic({
           name: post.name,
           side: post.side,
           site: post.site,
           kind: post.kind,
-          note: post.note
+          note: post.note,
+          phases: phases || undefined
         });
-        U.toast(t('community.imported'), 'ok');
+        const withBoard = !!(added && !BOARD.tacticIsEmpty(added));
+        U.toast(t(withBoard ? 'community.importedWithBoard' : 'community.imported'), 'ok');
       }
     });
 
@@ -1575,7 +1615,9 @@
         lang: I.get(),
         allyComp: S.state.allies.map(function (s) { return s.agent; }).filter(Boolean),
         enemyComp: S.state.enemies.map(function (s) { return s.agent; }).filter(Boolean),
-        analysisScore: analysis && analysis.ready ? analysis.score : null
+        analysisScore: analysis && analysis.ready ? analysis.score : null,
+        /* 配置盤も一緒に公開する。置いていない戦術では null になる */
+        board: BOARD.tacticIsEmpty(tac) ? null : { phases: BOARD.phases(tac) }
       }).then(function () {
         closeModal('modal-post');
         U.toast(t('community.posted'), 'ok');
@@ -1916,6 +1958,17 @@
     if (ok) $('feedback-link').href = url;
   }
 
+  /* 保存の状態表示。保存のたびに更新し、押すと保存先の説明を出す。
+     「どこに保存されているのか分からない」が実際のつまずきどころだった */
+  function bindSaveState() {
+    document.addEventListener('vct:saved', function () { U.renderSaveState(); });
+    $('btn-save-state').addEventListener('click', function () {
+      const ok = S.saveState().ok;
+      U.toast(t(ok ? 'save.explain' : 'save.failedHint'), ok ? 'ok' : 'err');
+    });
+    U.renderSaveState();
+  }
+
   function init() {
     I.set(I.detect());
     I.applyDom();
@@ -1939,6 +1992,7 @@
     bindAgentModal();
     bindTacticModal();
     bindRoundEval();
+    bindSaveState();
     bindGlobal();
     renderAll();
 

@@ -40,11 +40,31 @@
 
   const state = defaultState();
 
-  /* ---------------- 永続化 ---------------- */
+  /* ---------------- 永続化 ----------------
+     保存できたかどうかを画面に出すため、結果を覚えて合図を投げる。
+     store は UI を知らないので、描画は受け取った側に任せる。
+     （「保存されているのか分からない」が実際のつまずきどころだった） */
+  let savedAt = 0;
+  let saveOk = true;
+
   function save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) { /* プライベートモード等では黙って諦める */ }
+      savedAt = Date.now();
+      saveOk = true;
+    } catch (e) {
+      /* プライベートモードや容量超過。黙って落とすと利用者は気づけない */
+      saveOk = false;
+    }
+    try {
+      document.dispatchEvent(new CustomEvent('vct:saved', {
+        detail: { ok: saveOk, at: savedAt }
+      }));
+    } catch (e) { /* イベントを使えない環境でも保存自体は済んでいる */ }
+  }
+
+  function saveState() {
+    return { ok: saveOk, at: savedAt };
   }
 
   function load() {
@@ -472,6 +492,7 @@
     state: state,
     uid: uid,
     save: save,
+    saveState: saveState,
     load: load,
     addTactic: addTactic,
     tacticLimit: tacticLimit,

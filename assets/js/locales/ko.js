@@ -354,7 +354,7 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'intro.cloud': '다른 기기에서도 쓰고 싶을 때만 전술 덱의 「☁」에서 저장하세요(로그인 필요).',
   'intro.close': '알겠어요',
   'board.hintPlaceTouch': '드래그로 배치. 탭해서 선택 후 삭제',
-  'community.postDisclosure': '공개되는 내용: 전술 이름, 콜 상세, 맵, 사이드, 사이트, 전술 종류, 아군과 상대의 에이전트 구성, 상성 점수, 작성자 이름. 팀 이름과 매치 메모는 공개되지 않습니다. 게시물은 누구나 볼 수 있습니다.',
+  'community.postDisclosure': '공개되는 내용: 전술 이름, 콜 상세, 맵, 사이드, 사이트, 전술 종류, 배치(놓은 요원·스킬·경로), 아군과 상대의 에이전트 구성, 상성 점수, 작성자 이름. 팀 이름과 매치 메모는 공개되지 않습니다. 게시물은 누구나 볼 수 있습니다.',
 
   /* --- 운영 --- */
   'community.showHidden': '숨김도 표시',
@@ -471,10 +471,26 @@ window.VCT_I18N.register('ko', { name: '한국어', flag: '🇰🇷' }, {
   'banner.nextMatch': '새 매치 시작',
   'tactic.limitReached': '등록 가능한 전술 상한({n}개)에 도달했습니다.',
   'board.disarm': '선택 해제',
-  'board.size': '표시 크기',
+  'board.size': '보드 크기',
+
+  /* --- 저장 상태(상단에 상시 표시) --- */
+  'save.auto': '이 기기에 자동 저장',
+  'save.savedAt': '저장됨 {time}',
+  'save.failed': '저장되지 않았습니다',
+  'save.failedHint': '이 브라우저에 저장하지 못했습니다(시크릿 모드이거나 용량 부족일 수 있습니다). ⋯ 의 "내보내기"로 파일에 남겨 주세요.',
+  'save.explain': '입력한 내용은 이 브라우저에 자동으로 저장됩니다. 로그인은 필요 없습니다. 다른 기기에서 쓰려면 ⋯ 의 "내보내기" 또는 전술 덱의 "☁ 클라우드"를 사용하세요.',
+
+  /* --- 요원 선택으로 돌아가는 안내 --- */
+  'board.goRoster': '요원 고르러 가기',
+
+  /* --- 커뮤니티 게시물의 배치 --- */
+  'community.boardIncluded': '배치도 함께 공개됩니다',
+  'community.boardNone': '이 전술에는 배치가 없습니다',
+  'community.importedWithBoard': '배치까지 덱에 가져왔습니다.',
+  'err.boardTooLarge': '배치 데이터가 너무 큽니다. 국면을 줄인 뒤 다시 게시하세요.',
 
   /* --- 보드 확대·축소 --- */
-  'board.zoom': '확대',
+  'board.zoom': '맵 확대',
   'board.zoomIn': '확대',
   'board.zoomOut': '축소',
   'board.zoomReset': '전체 보기',
