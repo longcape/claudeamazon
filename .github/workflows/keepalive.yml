@@ -1,0 +1,66 @@
+# =========================================================
+# Supabase の自動停止を防ぐ
+# ---------------------------------------------------------
+# 無料プランは、しばらく（1 週間ほど）アクセスが無いと自動で止まる。
+# 止まるとコミュニティ・ログイン・クラウド保存がすべて使えなくなる
+# （2026-09-11 と 2026-09-21 に実際に止まっていた）。
+#
+# 毎日 1 回、公開キー（anon key）で投稿一覧を 1 件だけ読みに行く。
+# 読むだけで何も書き込まない。人がログインする必要も無い。
+# 接続情報は公開ページと同じ Variables（SUPABASE_URL / SUPABASE_ANON_KEY）を使う。
+#
+# すでに止まっていた場合はこの実行が失敗し、GitHub から失敗のメールが届く。
+# そのときは Supabase の管理画面で再開する。自動で再開させるには
+# 管理用の強いトークンが要るので、それはここに置かない。
+# =========================================================
+name: Supabase の自動停止を防ぐ
+
+on:
+  schedule:
+    # 毎日 06:17（日本時間）。毎時 0 分は GitHub 側が混むので外している
+    - cron: '17 21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write   # 下の「定期実行を止めさせない」で使う
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 投稿一覧を 1 件だけ読む
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "接続情報（Variables）が未設定です" | tee -a "$GITHUB_STEP_SUMMARY" >&2
+            exit 1
+          fi
+          url="${SUPABASE_URL%/}/rest/v1/tactic_posts?select=id&limit=1"
+          code=000
+          # 一時的な通信の揺れで失敗扱いにしないよう、3 回まで試す
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              "$url" || echo 000)
+            echo "試行 $i: HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "Supabase は動いています（HTTP 200）" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "Supabase に届きませんでした（HTTP $code）。停止している可能性があります。管理画面で再開してください。" \
+            | tee -a "$GITHUB_STEP_SUMMARY" >&2
+          exit 1
+
+      # 公開リポジトリの定期実行は、60 日間コミットが無いと GitHub に止められる。
+      # その対策として、毎回このワークフローの有効化を API で掛け直しておく。
+      # 止められる前には GitHub からメールが届く。何かコミットしても期間はリセットされる。
+      - name: 定期実行を止めさせない
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/keepalive.yml/enable"
