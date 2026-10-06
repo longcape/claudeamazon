@@ -119,6 +119,17 @@
     return m.full_name || m.name || m.user_name || m.preferred_username || u.email || 'PLAYER';
   }
 
+  /* 投稿者名の初期値。displayName() と違ってメールアドレスには落とさない。
+     メールでログインした人はアカウントに名前が無く、displayName() はメールを返す。
+     それを投稿者名の欄に入れると、書き換えずに投稿した人のメールが全員に公開される。 */
+  function authorDefault() {
+    const u = currentUser();
+    if (!u) return '';
+    const m = u.user_metadata || {};
+    const name = m.full_name || m.name || m.user_name || m.preferred_username || 'PLAYER';
+    return /@/.test(name) ? 'PLAYER' : String(name).slice(0, 24);
+  }
+
   /** アクセストークンの期限が近ければ更新する */
   function ensureFresh() {
     if (!session) return Promise.resolve(null);
@@ -419,6 +430,7 @@
     init: init,
     currentUser: currentUser,
     displayName: displayName,
+    authorDefault: authorDefault,
     signInWithProvider: signInWithProvider,
     signInWithEmail: signInWithEmail,
     signOut: signOut,

@@ -975,9 +975,10 @@ for (const fn of ['touch_updated_at', 'enforce_post_rate_limit', 'like_post', 'r
 }
 
 /* pgcrypto は extensions スキーマに入る。search_path を public だけに絞ると
-   digest() が見つからず、tactic_posts への insert が丸ごと失敗する。 */
+   hmac() が見つからず、tactic_posts への insert が丸ごと失敗する。
+   pgcrypto を呼ぶのは request_ip_key（レート制限・いいね・通報が共通で使う）。 */
 check('レート制限の search_path に extensions が入っている',
-  /enforce_post_rate_limit[\s\S]{0,400}?set search_path = public, extensions/.test(schema));
+  /create or replace function public\.request_ip_key\(\)[\s\S]{0,200}?set search_path = public, extensions/.test(schema));
 
 /* revoke ... from anon, authenticated だけでは効かない。関数には既定で PUBLIC に
    EXECUTE が付いていて、anon も authenticated もその PUBLIC のメンバーだから。 */
@@ -998,10 +999,38 @@ check('tactic_reports で RLS を有効にしている',
 check('ポリシー tactic_reports_none がある', schema.includes('create policy tactic_reports_none'));
 check('report_post が通報者と理由を受け取る',
   /create or replace function public\.report_post\(\s*p_post_id\s+uuid,\s*p_reporter\s+text,\s*p_reason\s+text[\s\S]{0,80}?p_detail\s+text/.test(schema));
+/* 「誰が」を送る側に名乗らせない。名乗りを変えれば 1 人で何回でも押せてしまう */
+check('通報の「誰が」はサーバ側で決めている（p_reporter を記録に使わない）',
+  /v_reporter\s+text := public\.request_actor\(\)/.test(schema) &&
+  !/values \(p_post_id, p_reporter/.test(schema));
+check('いいねの「誰が」はサーバ側で決めている（p_voter を記録に使わない）',
+  /v_voter\s+text := public\.request_actor\(\)/.test(schema) &&
+  !/values \(p_post_id, p_voter/.test(schema));
+check('通報といいねに 1 時間あたりの上限がある',
+  /too many reports/.test(schema) && /too many likes/.test(schema));
+check('接続元の識別子は外から直接呼べない',
+  schema.includes('revoke all on function public.request_ip_key() from anon, authenticated') &&
+  schema.includes('revoke all on function public.request_actor() from anon, authenticated'));
+/* 投稿は誰でも読めるので、接続元の痕跡を投稿の表に置かない */
+check('投稿の表に ip_hash 列を持たない',
+  !/^\s*ip_hash\s+text/m.test(schema) &&
+  schema.includes('alter table public.tactic_posts drop column if exists ip_hash'));
+check('接続元の識別子には秘密の値を混ぜている（素の SHA-256 にしない）',
+  /hmac\(v_ip, v_salt, 'sha256'\)/.test(schema) && !/digest\(v_ip/.test(schema));
+check('秘密の値と連投の記録は一般の利用者から読めない',
+  schema.includes('revoke all on table public.server_secrets from anon, authenticated') &&
+  schema.includes('revoke all on table public.post_rate_log from anon, authenticated'));
+/* メールでログインした人のメールアドレスを投稿者名として公開しない */
+check('投稿者名の初期値にメールアドレスを使わない',
+  /\$\('post-author'\)\.value = C\.authorDefault\(\)/.test(fs.readFileSync(path.join(ROOT, 'assets/js/app.js'), 'utf8')) &&
+  !/function authorDefault\(\)[\s\S]{0,400}?u\.email/
+    .test(fs.readFileSync(path.join(ROOT, 'assets/js/community.js'), 'utf8')));
+check('メールアドレスの形の投稿者名はサーバ側でも置き換える',
+  schema.includes('create trigger tactic_posts_scrub_author'));
 check('通報者を取らない旧 report_post を落としている',
   schema.includes('drop function if exists public.report_post(uuid);'));
 check('重複した通報は数えない',
-  /report_post[\s\S]{0,900}?insert into public.tactic_reports[\s\S]{0,200}?on conflict do nothing/.test(schema));
+  /report_post[\s\S]{0,1800}?insert into public.tactic_reports[\s\S]{0,200}?on conflict do nothing/.test(schema));
 check('しきい値に達したら hidden にする仕様は残っている',
   /report_post[\s\S]{0,1600}?\(reports \+ 1\) >= v_threshold/.test(schema));
 check('しきい値はコードに埋めず設定値から読む',

@@ -38,11 +38,14 @@ create table if not exists public.tactic_posts (
 
   likes          int not null default 0,
   reports        int not null default 0,
-  hidden         boolean not null default false,
-
-  -- 匿名投稿のレート制限にのみ使う。生の IP は保存せずハッシュのみ。
-  ip_hash        text
+  hidden         boolean not null default false
 );
+
+-- 以前はここに ip_hash 列（接続元 IP の SHA-256）を持っていた。
+-- 投稿は誰でも読めるので、この列も一緒に読めてしまっていた。秘密の値を混ぜない
+-- ハッシュは IPv4 を総当たりすれば元に戻せるため、実質 IP を公開していたことになる。
+-- 連投の記録は誰からも読めない別の表（post_rate_log）へ移し、列は落とす。
+alter table public.tactic_posts drop column if exists ip_hash;
 
 -- モデレーション状態。
 --   auto     … 通報が集まれば自動で隠れてよい（既定）
@@ -204,25 +207,112 @@ create trigger saved_setups_touch
 -- 関数より先に置くこと（後述の search_path が extensions を指す前提になる）。
 create extension if not exists pgcrypto with schema extensions;
 
+-- ---------------------------------------------------------
+-- サーバだけが知る秘密の値。
+-- ポリシーを 1 つも作らず、権限も落とすので、anon / authenticated からは読めない。
+-- 読むのは下の SECURITY DEFINER 関数だけ。
+-- ---------------------------------------------------------
+create table if not exists public.server_secrets (
+  key   text primary key,
+  value text not null
+);
+alter table public.server_secrets enable row level security;
+revoke all on table public.server_secrets from public;
+revoke all on table public.server_secrets from anon, authenticated;
+
+-- 接続元を識別子に変えるときに混ぜる値。プロジェクトごとに 1 回だけ作る
+-- （すでにあれば作り直さない。作り直すと、いいね・通報の「同じ人」の判定が切れる）。
+insert into public.server_secrets (key, value)
+values ('ip_salt', encode(extensions.gen_random_bytes(32), 'hex'))
+on conflict (key) do nothing;
+
+-- ---------------------------------------------------------
+-- 連投の記録。投稿の表には置かない（投稿は誰でも読めるため）。
+-- 1 日より古い行は投稿のたびに捨てるので、接続元の痕跡は長く残らない。
+-- ---------------------------------------------------------
+create table if not exists public.post_rate_log (
+  actor      text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists post_rate_log_actor_idx on public.post_rate_log (actor, created_at desc);
+alter table public.post_rate_log enable row level security;
+revoke all on table public.post_rate_log from public;
+revoke all on table public.post_rate_log from anon, authenticated;
+
+-- ---------------------------------------------------------
+-- 接続元から作る識別子。
+-- 生の IP は保存せず、秘密の値を混ぜた HMAC だけを使う（総当たりで戻せない）。
+-- cf-connecting-ip は手前の Cloudflare が付ける値で、利用者は書き換えられない。
+-- x-forwarded-for の先頭は利用者が自分で足せるので、無いときの代わりにだけ使う。
+--
+-- pgcrypto は extensions スキーマに入る。search_path を public だけに絞ると
+-- hmac() が見つからず、tactic_posts への insert が必ず失敗する。
+-- （以前 digest() で同じことが起き、匿名投稿が丸ごと通らない状態になっていた）
+-- ---------------------------------------------------------
+create or replace function public.request_ip_key()
+returns text
+language plpgsql
+stable
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_headers json;
+  v_ip      text;
+  v_salt    text;
+begin
+  begin
+    v_headers := nullif(current_setting('request.headers', true), '')::json;
+  exception when others then
+    v_headers := null;
+  end;
+
+  v_ip := coalesce(
+    nullif(trim(v_headers ->> 'cf-connecting-ip'), ''),
+    nullif(trim(split_part(v_headers ->> 'x-forwarded-for', ',', 1)), ''),
+    'unknown'
+  );
+
+  select value into v_salt from public.server_secrets where key = 'ip_salt';
+  if v_salt is null then
+    raise exception 'SERVER_MISCONFIGURED: ip_salt is missing';
+  end if;
+
+  return 'ip:' || left(encode(hmac(v_ip, v_salt, 'sha256'), 'hex'), 48);
+end;
+$$;
+
+revoke all on function public.request_ip_key() from public;
+revoke all on function public.request_ip_key() from anon, authenticated;
+
+-- ---------------------------------------------------------
+-- 「誰が押したか」。いいねと通報の重複判定に使う。
+-- ログイン中は利用者 ID、未ログインは接続元の識別子。
+-- 画面から送られてくる名乗りは信用しない（名乗りを変えれば何回でも押せてしまうため）。
+-- ---------------------------------------------------------
+create or replace function public.request_actor()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(auth.uid()::text, public.request_ip_key());
+$$;
+
+revoke all on function public.request_actor() from public;
+revoke all on function public.request_actor() from anon, authenticated;
+
 create or replace function public.enforce_post_rate_limit()
 returns trigger
 language plpgsql
 security definer
--- pgcrypto は extensions スキーマに入る。search_path を public だけに絞ると
--- digest() が見つからず、tactic_posts への insert が必ず失敗する。
--- （実際にこれで匿名投稿が丸ごと通らない状態になっていた）
-set search_path = public, extensions
+set search_path = public
 as $$
 declare
-  v_ip    text;
+  v_key   text := public.request_ip_key();
   v_count int;
 begin
-  v_ip := coalesce(
-    split_part(current_setting('request.headers', true)::json ->> 'x-forwarded-for', ',', 1),
-    'unknown'
-  );
-  new.ip_hash := encode(digest(v_ip, 'sha256'), 'hex');
-
   -- 配置盤は匿名でも投稿できるので、大きさの上限をサーバ側でも持つ。
   -- 画面側は局面 4 枚・マーク 60 個までに絞っており、実際は数 KB に収まる。
   if new.board is not null and pg_column_size(new.board) > 65536 then
@@ -230,15 +320,20 @@ begin
       using errcode = 'check_violation';
   end if;
 
+  delete from public.post_rate_log where created_at < now() - interval '1 day';
+
+  /* 投稿の created_at は送る側が書けるので、数えるのはこちらの記録の時刻にする */
   select count(*) into v_count
-    from public.tactic_posts
-   where ip_hash = new.ip_hash
+    from public.post_rate_log
+   where actor = v_key
      and created_at > now() - interval '1 hour';
 
   if v_count >= 10 then
     raise exception 'RATE_LIMIT: too many posts from this address, try again later'
       using errcode = 'check_violation';
   end if;
+
+  insert into public.post_rate_log (actor) values (v_key);
 
   return new;
 end;
@@ -253,6 +348,38 @@ drop trigger if exists tactic_posts_rate_limit on public.tactic_posts;
 create trigger tactic_posts_rate_limit
   before insert on public.tactic_posts
   for each row execute function public.enforce_post_rate_limit();
+
+-- =========================================================
+-- 投稿者名にメールアドレスを載せない
+-- 以前の画面は、ログイン中の投稿者名の初期値にメールアドレスを入れていた。
+-- 画面は直したが、古い画面を開いたままの人や配布版からも届くので、
+-- サーバ側でもメールアドレスの形をした名前は PLAYER に置き換える。
+-- =========================================================
+create or replace function public.scrub_post_author()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.author_name ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$' then
+    new.author_name := 'PLAYER';
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.scrub_post_author() from public;
+revoke all on function public.scrub_post_author() from anon, authenticated;
+
+drop trigger if exists tactic_posts_scrub_author on public.tactic_posts;
+create trigger tactic_posts_scrub_author
+  before insert or update of author_name on public.tactic_posts
+  for each row execute function public.scrub_post_author();
+
+-- すでに公開されてしまった分も直す（何度流しても同じ結果になる）。
+update public.tactic_posts
+   set author_name = 'PLAYER'
+ where author_name ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$';
 
 -- =========================================================
 -- 運営者かどうか
@@ -298,6 +425,8 @@ grant execute on function public.report_threshold() to anon, authenticated;
 -- =========================================================
 -- いいね用 RPC
 -- 重複投票は無視し、実際に入った場合だけカウントを増やす。
+-- p_voter は古い画面との互換のために受け取るだけで、使わない。
+-- 「誰が」はサーバ側で決める（request_actor）。
 -- =========================================================
 create or replace function public.like_post(p_post_id uuid, p_voter text)
 returns int
@@ -306,11 +435,23 @@ security definer
 set search_path = public
 as $$
 declare
+  v_voter    text := public.request_actor();
+  v_recent   int;
   v_inserted int;
   v_likes    int;
 begin
+  select count(*) into v_recent
+    from public.tactic_likes
+   where voter = v_voter
+     and created_at > now() - interval '1 hour';
+
+  if v_recent >= 60 then
+    raise exception 'RATE_LIMIT: too many likes, try again later'
+      using errcode = 'check_violation';
+  end if;
+
   insert into public.tactic_likes (post_id, voter)
-  values (p_post_id, p_voter)
+  values (p_post_id, v_voter)
   on conflict do nothing;
 
   get diagnostics v_inserted = row_count;
@@ -337,6 +478,9 @@ grant execute on function public.like_post(uuid, text) to anon, authenticated;
 -- 通報用 RPC（荒らし対策）
 -- 5 件そろった投稿は自動的に非表示にする。
 -- 同じ通報者の 2 回目以降は数えない（tactic_reports の主キーで弾く）。
+-- p_reporter は古い画面との互換のために受け取るだけで、使わない。
+-- 「誰が」を送る側に名乗らせると、名乗りを変えて 5 回叩くだけでどの投稿でも隠せる。
+-- サーバ側で決め（request_actor）、1 時間あたりの回数にも上限を置く。
 -- 戻り値の counted で「今回数えたか」が分かるので、
 -- 画面側は「通報しました」と「すでに通報済みです」を出し分けられる。
 -- =========================================================
@@ -359,6 +503,8 @@ security definer
 set search_path = public
 as $$
 declare
+  v_reporter  text := public.request_actor();
+  v_recent    int;
   v_inserted  int;
   v_threshold int := public.report_threshold();
   v_reason    text := coalesce(nullif(p_reason, ''), 'other');
@@ -371,8 +517,18 @@ begin
     v_reason := 'other';
   end if;
 
+  select count(*) into v_recent
+    from public.tactic_reports
+   where reporter = v_reporter
+     and created_at > now() - interval '1 hour';
+
+  if v_recent >= 10 then
+    raise exception 'RATE_LIMIT: too many reports, try again later'
+      using errcode = 'check_violation';
+  end if;
+
   insert into public.tactic_reports (post_id, reporter, reason, detail)
-  values (p_post_id, p_reporter, v_reason, left(coalesce(p_detail, ''), 200))
+  values (p_post_id, v_reporter, v_reason, left(coalesce(p_detail, ''), 200))
   on conflict do nothing;
 
   get diagnostics v_inserted = row_count;

@@ -1376,7 +1376,7 @@
     if (!S.state.tactics.length) { U.toast(t('toast.nameRequired'), 'err'); return; }
     ui.postTacticId = tacticId || S.state.tactics[0].id;
     U.renderPostForm(ui.postTacticId);
-    $('post-author').value = C.displayName() || '';
+    $('post-author').value = C.authorDefault();
     updatePostPreview();
     openModal('modal-post');
   }
