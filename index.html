@@ -166,6 +166,7 @@
             <button class="btn btn-ghost btn-sm" id="btn-tree" data-i18n="tree.open"></button>
             <button class="btn btn-ghost btn-sm" id="btn-cloud" data-i18n="cloud.open" hidden></button>
             <button class="btn btn-ghost btn-sm" id="btn-seed" data-i18n="deck.sample"></button>
+            <button class="btn btn-ghost btn-sm" id="btn-library" data-i18n="lib.open"></button>
             <button class="btn btn-primary btn-sm" id="btn-add-tactic" data-i18n="deck.add"></button>
           </div>
         </header>
@@ -461,6 +462,58 @@
   </div>
 </div>
 
+<!-- ============ LIBRARY MODAL ============ -->
+<div class="modal" id="modal-library" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card modal-wide panel-clip" role="dialog" aria-modal="true" aria-labelledby="lib-modal-title">
+    <header class="modal-head">
+      <h2 id="lib-modal-title" data-i18n="lib.title"></h2>
+      <span class="board-tactic-name" id="lib-sub"></span>
+      <button class="modal-close" data-close aria-label="close">×</button>
+    </header>
+    <div class="modal-body">
+      <div class="deck-toolbar">
+        <div class="deck-filter" id="lib-side">
+          <button class="chip is-active" data-side="ALL" data-i18n="filter.all">ALL</button>
+          <button class="chip" data-side="ATK" data-i18n="filter.atk">ATTACK</button>
+          <button class="chip" data-side="DEF" data-i18n="filter.def">DEFENSE</button>
+        </div>
+        <label class="deck-group">
+          <span data-i18n="lib.kind"></span>
+          <select id="lib-kind"></select>
+        </label>
+        <div class="deck-search">
+          <input type="search" id="lib-query" data-i18n-ph="lib.searchPh" />
+          <button type="button" class="deck-search-clear" id="btn-lib-clear" hidden aria-label="clear">×</button>
+        </div>
+      </div>
+      <div class="deck-filter lib-levels" id="lib-rounds">
+        <span class="lib-gaps-label" data-i18n="lib.roundsLabel"></span>
+        <button class="chip is-active" data-rounds="ALL" data-i18n="filter.all">ALL</button>
+        <button class="chip" data-rounds="MULTI" data-i18n="lib.roundsMulti"></button>
+        <button class="chip" data-rounds="ONE" data-i18n="lib.roundsOne"></button>
+      </div>
+      <div class="deck-filter lib-levels" id="lib-level">
+        <span class="lib-gaps-label" data-i18n="lib.level"></span>
+        <button class="chip is-active" data-level="ALL" data-i18n="filter.all">ALL</button>
+        <button class="chip" data-level="A" data-i18n="lib.lv.A"></button>
+        <button class="chip" data-level="B" data-i18n="lib.lv.B"></button>
+        <button class="chip" data-level="C" data-i18n="lib.lv.C"></button>
+      </div>
+      <div class="lib-gaps" id="lib-gaps" hidden></div>
+      <p class="deck-count" id="lib-count" hidden></p>
+      <div class="post-grid" id="lib-grid"></div>
+      <p class="deck-empty" id="lib-empty" hidden></p>
+      <p class="lib-note" data-i18n="lib.disclaimer"></p>
+    </div>
+    <footer class="modal-foot">
+      <button type="button" class="btn btn-ghost" id="btn-lib-add-all"></button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-primary" data-close data-i18n="board.done"></button>
+    </footer>
+  </div>
+</div>
+
 <!-- ============ CLOUD MODAL ============ -->
 <div class="modal" id="modal-cloud" hidden>
   <div class="modal-backdrop" data-close></div>
@@ -677,6 +730,8 @@
 <script src="assets/js/board.js"></script>
 <script src="assets/js/share.js"></script>
 <script src="assets/js/community.js"></script>
+<script src="assets/js/tactics-library.js"></script>
+<script src="assets/js/library.js"></script>
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/app.js"></script>
 </body>

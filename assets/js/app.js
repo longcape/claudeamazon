@@ -51,6 +51,7 @@
     reportingPostId: null,    // 通報しようとしている投稿
     postTacticId: null,
     treeFocusId: null,        // ツリーで強調する戦術（直前に使ったもの）
+    lib: { side: 'ALL', kind: '', level: 'ALL', rounds: 'ALL', query: '' },   // 定石ライブラリの絞り込み
     cloudSetups: [],          // クラウドに保存済みのセットアップ
     cloudLoading: false,
 
@@ -134,7 +135,7 @@
   function openModal(id) { $(id).hidden = false; document.body.style.overflow = 'hidden'; }
   function closeModal(id) { $(id).hidden = true; document.body.style.overflow = ''; }
   function closeAllModals() {
-    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-report', 'modal-breakdown', 'modal-modlog', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree', 'modal-round-eval'].forEach(closeModal);
+    ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-report', 'modal-breakdown', 'modal-modlog', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree', 'modal-library', 'modal-round-eval'].forEach(closeModal);
   }
 
   function rosterOf(team) { return team === 'ally' ? S.state.allies : S.state.enemies; }
@@ -325,6 +326,93 @@
         U.toast(t('tree.cleared'));
       });
     });
+  }
+
+  /* ================= 定石ライブラリ ================= */
+  /* 調べてある定石を、いまのマップのぶんだけ見せてデッキへ取り込む。
+     勝手にデッキへ流し込まない。何を入れるかは使う人が決める
+     （入れた覚えのない戦術がライブ画面に並ぶと、試合中に探す手間が増える）。 */
+  function bindLibrary() {
+    const L = global.VCT_LIBRARY;
+
+    const addItems = function (items) {
+      let n = 0, last = null;
+      items.forEach(function (it) {
+        if (L.isAdded(it, S.state.tactics)) return;
+        const added = S.addTactic(L.toPayload(it, I.get()));
+        if (added) { n++; last = added; }
+      });
+      if (!n) return;
+      U.renderLibrary(ui);
+      U.renderDeck(ui);
+      U.renderReady();
+      U.toast(n === 1 ? t('lib.addedOne', { name: last.name }) : t('lib.addedMany', { n: n }), 'ok');
+    };
+
+    const shown = function () {
+      return L.filter(L.forMap(S.state.match.map), ui.lib, I.get());
+    };
+
+    $('btn-library').addEventListener('click', function () {
+      U.renderLibrary(ui);
+      openModal('modal-library');
+    });
+
+    $('lib-side').addEventListener('click', function (e) {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      ui.lib.side = chip.dataset.side;
+      U.renderLibrary(ui);
+    });
+
+    $('lib-level').addEventListener('click', function (e) {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      ui.lib.level = chip.dataset.level;
+      U.renderLibrary(ui);
+    });
+
+    $('lib-rounds').addEventListener('click', function (e) {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      ui.lib.rounds = chip.dataset.rounds;
+      U.renderLibrary(ui);
+    });
+
+    /* 検索。打つたびに一覧だけ描き直す（入力欄そのものは描き直さないので、打っている途中で消えない） */
+    $('lib-query').addEventListener('input', function (e) {
+      ui.lib.query = e.target.value;
+      U.renderLibrary(ui);
+    });
+    $('btn-lib-clear').addEventListener('click', function () {
+      ui.lib.query = '';
+      U.renderLibrary(ui);
+      $('lib-query').focus();
+    });
+
+    $('lib-kind').addEventListener('change', function (e) {
+      ui.lib.kind = e.target.value;
+      U.renderLibrary(ui);
+    });
+
+    /* 足りない型を押すと、その型だけに絞る。もう一度押すと戻る */
+    $('lib-gaps').addEventListener('click', function (e) {
+      const chip = e.target.closest('[data-gap-kind]');
+      if (!chip) return;
+      const same = ui.lib.side === chip.dataset.gapSide && ui.lib.kind === chip.dataset.gapKind;
+      ui.lib.side = same ? 'ALL' : chip.dataset.gapSide;
+      ui.lib.kind = same ? '' : chip.dataset.gapKind;
+      U.renderLibrary(ui);
+    });
+
+    $('lib-grid').addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-lib-add]');
+      if (!btn) return;
+      const it = L.forMap(S.state.match.map).find(function (x) { return x.key === btn.dataset.libAdd; });
+      if (it) addItems([it]);
+    });
+
+    $('btn-lib-add-all').addEventListener('click', function () { addItems(shown()); });
   }
 
   /* ================= クラウド保存 ================= */
@@ -1873,7 +1961,7 @@
         return;
       }
 
-      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree', 'modal-round-eval']
+      const modalOpen = ['modal-agent', 'modal-tactic', 'modal-post', 'modal-post-edit', 'modal-login', 'modal-board', 'modal-cloud', 'modal-tree', 'modal-library', 'modal-round-eval']
         .some(function (id) { return !$(id).hidden; });
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
       if (modalOpen || typing || ui.view !== 'live') return;
@@ -1988,6 +2076,7 @@
     bindCloud();
     bindTopMenu();
     bindTree();
+    bindLibrary();
     bindBoardEditor();
     bindAgentModal();
     bindTacticModal();

@@ -2823,3 +2823,24 @@ html[lang="ko"] .verdict { letter-spacing: .1em; }
 
 /* コミュニティの検索欄は自分のデッキ検索と同じ見た目でよい */
 #community-query { min-width: 0; }
+
+/* ---------- 定石ライブラリ ---------- */
+.lib-gaps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 10px; }
+.lib-gaps-label { font-size: 12px; color: var(--text-mute); margin-right: 4px; }
+.lib-agents { display: flex; gap: 3px; margin: 2px 0 10px; }
+.lib-levels { align-items: center; margin: 2px 0 8px; flex-wrap: wrap; }
+.lib-lv { font-size: 11px; padding: 2px 6px; border: 1px solid var(--line); color: var(--text-mute); white-space: nowrap; }
+.lib-lv-A { color: var(--teal); border-color: var(--teal); }
+.lib-lv-C { border-style: dashed; }
+.lib-proofs { list-style: none; margin: 0 0 8px; padding: 0; font-size: 11px; line-height: 1.5; color: var(--text-mute); }
+.lib-proofs a { color: var(--teal); text-decoration: underline; }
+.lib-has-board { font-size: 11px; color: var(--text-mute); }
+.lib-note { margin-top: 14px; font-size: 12px; line-height: 1.6; color: var(--text-mute); }
+#modal-library .post-foot .btn { margin-left: auto; }
+
+/* 戦術ライブラリ: 根拠の行（✓・確認ラウンド数・確認パッチ） */
+.lib-basis { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 4px; }
+.lib-rounds, .lib-patch { font-size: 11px; padding: 2px 6px; border: 1px solid var(--line); color: var(--text-mute); white-space: nowrap; }
+.lib-rounds.is-multi { color: var(--teal); border-color: var(--teal); }
+.lib-rounds.is-one { border-style: dashed; }
+#modal-library .deck-search { flex: 1 1 180px; }

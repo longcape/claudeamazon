@@ -1,3 +1,8 @@
 node_modules/
 package-lock.json
 .DS_Store
+
+# 知識の写し。正本は 02_ロングケープ/AI_Coaching_Knowledge_Base（リポジトリの外）。
+# 公開していない戦術（解説資料ベース・一般型）と内部の出典メモを含むので、公開リポジトリには入れない。
+# 公開するのは、ここから作った assets/js/tactics-library.js（✓ VCT 実戦確認済みだけ）。
+knowledge/

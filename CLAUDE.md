@@ -64,8 +64,12 @@ node tools/smoke-test.mjs
 ```
 config → i18n → locales(ja/en/ko) → data → agent-traits → abilities
   → portraits → maps-layout → official-assets → store
-  → advisor → analyst → tree → board → share → community → ui → app
+  → advisor → analyst → tree → board → share → community
+  → tactics-library → library → ui → app
 ```
+
+`tactics-library.js` も**自動生成**（`tools/build-library.mjs` が `knowledge/` から書く）。
+手で編集しない。中身を直すときは `knowledge/` を直して作り直す。
 
 `official-assets.js` は**自動生成**（`tools/fetch-assets.mjs` が書く）。
 手で編集しない。`portraits` / `maps-layout` / `abilities` の
@@ -93,6 +97,7 @@ config → i18n → locales(ja/en/ko) → data → agent-traits → abilities
 | `VCT_BOARD` | board.js | 配置盤のデータ構造と SVG 描画 |
 | `VCT_SHARE` | share.js | X ポスト / クリップボード |
 | `VCT_COMMUNITY` | community.js | Supabase（PostgREST / GoTrue を直接 fetch） |
+| `VCT_LIBRARY` | tactics-library.js / library.js | 戦術ライブラリ。前者がデータ（自動生成）、後者が読み出し |
 | `VCT_UI` | ui.js | 描画。DOM を作るのは基本ここだけ |
 | （なし） | app.js | 状態遷移とイベント結線。UI 状態 `ui` を持つ |
 
@@ -348,6 +353,51 @@ SVG の `viewBox` を切り取ることで実現している。マークもル�
 競技用のツールとして使う画面に SNS への投稿ボタンが並ぶと、道具の性格が変わって見える。
 **機能は消さず、上部の `⋯` メニューにだけ置く**（`btn-share-x`）。ラウンドの記録が 0 件のときは押せない。
 決着バナーやライブ画面へ戻さないこと。smoke-test が置き場所を見張っている。
+
+### 戦術ライブラリ（調べた戦術をカードへ載せる）
+
+競技シーンで使われている戦術をマップごとに調べ、`knowledge/tactics/<map>.json` に置いている。
+`tools/build-library.mjs` がそれを `assets/js/tactics-library.js` に直し、デッキの
+「戦術ライブラリ」から取り込める。形式と決まりは `knowledge/README.md`。
+
+```bash
+node tools/fetch-callouts.mjs      # 場所の名前 → 座標（valorant-api.com から。マップが増えたとき）
+node tools/build-library.mjs       # knowledge/ → assets/js/tactics-library.js
+node build.js && node tools/smoke-test.mjs
+```
+
+- **盤面の座標を目分量で書かない。** 戦術データは場所の名前（`at` / `from`）だけを持ち、座標は
+  `knowledge/callouts/<map>.json`（valorant-api.com の公式座標に、配置盤と同じ回転を掛けたもの）から引く。
+  公式に無い呼び名（ヘブン、ジェネ裏など）と、公式の座標がおかしい場所（サミットのアタッカースポーン）は
+  `knowledge/callouts/_aliases.json` で足す。対応表を直したら `tools/preview-callouts.mjs` で画像にして見る。
+- `build-library.mjs` は座標に直せなかった場所を件数つきで報告する。**出たら別名を足す。**
+  放置すると、その場所を使う手順だけ盤面から黙って抜ける。
+- **デッキへ勝手に流し込まない。** 1 マップに 40〜50 件あり、全部入れるとライブ画面で探せなくなる。
+  取り込むものは使う人が選ぶ。「いまのデッキに無い型」は サイド × 戦術タイプ の有無だけを見ており、
+  良し悪しの評価はしていない。
+- **根拠レベル（`lv`）を必ず画面に出し、弱いものを確認済みのように見せない。**
+  A = ✓ VCT 実戦確認済み / B = ◇ 解説資料ベース / C = △ 一般型・未検証。
+  **A は `knowledge/evidence/<map>.json` に大会映像の証拠（大会・チーム・相手・ラウンド・時刻つき URL）が
+  ある戦術にだけ付く。** `build-library.mjs` は証拠の項目が欠けていれば A にしない。smoke-test も
+  「A なのに証拠が無い」「A でないのに証拠が付いている」を落とす。付け方と映像の見方は
+  `knowledge/evidence/README.md`、集計は `node tools/evidence-report.mjs`。
+- **「競技で通用する」「プロ使用」は A にだけ使う。** 画面全体でこの言い方をしていないことを
+  smoke-test が見ている。名前も「定石ライブラリ」から「戦術ライブラリ」に変えた
+  （定石と呼ぶと、裏づけの無いものまで確立した型に見える）。
+- **A にする基準は 4 点（初期配置・使用スキル・侵入経路・目的）が十分一致すること。**
+  2026-10-08 の裏取りでは 239 件を照合して A は 31 件（完全一致 1・派生形 30）。映像を読んだ担当が
+  派生形とした 38 件のうち 8 件は、核になるスキルか経路が食い違っていたので部分一致へ下げた。
+  **迷ったら下げる。** 配信のミニマップから読めるのは立ち位置・スモーク・壁・設置物・リコンの輪・
+  スパイクまでで、フラッシュ・スタン・モロ・武器は読めない。その範囲で一致を見ている。
+- 実戦で一貫して別のやり方が見えた戦術（`contradicted`）は、ライブラリに載せない（データは残す）。
+- **配置盤は目安であって、正確な定点ではない。** 公式データの「◯ Site」は設置場所の中心ではなく、
+  マップによっては通路の上に落ちる（サンセットの B など）。裏取りで見つかった座標のずれは
+  各 `knowledge/evidence/<map>.json` の `coordinate_notes` にある。画面には「配置つき（目安）」と出す。
+- **確認したパッチを必ず画面に出す。** パッチが上がったら `knowledge/PATCH.json` を更新し、
+  変更のあったエージェント・マップに関わる戦術を見直す。
+- 新しいモーダルを足したら **`closeAllModals()` と Esc 判定の 2 か所の一覧に id を足すこと。**
+  `modal-library` を足し忘れ、「完了」を押しても閉じなかった（実際に操作して見つけた）。
+- 他サイトの文章・画像は写さない。戦術そのものは事実なので、自分の言葉で入れ直してよい。出典は残す。
 
 ### confirm() / prompt() を使わない
 
@@ -656,3 +706,91 @@ supabase/               スキーマと Edge Function
 画像を取得.bat          Windows 用の取得ランチャ（CP932/CRLF）
 画像を取得.command      Mac 用
 ```
+
+### 戦術ライブラリ: 2 回目の検証で足した決まり（2026-10-08）
+
+- **✓（A）を付けた戦術は、実戦の映像で見えた形に書き直す。** 説明が解説資料のままだと、確認済みと
+  表示しながら中身は実戦と違う状態になる。書き直したものは `observed: true`。位置は場所の名前に加えて
+  映像から読んだ座標（`at_xy` / `from_xy` / `plant_xy` / `routes_xy`）を持つ。やり方は `knowledge/evidence/README.md`。
+- **映像から読めなかったスキルを手順に書かない。** 読めるのは立ち位置・スモーク・壁・設置物・リコンの輪・
+  スパイクまで。フラッシュ・スタン・モロは読めない。推測で足すと、✓ の中身に未確認のものが混ざる。
+- **使用スキルが 1 つも読めていない観測は A にしない**（配置・経路・目的の 3 点だけでは基準に足りない）。
+  前詰めやリテイクのようにスキルが核でない型をどう扱うかは未決定。いまは `knowledge/exclude.json` の
+  `position_only` に入れてライブラリに載せていない。
+- **`knowledge/exclude.json` に入っている key はライブラリに載らない。** `originality` は、特定サイトの
+  表現・構成に近いと指摘されたもの（`knowledge/evidence/_originality.json`）。映像から書き直すか、
+  自分の言葉で組み直してから外す。
+- **設置位置は `◯ Plant`（`_aliases.json`）を使う。** 公式データの `◯ Site` は設置場所の中心ではない。
+- **マークは床の外に置かれない。** `tools/build-floor-mask.mjs` がミニマップ画像から床の範囲を作り、
+  `build-library.mjs` が床の外に出たマークを最寄りの床へ寄せる。ミニマップ画像を取り直したら、
+  マスクも作り直すこと。1 件の盤面は `tools/preview-tactic.mjs` で画像にして見られる。
+
+### コーチング用の知識ベース（2026-10-09）
+
+戦術のほかに、エージェント・マップ・構成・基礎理論を `knowledge/` に蓄積している。
+セットアップカードだけでなく、将来のコーチング（試合の振り返り・練習の提案）でも読める形にしてある。
+**形式と決まりは `knowledge/SCHEMA.md`。アプリ本体はまだこれを読んでいない**（読むのは `tactics-library.js` だけ）。
+
+| 場所 | 中身 |
+| --- | --- |
+| `knowledge/agents/` | 全 29 体。スキルごとの使いどころ・コツ・失敗・対処、相性、マップ適性、練習、振り返りの問い |
+| `knowledge/maps/` | 全 13 マップ。強いポジション・設置位置・スキルの置き場所（座標つき）、寄り方、チェックリスト |
+| `knowledge/concepts/` | 基礎理論 16 項目。原則と「症状 → 原因 → リプレイで見る所 → 練習」の診断 |
+| `knowledge/meta/` | 大会の使用率・構成・攻守の勝率（数字は出典と対象期間つき） |
+| `knowledge/patches/` | 公式パッチノートから読んだ変更の記録（数値はここにだけ書く） |
+
+```bash
+node tools/fetch-agents.mjs            # 公式のスキル名・説明を取り直す（agents/_official.json）
+node tools/validate-knowledge.mjs      # 形式・id・公式とのスキル名の一致・座標が床の上か
+node tools/check-tactics-abilities.mjs # 戦術の手順のスロットが、いまのスキル構成と合っているか
+node tools/knowledge-stats.mjs         # 量と根拠レベルの内訳
+```
+
+- **スキルは公式データを正とする。記憶や古い解説で書かない。** 作り直しでスロットごと入れ替わることがある。
+  実際に、戦術の手順 945 件のうち 58 件が古いスロットのままだった（フェニックスのフラッシュとモロ、
+  ハーバーの壁とスモーク）。盤面に別のスキルのアイコンが出る不具合になる。パッチのたびに
+  `fetch-agents.mjs` → `check-tactics-abilities.mjs` を回す。
+- **パッチが出たら、公式パッチノートから変更を読んで直す。** 第三者の要約で直さない。
+  Claude アプリの定期タスク `valorant-patch-watch`（毎日 10 時）がこれをやる。手順はそのタスクの本文。
+  commit / push はしない。
+- **根拠レベルは項目ごとに持つ。** A は大会映像のラウンドか試合ページの数字が `refs` にあるものだけ。
+  プール外の 6 マップは映像を見ていないので A のポジションは 0。
+- 数値（回数・秒数・ダメージ・価格）は `patches/` と `concepts/economy.json` の `economy_values` にだけ書く。
+- **ロングケープの定理との統合は構想であって、未着手。** こちらの知識は単独で読める JSON にしてあり、
+  向こうのファイルには触れていない。
+
+## 2026-10-09 AIコーチング共通知識基盤（ロングケープ案件）
+AIコーチングはロングケープの定理の延長。正本は `02_ロングケープ/AI_Coaching_Knowledge_Base/README.md`。ゲーム横断の再利用は内部Shared層で行う。
+保存先・型・根拠・版管理・競技→SoloQ変換・セッション終了時の永続化は同基盤のINDEX.mdと99_Governance/POLICY.mdに従う。既存VTC/Video Analyzerの実装・knowledge・凍結データを移動しない。今回の接続は文書参照で、アプリ自動読込・本番公開は未実施。
+
+## 2026-10-09 最終目標と知識蓄積（ユーザー確定）
+感度測定の先にAIコーチングがあり、AIコーチングが最終目標。ロングケープの定理の延長として、コーチと動画解析に必要な知識を可能な限り継続蓄積する。
+詳細正本: `02_ロングケープ/AI_Coaching_Knowledge_Base/99_Governance/AI_COACH_CHARTER.md` と `COACH_OPERATIONS.md`。完成条件・診断保留・評価・接続・教師データ・if/thenを参照する。公開/学習/凍結の既存条件は維持。
+
+VTC競技知識の新規編集先は共通KBのVTC_CANONICAL.json対応先。通常のbuild-library.mjsはKBを読み、--legacy-knowledgeは旧コピー確認用。旧knowledgeを読む収集/検査ツールは未変更のため、旧側に新知識が増えた場合はimport_manifestの差分を確認してKBへ統合する。公開assetsは今回更新していない。
+
+### 戦術ライブラリの公開範囲と、知識の更新の向き（2026-10-10）
+
+- **公開しているのは ✓ VCT 実戦確認済みだけ。** 出す根拠レベルは正本側の `publish.json`（いまは `["A"]`）で決まり、
+  `build-library.mjs` がそれ以外を生成物に入れない。解説資料ベース（B）・一般型（C）・使用スキルが映像から
+  読めていない観測（`exclude.json` の `position_only`）は、データとして持っているだけで画面には出ない。
+  **出すレベルを増やすのはユーザーの判断。** コードに埋めず `publish.json` を直す。
+- **`knowledge/` は公開リポジトリに入れない**（`.gitignore`）。未公開の戦術と内部の出典メモを含む。
+  公開されるのは生成物の `assets/js/tactics-library.js` と、そこに入る公式配信へのリンクだけ。
+- **更新の向きは一方向: 正本（共通知識基盤）→ 写し（`knowledge/`）→ 生成物。**
+  戦術・座標・証拠・パッチ情報・見合わせ・公開レベルの置き場所は `tools/kb-paths.mjs` が決め、
+  道具はすべてそこを通す。**写しを直接直さない。** 実際に、収集の作業が写しへ書いて正本と食い違った。
+
+```bash
+node tools/kb-mirror.mjs              # 正本と写しのずれを確かめる（ずれがあれば終了コード 1）
+node tools/kb-mirror.mjs --to-legacy  # 正本 → 写し
+node tools/build-library.mjs          # 正本 → assets/js/tactics-library.js
+node tools/verify-publish.mjs         # 公開する戦術を 1 件ずつ確かめる（--table で一覧）
+node build.js && node tools/smoke-test.mjs
+```
+
+- **公開前に `verify-publish.mjs` を必ず通す。** 証拠（大会・チーム・相手・ラウンド・時刻つき URL）、確認ラウンド数、
+  確認パッチ、攻守、配置盤、座標が床の上、実戦の映像から書いたものか、**映像から読めない種類のスキル
+  （フラッシュ・スタン・モロなど）を手順や説明に書いていないか**を見る。
+- 画面には ✓・確認ラウンド数（「1ラウンド確認」と「N ラウンド確認」を文言と見た目で分ける）・確認パッチ・
+  確認した試合を出す。配置は「配置目安」と書く（正確な定点ではない）。

@@ -1697,8 +1697,155 @@
     toastTimer = setTimeout(function () { el.hidden = true; }, 2800);
   }
 
+  /* 実戦で確認した試合。根拠レベル A のものにだけ付く。
+     「どの試合のどのラウンドか」を出さないと、確認済みの印が言い値になる。
+     リンクは https の YouTube だけを通す（データが壊れていても javascript: などを踏ませない）。 */
+  function libProofHTML(it) {
+    if (it.lv !== 'A' || !Array.isArray(it.proofs) || !it.proofs.length) return '';
+    return '<ul class="lib-proofs">' + it.proofs.map(function (p) {
+      const label = p.ev + ' · ' + p.team + ' vs ' + p.opp + ' · ' + t('lib.round', { n: p.r });
+      const safe = /^https:\/\/(youtu\.be|www\.youtube\.com)\//.test(String(p.url));
+      return '<li>' + (safe
+        ? '<a href="' + esc(p.url) + '" target="_blank" rel="noopener noreferrer">' + esc(label) + '</a>'
+        : esc(label)) + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  /* 確認したラウンド数。1 ラウンドだけのものは、たまたまその回だけだった可能性が残るので、
+     2 ラウンド以上で見えたものと見た目を分ける（色だけに頼らず文言も変える） */
+  function libRoundsHTML(it) {
+    const n = global.VCT_LIBRARY.roundsOf(it);
+    if (!n) return '';
+    return '<span class="lib-rounds ' + (n >= 2 ? 'is-multi' : 'is-one') + '" title="' + esc(t(n >= 2 ? 'lib.roundsMultiHelp' : 'lib.roundsOneHelp')) + '">' +
+             esc(n >= 2 ? t('lib.roundsN', { n: n }) : t('lib.roundsOne')) + '</span>';
+  }
+
+  /* ================= 定石ライブラリ ================= */
+  /* いまのマップの定石を並べる。絞り込みは lib.side / lib.kind。
+     足りない型の表示は「ライブラリにあってデッキに無い サイド × 戦術タイプ」だけを見ており、
+     良し悪しの評価はしていない（推奨度と同じく、確率に見える出し方をしない）。 */
+  function renderLibrary(ui) {
+    const L = global.VCT_LIBRARY;
+    const lang = I.get();
+    const mapId = S.state.match.map;
+    const map = D.mapById(mapId);
+    const all = L.forMap(mapId);
+    const lib = ui.lib;
+
+    /* ここに出すのは「いつの時点の最新パッチまで見たか」。個々の戦術を確認したパッチはカードに出す
+       （大会は少し前のパッチで行われるので、2 つは一致しない） */
+    $('lib-sub').textContent = (map ? map.name : mapId) +
+      (L.patch ? ' · ' + t('lib.patch', { patch: L.patch, date: L.checkedAt }) : '');
+
+    $('lib-side').querySelectorAll('.chip').forEach(function (chip) {
+      chip.classList.toggle('is-active', chip.dataset.side === lib.side);
+    });
+
+    /* 戦術タイプの選択肢は、このマップに実際にあるものだけ出す */
+    const kinds = D.KINDS.filter(function (k) {
+      return all.some(function (it) { return it.kind === k.id; });
+    });
+    if (lib.kind && !kinds.some(function (k) { return k.id === lib.kind; })) lib.kind = '';
+    $('lib-kind').innerHTML = '<option value="">' + esc(t('filter.all')) + '</option>' +
+      kinds.map(function (k) {
+        return '<option value="' + k.id + '"' + (k.id === lib.kind ? ' selected' : '') + '>' +
+               esc(t('kind.' + k.id)) + '</option>';
+      }).join('');
+
+    const grid = $('lib-grid');
+    const empty = $('lib-empty');
+    const gapsEl = $('lib-gaps');
+    const count = $('lib-count');
+    const addAll = $('btn-lib-add-all');
+
+    if (!all.length) {
+      /* プール外のマップは調べていない。黙って空にせず、どのマップならあるかを言う */
+      const names = (L.pool || []).map(function (id) {
+        const m = D.mapById(id);
+        return m ? m.name : id;
+      }).join(' / ');
+      grid.innerHTML = '';
+      gapsEl.hidden = true;
+      count.hidden = true;
+      addAll.disabled = true;
+      empty.hidden = false;
+      empty.textContent = t('lib.noMap', { maps: names });
+      return;
+    }
+
+    const gaps = L.gaps(mapId, S.state.tactics);
+    gapsEl.hidden = !gaps.length;
+    gapsEl.innerHTML = gaps.length
+      ? '<span class="lib-gaps-label">' + esc(t('lib.gaps')) + '</span>' +
+        gaps.map(function (g) {
+          const on = lib.side === g.side && lib.kind === g.kind;
+          return '<button type="button" class="chip' + (on ? ' is-active' : '') + '" data-gap-side="' + g.side +
+                 '" data-gap-kind="' + g.kind + '">' +
+                 esc(t(g.side === 'ATK' ? 'side.attack' : 'side.defense') + ' · ' + t('kind.' + g.kind)) + '</button>';
+        }).join('')
+      : '';
+
+    /* 根拠レベルの絞り込みは、出しているレベルが 2 つ以上あるときだけ意味がある。
+       ✓ だけを出している間は隠す（押しても何も変わらない選択肢を並べない） */
+    const multiLevel = (L.levels || []).length > 1;
+    $('lib-level').hidden = !multiLevel;
+    if (!multiLevel) lib.level = 'ALL';
+    $('lib-level').querySelectorAll('.chip').forEach(function (chip) {
+      chip.classList.toggle('is-active', chip.dataset.level === lib.level);
+    });
+    $('lib-rounds').querySelectorAll('.chip').forEach(function (chip) {
+      chip.classList.toggle('is-active', chip.dataset.rounds === lib.rounds);
+    });
+    if ($('lib-query').value !== lib.query) $('lib-query').value = lib.query;
+    $('btn-lib-clear').hidden = !lib.query;
+
+    const shown = L.filter(all, lib, lang);
+
+    count.hidden = false;
+    count.textContent = t('lib.count', { n: shown.length, total: all.length });
+
+    let addable = 0;
+    grid.innerHTML = shown.map(function (it) {
+      const added = L.isAdded(it, S.state.tactics);
+      if (!added) addable++;
+      const note = L.pick(it.note, lang);
+      return '' +
+        '<article class="post-card" data-side="' + esc(it.side) + '" data-lv="' + esc(it.lv) + '">' +
+          '<div class="tcard-top">' +
+            '<span class="tcard-site">' + esc(it.site) + '</span>' +
+            '<span class="tcard-kind">' + esc(String(it.kind).toUpperCase()) + '</span>' +
+            '<span class="tcard-sidetag">' + esc(t(it.side === 'ATK' ? 'side.attack' : 'side.defense')) + '</span>' +
+          '</div>' +
+          '<h3 class="tcard-name">' + esc(L.pick(it.name, lang)) + '</h3>' +
+          (note ? '<p class="tcard-note">' + esc(note) + '</p>' : '') +
+          (it.agents && it.agents.length
+            ? '<div class="lib-agents">' + it.agents.map(function (a) { return avatarHTML(a, 'avatar-xs'); }).join('') + '</div>'
+            : '') +
+          libProofHTML(it) +
+          '<div class="lib-basis">' +
+            '<span class="lib-lv lib-lv-' + esc(it.lv) + '" title="' + esc(t('lib.lvHelp.' + it.lv)) + '">' +
+              esc(t('lib.lv.' + it.lv) + (it.variant ? t('lib.variant') : '')) + '</span>' +
+            libRoundsHTML(it) +
+            (it.patch ? '<span class="lib-patch">' + esc(t('lib.patchOf', { patch: it.patch })) + '</span>' : '') +
+          '</div>' +
+          '<div class="post-foot">' +
+            (it.phases ? '<span class="lib-has-board" title="' + esc(t('lib.boardHelp')) + '">' +
+              esc(t('lib.withBoard')) + '</span>' : '') +
+            '<button class="btn btn-ghost btn-sm" data-lib-add="' + esc(it.key) + '"' + (added ? ' disabled' : '') + '>' +
+              esc(t(added ? 'lib.added' : 'community.import')) + '</button>' +
+          '</div>' +
+        '</article>';
+    }).join('');
+
+    empty.hidden = shown.length > 0;
+    if (!shown.length) empty.textContent = t('lib.noMatch');
+    addAll.disabled = addable === 0;
+    addAll.textContent = t('lib.addAll', { n: addable });
+  }
+
   global.VCT_UI = {
     $: $, esc: esc, avatarHTML: avatarHTML,
+    renderLibrary: renderLibrary,
     renderLangPicker: renderLangPicker,
     renderMapSelect: renderMapSelect,
     renderMapFigure: renderMapFigure,

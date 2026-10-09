@@ -2290,6 +2290,293 @@ check('スマホで分岐ツリーの見出しが折れない',
 check('見出しの説明文が切れていない', treeHead.subClipped === false, JSON.stringify(treeHead));
 await narrowCtx.close();
 
+/* ---------------- 戦術ライブラリ ---------------- */
+console.log('\n戦術ライブラリ');
+const libCtx = await browser.newContext({ viewport: { width: 1500, height: 1000 }, locale: 'ja-JP' });
+const lp = await libCtx.newPage();
+lp.on('pageerror', (e) => pageErrors.push('library: ' + String(e.message)));
+lp.on('console', (m) => { if (m.type() === 'error' && !/ERR_|fonts/.test(m.text())) pageErrors.push('library: ' + m.text()); });
+lp.on('dialog', (d) => { pageErrors.push('library: ネイティブダイアログ ' + d.message()); d.dismiss(); });
+await lp.goto('file://' + DIST);
+await lp.waitForTimeout(700);
+
+/* データそのものの検査。ここが崩れると、取り込んだ戦術が盤面ごと壊れる。
+   いま公開しているのは ✓（VCT 実戦確認済み）だけ。それ以外が混ざっていたら落とす */
+const libData = await lp.evaluate(() => {
+  const L = window.VCT_LIBRARY, D = window.VCT_DATA;
+  const agentIds = D.AGENTS.map((a) => a.id);
+  const kindIds = D.KINDS.map((k) => k.id);
+  const bad = [];
+  let total = 0, one = 0, multi = 0;
+  const sides = {};
+  Object.keys(L.maps).forEach((mapId) => {
+    const map = D.mapById(mapId);
+    if (!map) { bad.push(mapId + ': 知らないマップ'); return; }
+    sides[mapId] = { ATK: 0, DEF: 0 };
+    L.maps[mapId].forEach((it) => {
+      total++;
+      const at = mapId + '/' + it.key;
+      if (it.side !== 'ATK' && it.side !== 'DEF') bad.push(at + ' side'); else sides[mapId][it.side]++;
+      if (kindIds.indexOf(it.kind) < 0) bad.push(at + ' kind');
+      if (it.site !== 'MID' && map.sites.indexOf(it.site) < 0) bad.push(at + ' site');
+      if (!it.name.ja || !it.name.en || it.name.ja.length > 60 || it.name.en.length > 60) bad.push(at + ' name');
+      if ((it.note.ja || '').length > 400 || (it.note.en || '').length > 400) bad.push(at + ' note');
+      (it.agents || []).forEach((a) => { if (agentIds.indexOf(a) < 0) bad.push(at + ' agent ' + a); });
+      /* ✓ は「どの試合のどのラウンドか」「何ラウンドで確認したか」「確認したパッチ」を必ず持つ */
+      if (it.lv !== 'A') bad.push(at + ' ✓ 以外が公開されている（' + it.lv + '）');
+      const proofs = it.proofs || [];
+      if (!proofs.length) bad.push(at + ' 証拠が無い');
+      proofs.forEach((p) => {
+        if (!/^https:\/\/(youtu\.be|www\.youtube\.com)\/.*[?&]t=\d+/.test(p.url) || !(p.r >= 1) || !p.team || !p.opp || !p.ev) {
+          bad.push(at + ' 証拠の項目不足');
+        }
+      });
+      if (!(it.rounds >= 1) || it.rounds < Math.min(proofs.length, 1)) bad.push(at + ' 確認ラウンド数');
+      if (it.rounds === 1) one++; else multi++;
+      if (!/^\d+\.\d+$/.test(String(it.patch || ''))) bad.push(at + ' 確認パッチ');
+      if (!it.phases || !it.phases[0].marks.length) bad.push(at + ' 配置盤が無い');
+      (it.phases || []).forEach((ph) => ph.marks.forEach((m) => {
+        if (!(m.x >= 2 && m.x <= 98 && m.y >= 2 && m.y <= 98)) bad.push(at + ' 座標');
+        const agent = m.kind === 'plant' ? null : m.ref.split(':')[0];
+        if (agent && agentIds.indexOf(agent) < 0) bad.push(at + ' mark ' + m.ref);
+        if (m.kind === 'ability' && ['C', 'Q', 'E', 'X'].indexOf(m.ref.split(':')[1]) < 0) bad.push(at + ' slot ' + m.ref);
+      }));
+    });
+  });
+  return { total, one, multi, sides, bad: bad.slice(0, 8), patch: L.patch, pool: L.pool, maps: Object.keys(L.maps), levels: L.levels };
+});
+check('ライブラリに戦術が入っている', libData.total > 0, String(libData.total));
+check('公開しているのは ✓（VCT 実戦確認済み）だけで、中身がアプリのマップ・エージェント・戦術タイプと食い違わない',
+  libData.bad.length === 0 && JSON.stringify(libData.levels) === '["A"]', libData.bad.join(' / ') + ' ' + JSON.stringify(libData.levels));
+check('確認したパッチが入っている', /^\d+\.\d+$/.test(libData.patch), String(libData.patch));
+check('プールの全マップに、攻めと守りの両方がある',
+  libData.pool.every((m) => libData.sides[m] && libData.sides[m].ATK > 0 && libData.sides[m].DEF > 0), JSON.stringify(libData.sides));
+check('1 ラウンド確認と 2 ラウンド以上確認の両方を区別して持っている',
+  libData.one + libData.multi === libData.total && libData.multi > 0, JSON.stringify({ one: libData.one, multi: libData.multi }));
+
+await lp.click('#btn-library');
+await lp.waitForTimeout(300);
+check('ライブラリが開き、確認したパッチを表示する',
+  (await lp.textContent('#lib-sub')).indexOf(libData.patch) >= 0);
+const libNote = await lp.textContent('#modal-library .lib-note');
+check('勝てる保証ではない旨を表示している', /保証ではありません/.test(libNote));
+check('配置が目安であり正確な定点ではない旨を表示している',
+  /配置目安/.test(libNote) && /正確な定点ではありません/.test(libNote));
+check('「プロ使用」「競技で通用」といった言い方を画面全体で使っていない',
+  !/プロ使用|競技で通用/.test(await lp.evaluate(() => document.body.innerText)));
+
+/* 根拠の表示。✓・確認ラウンド数・確認パッチ・確認した試合を、どの戦術にも出す */
+const basis = await lp.evaluate(() => {
+  const L = window.VCT_LIBRARY, S = window.VCT_STORE;
+  const items = L.forMap(S.state.match.map);
+  const cards = [...document.querySelectorAll('#lib-grid .post-card')];
+  const wrong = [];
+  cards.forEach((c, i) => {
+    const it = items[i];
+    const lv = c.querySelector('.lib-lv');
+    const rounds = c.querySelector('.lib-rounds');
+    const patch = c.querySelector('.lib-patch');
+    if (!lv || lv.textContent.indexOf('✓ VCT実戦確認済み') !== 0) wrong.push(it.key + ' ✓');
+    if (!rounds) { wrong.push(it.key + ' ラウンド数なし'); return; }
+    const expect = it.rounds >= 2 ? it.rounds + 'ラウンド確認' : '1ラウンド確認';
+    if (rounds.textContent !== expect) wrong.push(it.key + ' 文言 ' + rounds.textContent);
+    if (rounds.classList.contains('is-multi') !== (it.rounds >= 2) || rounds.classList.contains('is-one') !== (it.rounds === 1)) wrong.push(it.key + ' 見た目の区別');
+    if (!patch || patch.textContent.indexOf(it.patch) < 0) wrong.push(it.key + ' パッチ');
+    const links = [...c.querySelectorAll('.lib-proofs a')];
+    if (!links.length || links.some((a) => !/^https:\/\/(youtu\.be|www\.youtube\.com)\//.test(a.href) || a.target !== '_blank' || !/noopener/.test(a.rel))) wrong.push(it.key + ' 試合リンク');
+    if (!/ vs /.test(links.map((a) => a.textContent).join(' ')) || !/ラウンド \d+/.test(links[0] ? links[0].textContent : '')) wrong.push(it.key + ' 大会・チーム・相手');
+    const board = c.querySelector('.lib-has-board');
+    if (!board || board.textContent !== '配置目安') wrong.push(it.key + ' 配置目安');
+  });
+  return { n: cards.length, items: items.length, wrong: wrong.slice(0, 6), levelRowHidden: document.getElementById('lib-level').hidden };
+});
+check('一覧に、このマップの戦術が全部出ている', basis.n > 0 && basis.n === basis.items, JSON.stringify(basis));
+check('どの戦術にも ✓・確認ラウンド数・確認パッチ・確認した試合・「配置目安」が出ている',
+  basis.wrong.length === 0, basis.wrong.join(' / '));
+check('出している根拠レベルが 1 つの間は、根拠レベルの絞り込みを出さない', basis.levelRowHidden === true);
+
+/* 確認ラウンド数での絞り込み */
+const pickRounds = async (v) => {
+  await lp.locator('#lib-rounds .chip[data-rounds="' + v + '"]').click();
+  await lp.waitForTimeout(150);
+  return lp.evaluate(() => [...document.querySelectorAll('#lib-grid .post-card .lib-rounds')].map((e) => e.classList.contains('is-one') ? 'one' : 'multi'));
+};
+const onlyMulti = await pickRounds('MULTI');
+check('「2ラウンド以上確認」で絞ると、1 ラウンド確認のものが出ない', onlyMulti.length > 0 && onlyMulti.every((x) => x === 'multi'), JSON.stringify(onlyMulti.slice(0, 5)));
+await lp.evaluate(() => { window.VCT_STORE.state.match.map = 'abyss'; });
+await lp.locator('#modal-library .modal-foot [data-close]').click();
+await lp.click('#btn-library');
+await lp.waitForTimeout(250);
+const onlyOne = await pickRounds('ONE');
+check('「1ラウンド確認」で絞ると、1 ラウンド確認のものだけが出る', onlyOne.length > 0 && onlyOne.every((x) => x === 'one'), JSON.stringify(onlyOne));
+await pickRounds('ALL');
+
+/* 検索 */
+const allCount = await lp.locator('#lib-grid .post-card').count();
+const word = await lp.evaluate(() => window.VCT_LIBRARY.forMap('abyss')[0].proofs[0].team);
+await lp.fill('#lib-query', word);
+await lp.waitForTimeout(200);
+const searched = await lp.evaluate((w) => {
+  const cards = [...document.querySelectorAll('#lib-grid .post-card')];
+  return { n: cards.length, allHit: cards.every((c) => c.textContent.toLowerCase().indexOf(w.toLowerCase()) >= 0), focused: document.activeElement.id };
+}, word);
+check('検索で絞り込める（チーム名）', searched.n > 0 && searched.n < allCount && searched.allHit, JSON.stringify(searched) + ' / ' + word);
+check('検索を打っている途中で入力欄が消えない', searched.focused === 'lib-query');
+await lp.fill('#lib-query', 'zzzz-no-such-tactic');
+await lp.waitForTimeout(200);
+check('当たらない検索では、その旨を出す', (await lp.locator('#lib-grid .post-card').count()) === 0 && !(await lp.evaluate(() => document.getElementById('lib-empty').hidden)));
+await lp.click('#btn-lib-clear');
+await lp.waitForTimeout(200);
+check('検索を消すと元に戻る', (await lp.locator('#lib-grid .post-card').count()) === allCount);
+
+const gapCount = await lp.locator('#lib-gaps .chip').count();
+check('いまのデッキに無い型が出る', gapCount > 0, String(gapCount));
+await lp.locator('#lib-gaps .chip').first().click();
+await lp.waitForTimeout(150);
+const gapShown = await lp.evaluate(() => {
+  const chip = document.querySelector('#lib-gaps .chip.is-active');
+  const cards = [...document.querySelectorAll('#lib-grid .post-card')];
+  return { active: !!chip, n: cards.length, sides: [...new Set(cards.map((c) => c.dataset.side))] };
+});
+check('無い型を押すと、その型だけに絞られる',
+  gapShown.active && gapShown.n > 0 && gapShown.sides.length === 1, JSON.stringify(gapShown));
+
+const libBefore = await lp.evaluate(() => window.VCT_STORE.state.tactics.length);
+await lp.locator('#lib-grid [data-lib-add]:not([disabled])').first().click();
+await lp.waitForTimeout(200);
+const libAfter = await lp.evaluate(() => {
+  const S = window.VCT_STORE, L = window.VCT_LIBRARY;
+  const t = S.state.tactics[S.state.tactics.length - 1];
+  const src = L.forMap(S.state.match.map).find((x) => x.name.ja === t.name);
+  /* 取り込んだ盤面を動かしても、ライブラリ側が書き換わらないこと */
+  const had = src && src.phases ? src.phases[0].marks[0].x : null;
+  if (t.phases[0].marks[0]) t.phases[0].marks[0].x = 3;
+  return {
+    n: S.state.tactics.length,
+    marks: t.phases[0].marks.length,
+    idsFresh: t.phases[0].marks.every((m) => !!m.id),
+    srcUntouched: !src || !src.phases || src.phases[0].marks[0].x === had,
+    disabled: document.querySelectorAll('#lib-grid [data-lib-add][disabled]').length
+  };
+});
+check('ライブラリから 1 件取り込める', libAfter.n === libBefore + 1, JSON.stringify(libAfter));
+check('取り込んだ戦術に配置盤が付いている', libAfter.marks > 0 && libAfter.idsFresh, JSON.stringify(libAfter));
+check('取り込んだ盤面を動かしてもライブラリ側は変わらない', libAfter.srcUntouched);
+check('取り込んだものは「追加済み」になり二重に入らない', libAfter.disabled >= 1, String(libAfter.disabled));
+
+/* 一括取り込み。絞り込みを外して、見えているものを全部入れる */
+/* 取り込むとその型は「無い型」から消えるので、絞り込みは画面の操作で外す */
+await lp.locator('#lib-side .chip[data-side="ALL"]').click();
+await lp.selectOption('#lib-kind', '');
+await lp.waitForTimeout(150);
+const bulkBefore = await lp.evaluate(() => ({
+  n: window.VCT_STORE.state.tactics.length,
+  addable: document.querySelectorAll('#lib-grid [data-lib-add]:not([disabled])').length
+}));
+await lp.click('#btn-lib-add-all');
+await lp.waitForTimeout(300);
+const bulkAfter = await lp.evaluate(() => ({
+  n: window.VCT_STORE.state.tactics.length,
+  addable: document.querySelectorAll('#lib-grid [data-lib-add]:not([disabled])').length,
+  addAllDisabled: document.getElementById('btn-lib-add-all').disabled,
+  saved: JSON.parse(localStorage.getItem('vct.setup-card.v1')).tactics.length
+}));
+check('表示中をまとめて取り込める', bulkBefore.addable > 1 && bulkAfter.n === bulkBefore.n + bulkBefore.addable, JSON.stringify([bulkBefore, bulkAfter]));
+check('まとめて取り込んだあとは全部「追加済み」になり、もう一度押せない', bulkAfter.addable === 0 && bulkAfter.addAllDisabled);
+check('取り込んだ戦術が保存されている', bulkAfter.saved === bulkAfter.n, JSON.stringify(bulkAfter));
+
+await lp.locator('#modal-library .modal-foot [data-close]').click();
+await lp.waitForTimeout(200);
+check('「完了」でライブラリが閉じる', await lp.evaluate(() => document.getElementById('modal-library').hidden));
+
+/* 取り込んだ戦術の配置盤が開けて、マークが描かれる */
+await lp.evaluate(() => {
+  const S = window.VCT_STORE;
+  const t = S.state.tactics[S.state.tactics.length - 1];
+  document.querySelector('[data-board-for="' + t.id + '"]').click();
+});
+await lp.waitForTimeout(700);
+const boardOpen = await lp.evaluate(() => ({
+  open: !document.getElementById('modal-board').hidden,
+  marks: document.querySelectorAll('#modal-board svg [data-mark-id], #modal-board svg .board-mark').length
+}));
+check('取り込んだ戦術の配置盤が開き、マークが描かれる', boardOpen.open && boardOpen.marks > 0, JSON.stringify(boardOpen));
+await lp.keyboard.press('Escape');
+await lp.waitForTimeout(300);
+
+/* プール外のマップは空にせず、どのマップならあるかを言う */
+await lp.evaluate(() => { window.VCT_STORE.state.match.map = 'bind'; });
+await lp.click('#btn-library');
+await lp.waitForTimeout(200);
+const noMap = await lp.evaluate(() => ({
+  empty: !document.getElementById('lib-empty').hidden,
+  text: document.getElementById('lib-empty').textContent,
+  addAll: document.getElementById('btn-lib-add-all').disabled
+}));
+check('調べていないマップでは、入っているマップ名を案内する',
+  noMap.empty && /ASCENT/.test(noMap.text) && noMap.addAll, JSON.stringify(noMap));
+await libCtx.close();
+
+/* 以前から使っている人のデータ。ライブラリを足す前の形の保存データを置いてから開く */
+const oldCtx = await browser.newContext({ viewport: { width: 1500, height: 1000 }, locale: 'ja-JP' });
+const op = await oldCtx.newPage();
+op.on('pageerror', (e) => pageErrors.push('old-data: ' + String(e.message)));
+await op.goto('file://' + DIST);
+await op.evaluate(() => {
+  localStorage.setItem('vct.setup-card.v1', JSON.stringify({
+    version: 1, phase: 'setup',
+    match: { map: 'ascent', startSide: 'ATK', allyTeam: 'MY TEAM', enemyTeam: 'THEM', note: 'memo' },
+    allies: [{ agent: 'jett', player: 'a' }, { agent: 'sova', player: '' }, { agent: 'omen', player: '' }, { agent: 'killjoy', player: '' }, { agent: 'skye', player: '' }],
+    enemies: [], comps: [],
+    /* 旧形式: 盤面が board 1 枚、ラウンドに評価の欄が無い */
+    tactics: [{ id: 'old1', name: '自分で作った戦術', side: 'ATK', site: 'A', kind: 'execute', note: 'メモ',
+                board: { marks: [{ kind: 'agent', ref: 'jett', team: 'ally', x: 50, y: 50 }], routes: [] } },
+              { id: 'old2', name: 'もう 1 つ', side: 'DEF', site: 'B', kind: 'retake', note: '' }],
+    rounds: [{ n: 1, side: 'ATK', tacticId: 'old1', economy: 'full', result: 'WIN', note: '', at: 1 }],
+    pending: null, sideOverrides: {}
+  }));
+});
+await op.reload();
+await op.waitForTimeout(700);
+const kept = await op.evaluate(() => {
+  const S = window.VCT_STORE;
+  return { tactics: S.state.tactics.map((t) => t.name), team: S.state.match.allyTeam, rounds: S.state.rounds.length,
+           marks: S.state.tactics[0].phases[0].marks.length, cards: document.querySelectorAll('#deck-grid .tcard').length };
+});
+check('以前から使っている人の戦術・試合設定・ラウンド記録がそのまま残る',
+  kept.tactics.join('|') === '自分で作った戦術|もう 1 つ' && kept.team === 'MY TEAM' && kept.rounds === 1 && kept.marks === 1 && kept.cards === 2, JSON.stringify(kept));
+await op.click('#btn-library');
+await op.waitForTimeout(300);
+await op.locator('#lib-grid [data-lib-add]:not([disabled])').first().click();
+await op.waitForTimeout(200);
+const mixed = await op.evaluate(() => window.VCT_STORE.state.tactics.map((t) => t.name));
+check('以前のデータに、ライブラリの戦術を足せる（元の戦術は消えない）',
+  mixed.length === 3 && mixed[0] === '自分で作った戦術' && mixed[1] === 'もう 1 つ', JSON.stringify(mixed));
+await oldCtx.close();
+
+/* スマホ幅 */
+const libMobile = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, locale: 'ja-JP' });
+const mp2 = await libMobile.newPage();
+mp2.on('pageerror', (e) => pageErrors.push('library-mobile: ' + String(e.message)));
+await mp2.goto('file://' + DIST);
+await mp2.waitForTimeout(700);
+await mp2.evaluate(() => document.getElementById('btn-library').click());
+await mp2.waitForTimeout(400);
+const libNarrow = await mp2.evaluate(() => {
+  const card = document.querySelector('#modal-library .modal-card').getBoundingClientRect();
+  const first = document.querySelector('#lib-grid .post-card').getBoundingClientRect();
+  const q = document.getElementById('lib-query').getBoundingClientRect();
+  return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+           cardIn: card.left >= 0 && card.right <= window.innerWidth + 1, firstIn: first.left >= card.left && first.right <= card.right + 1,
+           queryIn: q.left >= card.left && q.right <= card.right + 1 && q.width > 120 };
+});
+check('スマホ幅でライブラリが画面に収まる（一覧・検索欄）',
+  libNarrow.overflow <= 2 && libNarrow.cardIn && libNarrow.firstIn && libNarrow.queryIn, JSON.stringify(libNarrow));
+await mp2.locator('#lib-grid [data-lib-add]:not([disabled])').first().tap();
+await mp2.waitForTimeout(200);
+check('スマホ幅で 1 件取り込める', await mp2.evaluate(() => document.querySelectorAll('#lib-grid [data-lib-add][disabled]').length >= 1));
+await libMobile.close();
+
 /* ---------------- まとめ ---------------- */
 check('ページ内で例外が出ていない', pageErrors.length === 0, pageErrors.join(' / '));
 
