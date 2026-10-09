@@ -997,7 +997,9 @@ select { appearance: none; cursor: pointer; }
 .lower {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: 1.35fr 1fr;
+  /* 1fr は「中身より縮まない」。長い戦術名（省略表示にしてある）がそのまま列の幅になり、
+     スマホでライブ画面が横にはみ出していた。minmax(0, …) で縮めるようにする */
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -1034,6 +1036,9 @@ select { appearance: none; cursor: pointer; }
   letter-spacing: .04em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   flex: 1;
+  /* フレックスの子は既定で中身より縮まない。これが無いと、長い戦術名がそのまま横幅になり、
+     スマホでライブ画面全体が横にはみ出す（戦術ライブラリの名前は長い） */
+  min-width: 0;
 }
 .perf-rate { font-family: var(--font-display); font-size: 13px; }
 .perf-count { font-size: 10.5px; color: var(--text-mute); }
@@ -1177,7 +1182,7 @@ select { appearance: none; cursor: pointer; }
   .board-side { order: 2; }
   .stage { order: 1; }
   .board-roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-  .lower { grid-template-columns: 1fr; }
+  .lower { grid-template-columns: minmax(0, 1fr); }
   .setup-grid { grid-template-columns: 1fr; }
 }
 
