@@ -211,7 +211,8 @@ function evidenceFor(mapId) {
       const ok = /^https:\/\/(youtu\.be|www\.youtube\.com)\//.test(url) && /[?&]t=\d+/.test(url) &&
                  Number.isFinite(Number(e.round)) && e.team && e.opponent && vod.event;
       if (!ok) { warn(mapId + '/' + v.key + ': 証拠の項目が足りない（大会・チーム・相手・ラウンド・時刻つき URL）'); return null; }
-      return { ev: vod.event, team: e.team, opp: e.opponent, r: Number(e.round), url: url, on: data.checked_on || '', id: e.vod + '#' + e.round, patch: vod.patch || '' };
+      /* 確認日は証拠ごとに持てる（あとから足した証拠は、マップ全体の確認日より新しい） */
+      return { ev: vod.event, team: e.team, opp: e.opponent, r: Number(e.round), url: url, on: e.checked_on || data.checked_on || '', id: e.vod + '#' + e.round, patch: vod.patch || '' };
     }).filter(Boolean);
     if (!proofs.length) return;
     /* 画面に並べる試合は 3 つまでだが、ラウンド数は全部を数える（同じラウンドを 2 回数えない） */

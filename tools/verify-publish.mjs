@@ -10,6 +10,8 @@
    - 映像の証拠がある（大会・チーム・相手・ラウンド・時刻つき URL）。確認したラウンド数
    - マップ・攻守・確認したパッチがある
    - 実戦の映像から書いたもの（observed）である
+   - 使用スキルの読み方。全ラウンドが「スキル未確認」のまま ✓ になっていないか
+     （「スキル不使用確認済み」= none_used は確認として数える。未確認とは別）
    - 配置盤があり、マークが全部床の上にある
    - **映像のミニマップから読めない種類のスキルを、手順や説明に書いていない**
      読めるのは スモーク・壁・設置物（罠）・リコンの輪・視界を遮るもの。フラッシュ・スタン・
@@ -28,6 +30,12 @@ const READABLE_OBJECTS = ['chamber:E', 'kayo:E'];
 /* 説明文に出てはいけない言葉（映像から読めないスキル）。「読めていない」と断っている文は除く */
 const UNREADABLE_WORDS = /フラッシュ|スタン|モロ|ショック|コンカス|ブームボット|グレネード|flash|stun|molly|shock dart|concuss/i;
 const DISCLAIMS = /読め|確認でき|未確認|分から|不明|could not|not readable|unconfirmed|not visible|not seen/i;
+/* 証拠の使用スキルの読み方（evidence/README.md）。none_used = 何も使っていないと確かめた */
+const READ_FROM = ['minimap', 'ability_hud', 'pov', 'none_used'];
+const NONE_USED_TEXT = /使っていない|変化なし|変わらず|変わらない|のまま/;
+const UNREAD_UTILITY = /^(読み取れず。?|(この場面で|ミニマップで)?読め(た|る)(守りの|攻めの)?スキルは(無い|確認できていない)[^、]*)$/;
+const unreadRounds = [];
+const noneUsedKeys = [];
 
 const agents = {};
 fs.readdirSync(path.join(LEGACY, 'agents')).filter((f) => /^[a-z]+\.json$/.test(f)).forEach((f) => {
@@ -78,6 +86,22 @@ Object.keys(LIB.maps).sort().forEach((mapId) => {
       if (!/^https:\/\/(youtu\.be|www\.youtube\.com)\/.*[?&]t=\d+/.test(String(e.youtube || ''))) bad('証拠の URL に時刻が無い');
     });
     if (it.rounds !== rounds) bad('画面に出すラウンド数（' + it.rounds + '）が証拠（' + rounds + '）と違う');
+
+    /* 使用スキルの読み方。「スキル未確認」（読めていない）と「スキル不使用確認済み」（何も使って
+       いないとスキル欄で確かめた = none_used）は別物。前者だけの証拠で ✓ にしてはいけない。
+       utility_read_from を持つ証拠は読み方が記録されている。持たない古い証拠は、文面が
+       「読めていない」だけのものを未確認として数える。 */
+    const unread = proofs.filter((e) => !e.utility_read_from && UNREAD_UTILITY.test(String((e.match || {}).utility_ja || '')));
+    proofs.forEach((e) => {
+      if (!e.utility_read_from) return;
+      const how = String(e.utility_read_from).split('+').map((s) => s.trim());
+      if (!how.length || how.some((h) => READ_FROM.indexOf(h) < 0)) bad('証拠の utility_read_from が不正: ' + e.utility_read_from);
+      if (how.indexOf('none_used') >= 0 && !NONE_USED_TEXT.test(String((e.match || {}).utility_ja || ''))) bad('none_used なのに、不使用を確かめた記述が無い（' + e.vod + '#' + e.round + '）');
+    });
+    if (proofs.length && unread.length === proofs.length) bad('全ラウンドが「スキル未確認」のまま ✓ になっている');
+    if (unread.length) unreadRounds.push(w + '（' + unread.length + '/' + rounds + ' ラウンド）');
+    const noneUsed = proofs.filter((e) => /none_used/.test(String(e.utility_read_from || ''))).length;
+    if (noneUsed) noneUsedKeys.push(w + '（' + noneUsed + '/' + rounds + ' ラウンド）');
     if (rounds === 1) one++; else if (rounds > 1) many++;
 
     if (it.side !== 'ATK' && it.side !== 'DEF') bad('攻守が不正');
@@ -109,6 +133,8 @@ Object.keys(LIB.maps).sort().forEach((mapId) => {
 if (table) rows.forEach((r) => console.log(r));
 console.log('公開対象 ' + total + ' 件 / 1 ラウンド確認 ' + one + ' / 2 ラウンド以上確認 ' + many);
 Object.keys(byMap).forEach((m) => console.log('  ' + m + ': 攻め ' + byMap[m].ATK + ' / 守り ' + byMap[m].DEF));
+console.log('スキル不使用確認済み（none_used）の証拠を含む ' + noneUsedKeys.length + ' 件' + (noneUsedKeys.length ? ': ' + noneUsedKeys.join(', ') : ''));
+console.log('スキル未確認のラウンドを含む ' + unreadRounds.length + ' 件（ほかのラウンドでスキルを確認済み）' + (unreadRounds.length ? ': ' + unreadRounds.join(', ') : ''));
 problems.forEach((p) => console.log('  ! ' + p));
 console.log(problems.length ? '問題 ' + problems.length + ' 件' : '問題なし');
 process.exit(problems.length ? 1 : 0);
