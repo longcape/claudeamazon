@@ -109,6 +109,15 @@ Object.keys(LIB.maps).sort().forEach((mapId) => {
     if (!t.observed) bad('実戦の映像から書いたもの（observed）になっていない');
     if (!/^\d+\.\d+$/.test(String(it.patch || ''))) bad('確認したパッチが無い');
     if (!it.name.ja || !it.name.en || !it.note.ja || !it.note.en) bad('名前・説明の ja / en が揃っていない');
+    /* build-library は名前と説明を上限の字数で切る。切れた説明は文の途中で終わったまま公開される。
+       長さではなく正本との一致で見る（ちょうど上限の長さで文末まで入っている説明を誤って落とさない） */
+    ['name', 'note'].forEach((f) => {
+      Object.keys(t[f] || {}).forEach((lang) => {
+        const full = typeof t[f][lang] === 'string' ? t[f][lang].trim() : '';
+        const shown = it[f][lang] || '';
+        if (full && full !== shown) bad((f === 'name' ? '名前' : '説明') + '（' + lang + '）が正本と違う。上限で切れているか、生成物が古い（正本 ' + full.length + ' 字 / 生成物 ' + shown.length + ' 字）');
+      });
+    });
 
     const marks = ((it.phases || [])[0] || {}).marks || [];
     if (!marks.length) bad('配置盤が無い');

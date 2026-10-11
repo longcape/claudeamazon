@@ -188,6 +188,15 @@ const text = function (obj, max) {
   return out;
 };
 
+/* text() が上限で切った言語。切れると文の途中で終わるが、生成物だけ見ても気づけない
+   （ちょうど上限の長さで文末まで入っている説明と区別が付かない）ので、正本と比べて知らせる */
+const cutLangs = function (obj, out, max) {
+  const src = obj && typeof obj === 'object' ? obj : {};
+  return Object.keys(out).filter(function (lang) { return src[lang].trim() !== out[lang]; }).map(function (lang) {
+    return lang + ' ' + src[lang].trim().length + ' 字 / 上限 ' + max;
+  });
+};
+
 /* 根拠レベル。
      A = 2026 年の公式大会映像で確認（knowledge/evidence/ に証拠がある）
      B = 解説資料ベース（実戦確認はしていない）
@@ -292,6 +301,8 @@ fs.readdirSync(knowledgePath('tactics')).filter(function (f) { return /\.json$/.
     if (PUBLISH.indexOf(lv) < 0) { withheld++; return; }
     if (phase) withBoard++;
     total++;
+    cutLangs(tac.name, name, 60).forEach(function (c) { warn(where + ': 名前が上限で切れている（' + c + '）'); });
+    cutLangs(tac.note, note, 400).forEach(function (c) { warn(where + ': 説明が上限で切れている（' + c + '）'); });
 
     list.push(Object.assign({
       key: tac.key, side: tac.side, site: site, kind: tac.kind,
