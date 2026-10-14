@@ -138,9 +138,26 @@ if (!onlyKind || onlyKind === 'maps') {
 if (!onlyKind || onlyKind === 'meta') {
   const list = files('meta');
   count.meta = list.length;
+  const eventIds = list.map((f) => f.id);
   list.forEach((f) => {
     const m = load(f); if (!m) return;
     const w = 'meta/' + f.id;
+    /* meta/placements-<年>.json は、1 大会 1 ファイルの形ではなく「大会 id → 最終順位」の一覧（SCHEMA.md）。
+       大会ファイルの規則を当てはめず、この種類の中身を検査する: どの項目も実在する大会ファイルを指し、
+       出典・確認日・状態・順位の並びを持つこと。 */
+    if (/^placements-\d{4}$/.test(f.id)) {
+      const ids = Object.keys(m);
+      if (!ids.length) bad(w, '順位の一覧が空');
+      ids.forEach((id) => {
+        const e = m[id] || {};
+        if (eventIds.indexOf(id) < 0) bad(w, id + ' に対応する大会ファイル（meta/' + id + '.json）が無い');
+        if (!isText(e.event) || !isText(e.source) || !isText(e.as_of)) bad(w, id + ' に event / source / as_of が無い');
+        if (['in_progress', 'final'].indexOf(e.status) < 0) bad(w, id + ' の status が in_progress / final でない');
+        if (!isList(e.placements, 1)) bad(w, id + ' に placements が無い');
+        (e.placements || []).forEach((p) => { if (!p || !isText(p.place) || !isText(p.team)) bad(w, id + ' の順位に place / team が無い'); });
+      });
+      return;
+    }
     if (!isText(m.event) || !isText(m.source) || !isText(m.as_of)) bad(w, 'event / source / as_of が無い');
     Object.keys(m.maps || {}).forEach((id) => {
       if (MAPS.indexOf(id) < 0) bad(w, '知らないマップ: ' + id);
